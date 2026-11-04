@@ -1,0 +1,11 @@
+# Safety boundary: the CLI refuses any month other than this one.
+test_month = "2013-01"
+all_months_enabled = false
+chunk_size = 5000
+output_dir = "data/lakehouse"
+max_download_bytes = 250000000
+# Published Lichess checksum for the one permitted test archive.
+archive_sha256 = "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635"
+
+# Published monthly input count; includes games that will be rejected.
+expected_games = 121332

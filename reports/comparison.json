@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-11-04T04:11:05.632404+00:00",
+  "source_month": "2013-01",
+  "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+  "equality": {
+    "dim_date": true,
+    "dim_player": true,
+    "dim_opening": true,
+    "dim_time_control": true,
+    "fact_game": true,
+    "rejected_game": true
+  },
+  "summary": {
+    "python": {
+      "samples": 3,
+      "median_elapsed_seconds": 159.968,
+      "median_input_games_per_second": 758.48,
+      "median_container_cpu_seconds": 145.253,
+      "median_container_peak_memory_mib": 152.68,
+      "median_model_bytes": 49520640,
+      "latest_counts": {
+        "input_games": 121332,
+        "accepted_games": 121114,
+        "rejected_games": 218,
+        "duplicate_games": 0,
+        "tables": {
+          "dim_date": 32,
+          "fact_game": 121114,
+          "dim_player": 4898,
+          "dim_opening": 1946,
+          "rejected_game": 218,
+          "dim_time_control": 394
+        }
+      }
+    },
+    "spark": {
+      "samples": 3,
+      "median_elapsed_seconds": 124.35,
+      "median_input_games_per_second": 975.73,
+      "median_container_cpu_seconds": 216.004,
+      "median_container_peak_memory_mib": 981.344,
+      "median_model_bytes": 49520640,
+      "latest_counts": {
+        "input_games": 121332,
+        "accepted_games": 121114,
+        "rejected_games": 218,
+        "duplicate_games": 0,
+        "tables": {
+          "dim_date": 32,
+          "fact_game": 121114,
+          "dim_player": 4898,
+          "dim_opening": 1946,
+          "rejected_game": 218,
+          "dim_time_control": 394
+        }
+      }
+    }
+  },
+  "environment": {
+    "python": "3.12.16",
+    "kernel": "6.18.33.2-microsoft-standard-WSL2",
+    "architecture": "x86_64",
+    "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+    "packages": {
+      "pyspark": "3.5.7",
+      "psycopg": "3.2.13",
+      "chess": "1.11.2",
+      "zstandard": "0.25.0",
+      "pyarrow": "26.0.1"
+    }
+  },
+  "samples": [
+    {
+      "engine": "python",
+      "phases": {
+        "frame_seconds": 1.884,
+        "parse_and_stage_seconds": 133.023,
+        "model_and_validate_seconds": 14.554
+      },
+      "run_id": "python_fbb7cf33417c4ce5",
+      "schema": "python_fbb7cf33417c4ce5",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 149.524,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 132.951,
+      "input_games_per_second": 811.45,
+      "container_peak_memory_mib": 152.6796875,
+      "container_memory_limit_mib": 3072
+    },
+    {
+      "engine": "spark",
+      "phases": {
+        "frame_seconds": 2.807,
+        "parse_and_stage_seconds": 114.135,
+        "model_and_validate_seconds": 13.314
+      },
+      "run_id": "spark_6456a8a56b3b48f9",
+      "schema": "spark_6456a8a56b3b48f9",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "partitions": 2,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "spark_master": "local[2]",
+      "spark_version": "3.5.7",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 130.382,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 228.136,
+      "input_games_per_second": 930.59,
+      "container_peak_memory_mib": 996.2578125,
+      "container_memory_limit_mib": 3072
+    },
+    {
+      "engine": "spark",
+      "phases": {
+        "frame_seconds": 3.469,
+        "parse_and_stage_seconds": 100.966,
+        "model_and_validate_seconds": 12.849
+      },
+      "run_id": "spark_b3bd032224ec45ed",
+      "schema": "spark_b3bd032224ec45ed",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "partitions": 2,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "spark_master": "local[2]",
+      "spark_version": "3.5.7",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 117.4,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 201.775,
+      "input_games_per_second": 1033.49,
+      "container_peak_memory_mib": 981.34375,
+      "container_memory_limit_mib": 3072
+    },
+    {
+      "engine": "python",
+      "phases": {
+        "frame_seconds": 3.616,
+        "parse_and_stage_seconds": 143.891,
+        "model_and_validate_seconds": 16.554
+      },
+      "run_id": "python_63f68ed7358d46dd",
+      "schema": "python_63f68ed7358d46dd",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 164.17,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 145.486,
+      "input_games_per_second": 739.06,
+      "container_peak_memory_mib": 156.18359375,
+      "container_memory_limit_mib": 3072
+    },
+    {
+      "engine": "python",
+      "phases": {
+        "frame_seconds": 2.739,
+        "parse_and_stage_seconds": 144.566,
+        "model_and_validate_seconds": 12.55
+      },
+      "run_id": "python_29fa0e866b9a42be",
+      "schema": "python_29fa0e866b9a42be",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 159.968,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 145.253,
+      "input_games_per_second": 758.48,
+      "container_peak_memory_mib": 150.3671875,
+      "container_memory_limit_mib": 3072
+    },
+    {
+      "engine": "spark",
+      "phases": {
+        "frame_seconds": 3.198,
+        "parse_and_stage_seconds": 107.979,
+        "model_and_validate_seconds": 13.079
+      },
+      "run_id": "spark_59db92707c1d4ac8",
+      "schema": "spark_59db92707c1d4ac8",
+      "tables": {
+        "dim_date": 32,
+        "fact_game": 121114,
+        "dim_player": 4898,
+        "dim_opening": 1946,
+        "rejected_game": 218,
+        "dim_time_control": 394
+      },
+      "chunk_size": 5000,
+      "partitions": 2,
+      "input_games": 121332,
+      "model_bytes": 49520640,
+      "source_month": "2013-01",
+      "spark_master": "local[2]",
+      "spark_version": "3.5.7",
+      "accepted_games": 121114,
+      "archive_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+      "rejected_games": 218,
+      "duplicate_games": 0,
+      "elapsed_seconds": 124.35,
+      "all_months_enabled": false,
+      "container_cpu_limit": 2,
+      "container_cpu_seconds": 216.004,
+      "input_games_per_second": 975.73,
+      "container_peak_memory_mib": 883.5234375,
+      "container_memory_limit_mib": 3072
+    }
+  ]
+}

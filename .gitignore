@@ -1,0 +1,17 @@
+.venv/
+.venv-*/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+data/
+.env
+*.db
+*.sqlite*
+*.pgn
+*.pgn.zst
+!tests/fixtures/*.pgn
+# Raw benchmark samples are retained locally; share the aggregate reports.
+reports/python_*.json
+reports/spark_*.json
+*.dump
+*.backup

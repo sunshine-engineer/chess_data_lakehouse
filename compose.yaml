@@ -1,0 +1,57 @@
+name: chess-lakehouse
+x-runner: &runner
+  image: chess-lakehouse-runner:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  environment:
+    PGHOST: postgres
+    PGPORT: "5432"
+    PGDATABASE: ${POSTGRES_DB:-chess}
+    PGUSER: ${POSTGRES_USER:-chess}
+    PGPASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    SPARK_LOCAL_IP: 127.0.0.1
+  volumes:
+    - pipeline-data:/data
+    - ./reports:/reports
+  depends_on:
+    postgres:
+      condition: service_healthy
+  cpus: 2
+  mem_limit: 3g
+  profiles: [tools]
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chess}
+      POSTGRES_DB: ${POSTGRES_DB:-chess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    mem_limit: 1g
+    cpus: 2
+  fetch:
+    <<: *runner
+    command: [fetch]
+  python:
+    <<: *runner
+    command: [run, --engine, python]
+  spark:
+    <<: *runner
+    command: [run, --engine, spark]
+  compare:
+    <<: *runner
+    command: [compare]
+  tests:
+    <<: *runner
+    entrypoint: [python, -m, pytest]
+    command: [-q]
+volumes:
+  pipeline-data:
+  postgres-data:
