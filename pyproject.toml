@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chess-lakehouse"
+version = "0.1.0"
+description = "Bounded monthly Lichess ingestion and portable dimensional models"
+requires-python = ">=3.11"
+dependencies = ["python-chess==1.999", "zstandard==0.25.0", "pyarrow==26.0.1"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+containers = ["pyspark==3.5.7", "psycopg[binary]==3.2.13"]
+
+[project.scripts]
+chess-pipeline = "chess_lakehouse.pipeline:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+cache_dir = "/tmp/chess-pytest-cache"
+
+[tool.setuptools.package-data]
+chess_lakehouse = ["schema.sql", "postgres_schema.sql", "migrations/*.sql"]

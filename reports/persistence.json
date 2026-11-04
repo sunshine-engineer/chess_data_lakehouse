@@ -1,0 +1,26 @@
+{
+  "python": {
+    "counts": {
+      "dim_date": 32,
+      "dim_player": 4898,
+      "dim_opening": 1946,
+      "dim_time_control": 394,
+      "fact_game": 121114,
+      "rejected_game": 218
+    },
+    "validated_fact_foreign_keys": 5
+  },
+  "spark": {
+    "counts": {
+      "dim_date": 32,
+      "dim_player": 4898,
+      "dim_opening": 1946,
+      "dim_time_control": 394,
+      "fact_game": 121114,
+      "rejected_game": 218
+    },
+    "validated_fact_foreign_keys": 5
+  },
+  "postgres_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+  "container_recreated_with_existing_volume": true
+}

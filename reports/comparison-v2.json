@@ -1,0 +1,1305 @@
+{
+  "benchmark_group": "benchmark-20261104T123830-12788",
+  "equality": {
+    "python_mp/dim_date": true,
+    "python_mp/dim_opening": true,
+    "python_mp/dim_player": true,
+    "python_mp/dim_time_control": true,
+    "python_mp/fact_game": true,
+    "python_mp/rejected_game": true,
+    "spark/dim_date": true,
+    "spark/dim_opening": true,
+    "spark/dim_player": true,
+    "spark/dim_time_control": true,
+    "spark/fact_game": true,
+    "spark/rejected_game": true
+  },
+  "histories": [
+    [
+      "2013-01-01",
+      "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635"
+    ]
+  ],
+  "measurement": "parse typed Parquet, COPY, model publication; shared source preparation excluded",
+  "query_plans": {
+    "python": [
+      {
+        "Execution Time": 59.558,
+        "Plan": {
+          "Actual Loops": 1,
+          "Actual Rows": 5,
+          "Actual Startup Time": 53.531,
+          "Actual Total Time": 59.5,
+          "Async Capable": false,
+          "Group Key": [
+            "fact_game.speed"
+          ],
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Node Type": "Aggregate",
+          "Parallel Aware": false,
+          "Partial Mode": "Finalize",
+          "Plan Rows": 200,
+          "Plan Width": 14,
+          "Plans": [
+            {
+              "Actual Loops": 1,
+              "Actual Rows": 15,
+              "Actual Startup Time": 53.52,
+              "Actual Total Time": 59.485,
+              "Async Capable": false,
+              "Local Dirtied Blocks": 0,
+              "Local Hit Blocks": 0,
+              "Local Read Blocks": 0,
+              "Local Written Blocks": 0,
+              "Node Type": "Gather Merge",
+              "Parallel Aware": false,
+              "Parent Relationship": "Outer",
+              "Plan Rows": 400,
+              "Plan Width": 14,
+              "Plans": [
+                {
+                  "Actual Loops": 3,
+                  "Actual Rows": 5,
+                  "Actual Startup Time": 24.008,
+                  "Actual Total Time": 24.01,
+                  "Async Capable": false,
+                  "Local Dirtied Blocks": 0,
+                  "Local Hit Blocks": 0,
+                  "Local Read Blocks": 0,
+                  "Local Written Blocks": 0,
+                  "Node Type": "Sort",
+                  "Parallel Aware": false,
+                  "Parent Relationship": "Outer",
+                  "Plan Rows": 200,
+                  "Plan Width": 14,
+                  "Plans": [
+                    {
+                      "Actual Loops": 3,
+                      "Actual Rows": 5,
+                      "Actual Startup Time": 23.954,
+                      "Actual Total Time": 23.957,
+                      "Async Capable": false,
+                      "Disk Usage": 0,
+                      "Group Key": [
+                        "fact_game.speed"
+                      ],
+                      "HashAgg Batches": 1,
+                      "Local Dirtied Blocks": 0,
+                      "Local Hit Blocks": 0,
+                      "Local Read Blocks": 0,
+                      "Local Written Blocks": 0,
+                      "Node Type": "Aggregate",
+                      "Parallel Aware": false,
+                      "Parent Relationship": "Outer",
+                      "Partial Mode": "Partial",
+                      "Peak Memory Usage": 40,
+                      "Plan Rows": 200,
+                      "Plan Width": 14,
+                      "Planned Partitions": 0,
+                      "Plans": [
+                        {
+                          "Actual Loops": 3,
+                          "Actual Rows": 40444,
+                          "Actual Startup Time": 0.019,
+                          "Actual Total Time": 14.375,
+                          "Alias": "fact_game",
+                          "Async Capable": false,
+                          "Filter": "(source_month = '2013-01-01'::date)",
+                          "Local Dirtied Blocks": 0,
+                          "Local Hit Blocks": 0,
+                          "Local Read Blocks": 0,
+                          "Local Written Blocks": 0,
+                          "Node Type": "Seq Scan",
+                          "Parallel Aware": true,
+                          "Parent Relationship": "Outer",
+                          "Plan Rows": 50555,
+                          "Plan Width": 6,
+                          "Relation Name": "fact_game_2013_01",
+                          "Rows Removed by Filter": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Hit Blocks": 3280,
+                          "Shared Read Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "Startup Cost": 0.0,
+                          "Temp Read Blocks": 0,
+                          "Temp Written Blocks": 0,
+                          "Total Cost": 3911.94,
+                          "Workers": []
+                        }
+                      ],
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Hit Blocks": 3280,
+                      "Shared Read Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "Startup Cost": 4164.71,
+                      "Strategy": "Hashed",
+                      "Temp Read Blocks": 0,
+                      "Temp Written Blocks": 0,
+                      "Total Cost": 4166.71,
+                      "Workers": [
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 0
+                        },
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Hit Blocks": 3295,
+                  "Shared Read Blocks": 1,
+                  "Shared Written Blocks": 0,
+                  "Sort Key": [
+                    "fact_game.speed"
+                  ],
+                  "Sort Method": "quicksort",
+                  "Sort Space Type": "Memory",
+                  "Sort Space Used": 25,
+                  "Startup Cost": 4174.36,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Total Cost": 4174.86,
+                  "Workers": [
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 0
+                    },
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 1
+                    }
+                  ]
+                }
+              ],
+              "Shared Dirtied Blocks": 0,
+              "Shared Hit Blocks": 3295,
+              "Shared Read Blocks": 1,
+              "Shared Written Blocks": 0,
+              "Startup Cost": 5174.38,
+              "Temp Read Blocks": 0,
+              "Temp Written Blocks": 0,
+              "Total Cost": 5221.05,
+              "Workers Launched": 2,
+              "Workers Planned": 2
+            }
+          ],
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 3295,
+          "Shared Read Blocks": 1,
+          "Shared Written Blocks": 0,
+          "Startup Cost": 5174.38,
+          "Strategy": "Sorted",
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Total Cost": 5225.05
+        },
+        "Planning": {
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 10,
+          "Shared Read Blocks": 5,
+          "Shared Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        "Planning Time": 0.294,
+        "Triggers": []
+      }
+    ],
+    "python_mp": [
+      {
+        "Execution Time": 57.047,
+        "Plan": {
+          "Actual Loops": 1,
+          "Actual Rows": 5,
+          "Actual Startup Time": 52.263,
+          "Actual Total Time": 56.993,
+          "Async Capable": false,
+          "Group Key": [
+            "fact_game.speed"
+          ],
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Node Type": "Aggregate",
+          "Parallel Aware": false,
+          "Partial Mode": "Finalize",
+          "Plan Rows": 200,
+          "Plan Width": 14,
+          "Plans": [
+            {
+              "Actual Loops": 1,
+              "Actual Rows": 15,
+              "Actual Startup Time": 52.252,
+              "Actual Total Time": 56.977,
+              "Async Capable": false,
+              "Local Dirtied Blocks": 0,
+              "Local Hit Blocks": 0,
+              "Local Read Blocks": 0,
+              "Local Written Blocks": 0,
+              "Node Type": "Gather Merge",
+              "Parallel Aware": false,
+              "Parent Relationship": "Outer",
+              "Plan Rows": 400,
+              "Plan Width": 14,
+              "Plans": [
+                {
+                  "Actual Loops": 3,
+                  "Actual Rows": 5,
+                  "Actual Startup Time": 31.167,
+                  "Actual Total Time": 31.192,
+                  "Async Capable": false,
+                  "Local Dirtied Blocks": 0,
+                  "Local Hit Blocks": 0,
+                  "Local Read Blocks": 0,
+                  "Local Written Blocks": 0,
+                  "Node Type": "Sort",
+                  "Parallel Aware": false,
+                  "Parent Relationship": "Outer",
+                  "Plan Rows": 200,
+                  "Plan Width": 14,
+                  "Plans": [
+                    {
+                      "Actual Loops": 3,
+                      "Actual Rows": 5,
+                      "Actual Startup Time": 31.11,
+                      "Actual Total Time": 31.137,
+                      "Async Capable": false,
+                      "Disk Usage": 0,
+                      "Group Key": [
+                        "fact_game.speed"
+                      ],
+                      "HashAgg Batches": 1,
+                      "Local Dirtied Blocks": 0,
+                      "Local Hit Blocks": 0,
+                      "Local Read Blocks": 0,
+                      "Local Written Blocks": 0,
+                      "Node Type": "Aggregate",
+                      "Parallel Aware": false,
+                      "Parent Relationship": "Outer",
+                      "Partial Mode": "Partial",
+                      "Peak Memory Usage": 40,
+                      "Plan Rows": 200,
+                      "Plan Width": 14,
+                      "Planned Partitions": 0,
+                      "Plans": [
+                        {
+                          "Actual Loops": 3,
+                          "Actual Rows": 40444,
+                          "Actual Startup Time": 0.014,
+                          "Actual Total Time": 17.86,
+                          "Alias": "fact_game",
+                          "Async Capable": false,
+                          "Filter": "(source_month = '2013-01-01'::date)",
+                          "Local Dirtied Blocks": 0,
+                          "Local Hit Blocks": 0,
+                          "Local Read Blocks": 0,
+                          "Local Written Blocks": 0,
+                          "Node Type": "Seq Scan",
+                          "Parallel Aware": true,
+                          "Parent Relationship": "Outer",
+                          "Plan Rows": 50555,
+                          "Plan Width": 6,
+                          "Relation Name": "fact_game_2013_01",
+                          "Rows Removed by Filter": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Hit Blocks": 3280,
+                          "Shared Read Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "Startup Cost": 0.0,
+                          "Temp Read Blocks": 0,
+                          "Temp Written Blocks": 0,
+                          "Total Cost": 3911.94,
+                          "Workers": []
+                        }
+                      ],
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Hit Blocks": 3280,
+                      "Shared Read Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "Startup Cost": 4164.71,
+                      "Strategy": "Hashed",
+                      "Temp Read Blocks": 0,
+                      "Temp Written Blocks": 0,
+                      "Total Cost": 4166.71,
+                      "Workers": [
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 0
+                        },
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Hit Blocks": 3296,
+                  "Shared Read Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "Sort Key": [
+                    "fact_game.speed"
+                  ],
+                  "Sort Method": "quicksort",
+                  "Sort Space Type": "Memory",
+                  "Sort Space Used": 25,
+                  "Startup Cost": 4174.36,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Total Cost": 4174.86,
+                  "Workers": [
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 0
+                    },
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 1
+                    }
+                  ]
+                }
+              ],
+              "Shared Dirtied Blocks": 0,
+              "Shared Hit Blocks": 3296,
+              "Shared Read Blocks": 0,
+              "Shared Written Blocks": 0,
+              "Startup Cost": 5174.38,
+              "Temp Read Blocks": 0,
+              "Temp Written Blocks": 0,
+              "Total Cost": 5221.05,
+              "Workers Launched": 2,
+              "Workers Planned": 2
+            }
+          ],
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 3296,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Startup Cost": 5174.38,
+          "Strategy": "Sorted",
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Total Cost": 5225.05
+        },
+        "Planning": {
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 0,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        "Planning Time": 0.211,
+        "Triggers": []
+      }
+    ],
+    "spark": [
+      {
+        "Execution Time": 79.175,
+        "Plan": {
+          "Actual Loops": 1,
+          "Actual Rows": 5,
+          "Actual Startup Time": 74.431,
+          "Actual Total Time": 79.115,
+          "Async Capable": false,
+          "Group Key": [
+            "fact_game.speed"
+          ],
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Node Type": "Aggregate",
+          "Parallel Aware": false,
+          "Partial Mode": "Finalize",
+          "Plan Rows": 200,
+          "Plan Width": 14,
+          "Plans": [
+            {
+              "Actual Loops": 1,
+              "Actual Rows": 15,
+              "Actual Startup Time": 74.372,
+              "Actual Total Time": 79.052,
+              "Async Capable": false,
+              "Local Dirtied Blocks": 0,
+              "Local Hit Blocks": 0,
+              "Local Read Blocks": 0,
+              "Local Written Blocks": 0,
+              "Node Type": "Gather Merge",
+              "Parallel Aware": false,
+              "Parent Relationship": "Outer",
+              "Plan Rows": 400,
+              "Plan Width": 14,
+              "Plans": [
+                {
+                  "Actual Loops": 3,
+                  "Actual Rows": 5,
+                  "Actual Startup Time": 36.42,
+                  "Actual Total Time": 36.426,
+                  "Async Capable": false,
+                  "Local Dirtied Blocks": 0,
+                  "Local Hit Blocks": 0,
+                  "Local Read Blocks": 0,
+                  "Local Written Blocks": 0,
+                  "Node Type": "Sort",
+                  "Parallel Aware": false,
+                  "Parent Relationship": "Outer",
+                  "Plan Rows": 200,
+                  "Plan Width": 14,
+                  "Plans": [
+                    {
+                      "Actual Loops": 3,
+                      "Actual Rows": 5,
+                      "Actual Startup Time": 36.36,
+                      "Actual Total Time": 36.365,
+                      "Async Capable": false,
+                      "Disk Usage": 0,
+                      "Group Key": [
+                        "fact_game.speed"
+                      ],
+                      "HashAgg Batches": 1,
+                      "Local Dirtied Blocks": 0,
+                      "Local Hit Blocks": 0,
+                      "Local Read Blocks": 0,
+                      "Local Written Blocks": 0,
+                      "Node Type": "Aggregate",
+                      "Parallel Aware": false,
+                      "Parent Relationship": "Outer",
+                      "Partial Mode": "Partial",
+                      "Peak Memory Usage": 40,
+                      "Plan Rows": 200,
+                      "Plan Width": 14,
+                      "Planned Partitions": 0,
+                      "Plans": [
+                        {
+                          "Actual Loops": 3,
+                          "Actual Rows": 40444,
+                          "Actual Startup Time": 0.017,
+                          "Actual Total Time": 15.191,
+                          "Alias": "fact_game",
+                          "Async Capable": false,
+                          "Filter": "(source_month = '2013-01-01'::date)",
+                          "Local Dirtied Blocks": 0,
+                          "Local Hit Blocks": 0,
+                          "Local Read Blocks": 0,
+                          "Local Written Blocks": 0,
+                          "Node Type": "Seq Scan",
+                          "Parallel Aware": true,
+                          "Parent Relationship": "Outer",
+                          "Plan Rows": 50555,
+                          "Plan Width": 6,
+                          "Relation Name": "fact_game_2013_01",
+                          "Rows Removed by Filter": 0,
+                          "Shared Dirtied Blocks": 0,
+                          "Shared Hit Blocks": 6559,
+                          "Shared Read Blocks": 0,
+                          "Shared Written Blocks": 0,
+                          "Startup Cost": 0.0,
+                          "Temp Read Blocks": 0,
+                          "Temp Written Blocks": 0,
+                          "Total Cost": 7190.94,
+                          "Workers": []
+                        }
+                      ],
+                      "Shared Dirtied Blocks": 0,
+                      "Shared Hit Blocks": 6559,
+                      "Shared Read Blocks": 0,
+                      "Shared Written Blocks": 0,
+                      "Startup Cost": 7443.71,
+                      "Strategy": "Hashed",
+                      "Temp Read Blocks": 0,
+                      "Temp Written Blocks": 0,
+                      "Total Cost": 7445.71,
+                      "Workers": [
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 0
+                        },
+                        {
+                          "Disk Usage": 0,
+                          "HashAgg Batches": 1,
+                          "Peak Memory Usage": 40,
+                          "Worker Number": 1
+                        }
+                      ]
+                    }
+                  ],
+                  "Shared Dirtied Blocks": 0,
+                  "Shared Hit Blocks": 6575,
+                  "Shared Read Blocks": 0,
+                  "Shared Written Blocks": 0,
+                  "Sort Key": [
+                    "fact_game.speed"
+                  ],
+                  "Sort Method": "quicksort",
+                  "Sort Space Type": "Memory",
+                  "Sort Space Used": 25,
+                  "Startup Cost": 7453.36,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Total Cost": 7453.86,
+                  "Workers": [
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 0
+                    },
+                    {
+                      "Sort Method": "quicksort",
+                      "Sort Space Type": "Memory",
+                      "Sort Space Used": 25,
+                      "Worker Number": 1
+                    }
+                  ]
+                }
+              ],
+              "Shared Dirtied Blocks": 0,
+              "Shared Hit Blocks": 6575,
+              "Shared Read Blocks": 0,
+              "Shared Written Blocks": 0,
+              "Startup Cost": 8453.38,
+              "Temp Read Blocks": 0,
+              "Temp Written Blocks": 0,
+              "Total Cost": 8500.05,
+              "Workers Launched": 2,
+              "Workers Planned": 2
+            }
+          ],
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 6575,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Startup Cost": 8453.38,
+          "Strategy": "Sorted",
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0,
+          "Total Cost": 8504.05
+        },
+        "Planning": {
+          "Local Dirtied Blocks": 0,
+          "Local Hit Blocks": 0,
+          "Local Read Blocks": 0,
+          "Local Written Blocks": 0,
+          "Shared Dirtied Blocks": 0,
+          "Shared Hit Blocks": 0,
+          "Shared Read Blocks": 0,
+          "Shared Written Blocks": 0,
+          "Temp Read Blocks": 0,
+          "Temp Written Blocks": 0
+        },
+        "Planning Time": 0.211,
+        "Triggers": []
+      }
+    ]
+  },
+  "samples": {
+    "python": [
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 145.135212,
+        "container_peak_memory_mib": 210.9609375,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 153.8298688630166,
+        "engine": "python",
+        "free_disk_bytes": 932109336576,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 788.7414901721362,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 51478528,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 2.013,
+          "parse_seconds": 143.761,
+          "publish_seconds": 8.033
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_c738ad01247a4608ab4a",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 153.745146,
+        "container_peak_memory_mib": 207.29296875,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 170.52035586399143,
+        "engine": "python",
+        "free_disk_bytes": 931377426432,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 711.5396832550332,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 97910784,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 1.823,
+          "parse_seconds": 152.072,
+          "publish_seconds": 16.594
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_103a89a5547241dd8444",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 143.66934700000002,
+        "container_peak_memory_mib": 206.171875,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 151.79901426800643,
+        "engine": "python",
+        "free_disk_bytes": 931199389696,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 799.2937278616588,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 99237888,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 1.545,
+          "parse_seconds": 142.389,
+          "publish_seconds": 7.833
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_611482d5169f4c08a5f2",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      }
+    ],
+    "python_mp": [
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 171.718547,
+        "container_peak_memory_mib": 233.3515625,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 123.73412471299525,
+        "engine": "python_mp",
+        "free_disk_bytes": 931881037824,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 980.5864007316733,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 51478528,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 1.772,
+          "parse_seconds": 115.982,
+          "publish_seconds": 5.965
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_mp_d392f14db9fb41c6b03e",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 154.844635,
+        "container_peak_memory_mib": 240.4375,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 121.08303813601378,
+        "engine": "python_mp",
+        "free_disk_bytes": 931449217024,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 1002.0561250181595,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 97910784,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 1.88,
+          "parse_seconds": 108.091,
+          "publish_seconds": 11.095
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_mp_0558dccd15eb4ac0a9ac",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 183.333965,
+        "container_peak_memory_mib": 240.8046875,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 145.40453723599785,
+        "engine": "python_mp",
+        "free_disk_bytes": 931204165632,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 834.4443874063772,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 99237888,
+        "parquet_bytes": 8891659,
+        "phases": {
+          "load_seconds": 2.278,
+          "parse_seconds": 131.018,
+          "publish_seconds": 12.084
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "python_mp_062d8b4924da4b4a9799",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      }
+    ],
+    "spark": [
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 199.917166,
+        "container_peak_memory_mib": 852.56640625,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 109.07517002001987,
+        "engine": "spark",
+        "free_disk_bytes": 931639119872,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 1112.3704870478816,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 51478528,
+        "parquet_bytes": 4758602,
+        "phases": {
+          "load_seconds": 1.516,
+          "parse_seconds": 101.045,
+          "publish_seconds": 6.499
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "spark_cc951fb28e164b7ab92c",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 227.803207,
+        "container_peak_memory_mib": 851.6328125,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 124.58551903700572,
+        "engine": "spark",
+        "free_disk_bytes": 931587461120,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 973.8852551873277,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 97910784,
+        "parquet_bytes": 4758602,
+        "phases": {
+          "load_seconds": 1.754,
+          "parse_seconds": 114.529,
+          "publish_seconds": 8.273
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "spark_4234f0d70ddb42ca9b0f",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      },
+      {
+        "accepted_games": 121332,
+        "benchmark_group": "benchmark-20261104T123830-12788",
+        "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+        "config_hash": "bd46528e02d335dfdf6edc455cb4e50f683ea89baf695b93289787403e294d93",
+        "container_cpu_seconds": 324.930162,
+        "container_peak_memory_mib": 751.68359375,
+        "cpu_limit": 2.0,
+        "duplicate_games": 0,
+        "elapsed_seconds": 179.41001750901341,
+        "engine": "spark",
+        "free_disk_bytes": 931228909568,
+        "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+        "input_games": 121332,
+        "input_games_per_second": 676.2833072791177,
+        "memory_limit_mib": 3072.0,
+        "model_bytes": 99237888,
+        "parquet_bytes": 4758602,
+        "phases": {
+          "load_seconds": 3.141,
+          "parse_seconds": 163.334,
+          "publish_seconds": 12.921
+        },
+        "rejected_games": 0,
+        "resumed": false,
+        "run_id": "spark_d462033a4eb445078aaf",
+        "runtime": {
+          "architecture": "x86_64",
+          "code_hash": "3702b2ae30ee89942541eca3e2f510b0a6e1f46fbe7cfee4c1ca9e78bb72e4aa",
+          "image_id": "sha256:a38b2cf856c3ed2b216aae84b9a43c392cb253ab745f7ac0899b7b13d41595dd",
+          "kernel": "6.18.33.2-microsoft-standard-WSL2",
+          "packages": {
+            "chess": "1.11.2",
+            "psycopg": "3.2.13",
+            "pyarrow": "26.0.1",
+            "pyspark": "3.5.7",
+            "zstandard": "0.25.0"
+          },
+          "python": "3.12.16"
+        },
+        "settings": {
+          "copy_batch_rows": 5000,
+          "data_root": "/data",
+          "db_writers": 2,
+          "frame_target_bytes": 67108864,
+          "lock_timeout_seconds": 30,
+          "max_record_bytes": 8388608,
+          "max_reject_ratio": 0.01,
+          "max_unknown_player_ratio": 0.01,
+          "min_free_disk_bytes": 1073741824,
+          "missing_player_policy": "unknown",
+          "parse_batch_rows": 1024,
+          "python_workers": 2,
+          "source": {
+            "expected_games": 121332,
+            "max_download_bytes": 250000000,
+            "month": "2013-01",
+            "sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+            "url": "https://database.lichess.org/standard/lichess_db_standard_rated_2013-01.pgn.zst"
+          },
+          "spark_driver_memory": "1g",
+          "spark_master": "local[2]",
+          "spark_partitions": 2,
+          "statement_timeout_seconds": 1800,
+          "transform_version": "2"
+        },
+        "source_month": "2013-01",
+        "source_sha256": "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635",
+        "total_history_games": 121332,
+        "unknown_player_games": 218
+      }
+    ]
+  },
+  "summary": {
+    "python": {
+      "median_container_cpu_seconds": 145.135212,
+      "median_container_peak_memory_mib": 207.29296875,
+      "median_elapsed_seconds": 153.8298688630166,
+      "median_input_games_per_second": 788.7414901721362,
+      "median_model_bytes": 97910784,
+      "median_parquet_bytes": 8891659,
+      "samples": 3
+    },
+    "python_mp": {
+      "median_container_cpu_seconds": 171.718547,
+      "median_container_peak_memory_mib": 240.4375,
+      "median_elapsed_seconds": 123.73412471299525,
+      "median_input_games_per_second": 980.5864007316733,
+      "median_model_bytes": 97910784,
+      "median_parquet_bytes": 8891659,
+      "samples": 3
+    },
+    "spark": {
+      "median_container_cpu_seconds": 227.803207,
+      "median_container_peak_memory_mib": 851.6328125,
+      "median_elapsed_seconds": 124.58551903700572,
+      "median_input_games_per_second": 973.8852551873277,
+      "median_model_bytes": 97910784,
+      "median_parquet_bytes": 4758602,
+      "samples": 3
+    }
+  }
+}

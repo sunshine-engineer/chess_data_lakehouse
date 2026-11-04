@@ -1,0 +1,62 @@
+[Event "Synthetic fixture"]
+[Site "https://lichess.org/test0001"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+[UTCDate "2012.12.31"]
+[WhiteElo "1600"]
+[BlackElo "1500"]
+[ECO "C20"]
+[Opening "King's Pawn Game: Test"]
+[TimeControl "300+2"]
+
+1. e4 e5 2. Nf3 Nc6 1-0
+
+[Event "Synthetic fixture"]
+[Site "https://lichess.org/test0002"]
+[White "Bob"]
+[Black "Alice"]
+[Result "1/2-1/2"]
+[UTCDate "2013.01.02"]
+[WhiteElo "?"]
+[BlackElo "1605"]
+[WhiteTitle "FM"]
+[TimeControl "-"]
+
+1. d4 d5 1/2-1/2
+
+[Event "Synthetic fixture invalid rating"]
+[Site "https://lichess.org/test0003"]
+[White "Alice"]
+[Black "Bob"]
+[Result "0-1"]
+[UTCDate "2013.01.03"]
+[WhiteElo "9000"]
+[BlackElo "1500"]
+[TimeControl "300+2"]
+
+1. e4 e5 0-1
+
+[Event "Synthetic fixture duplicate"]
+[Site "https://lichess.org/test0001"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+[UTCDate "2012.12.31"]
+[WhiteElo "1600"]
+[BlackElo "1500"]
+[ECO "C20"]
+[Opening "King's Pawn Game: Test"]
+[TimeControl "300+2"]
+
+1. e4 e5 2. Nf3 Nc6 1-0
+
+[Event "Synthetic fixture illegal move"]
+[Site "https://lichess.org/test0004"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+[UTCDate "2013.01.04"]
+[TimeControl "300+2"]
+
+1. e4 e5 2. Bh6 1-0

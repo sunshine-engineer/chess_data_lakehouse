@@ -1,0 +1,17 @@
+# Runtime/test environment used by Docker and CI. Update deliberately, then rerun benchmarks.
+chess==1.11.2
+python-chess==1.999
+zstandard==0.25.0
+pyarrow==26.0.1
+pyspark==3.5.7
+py4j==0.10.9.7
+psycopg==3.2.13
+psycopg-binary==3.2.13
+typing_extensions==4.16.0
+pytest==9.2.0
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+pygments==2.21.0
+setuptools==80.9.0
+wheel==0.45.1

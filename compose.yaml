@@ -1,0 +1,172 @@
+name: chess-lakehouse
+x-runner: &runner
+  image: chess-lakehouse-runner:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  environment: &loader-env
+    PGHOST: postgres
+    PGPORT: "5432"
+    PGDATABASE: ${POSTGRES_DB:-chess}
+    PGUSER: chess_loader
+    PGPASSWORD: ${LOADER_PASSWORD:?Set LOADER_PASSWORD in .env}
+    SPARK_LOCAL_IP: 127.0.0.1
+    SPARK_MASTER: ${SPARK_MASTER:-local[2]}
+    CHESS_IMAGE_ID: ${CHESS_IMAGE_ID:-}
+  volumes:
+    - pipeline-data:/data
+    - ./reports:/reports
+  depends_on:
+    postgres:
+      condition: service_healthy
+    init-volume:
+      condition: service_completed_successfully
+    migrate:
+      condition: service_completed_successfully
+  cpus: 2
+  mem_limit: 3g
+  profiles: [tools]
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chess}
+      POSTGRES_DB: ${POSTGRES_DB:-chess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    mem_limit: 1g
+    cpus: 2
+  init-volume:
+    <<: *runner
+    user: "0:0"
+    command: [init-volume]
+    depends_on: {}
+    environment: {}
+  migrate:
+    <<: *runner
+    command: [migrate]
+    environment: &admin-env
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-chess}
+      PGUSER: ${POSTGRES_USER:-chess}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PGADMIN_USER: ${POSTGRES_USER:-chess}
+      PGADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      LOADER_PASSWORD: ${LOADER_PASSWORD:?Set LOADER_PASSWORD in .env}
+      READER_PASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+  fetch:
+    <<: *runner
+    command: [fetch]
+  python:
+    <<: *runner
+    command: [run, --engine, python]
+  python-mp:
+    <<: *runner
+    command: [run, --engine, python_mp]
+  spark:
+    <<: *runner
+    command: [run, --engine, spark]
+  compare:
+    <<: *runner
+    command: [compare]
+  tests:
+    <<: *runner
+    environment: *admin-env
+    entrypoint: [python, -m, pytest]
+    command: [-q]
+  backup-restore:
+    image: postgres:16
+    profiles: [tools]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-chess}
+      PGUSER: ${POSTGRES_USER:-chess}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      READER_PASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
+    entrypoint: [bash, /ops/backup-restore.sh]
+    volumes:
+      - pipeline-data:/data:ro
+      - backup-data:/backups
+      - ./reports:/reports
+      - ./docker/ops:/ops:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 2
+    mem_limit: 1g
+  spark-master:
+    image: chess-lakehouse-runner:local
+    profiles: [cluster]
+    entrypoint: [/usr/local/lib/python3.12/site-packages/pyspark/bin/spark-class]
+    command: [org.apache.spark.deploy.master.Master, --host, spark-master, --port, '7077']
+    environment:
+      SPARK_LOCAL_IP: spark-master
+      SPARK_DAEMON_MEMORY: 256m
+    healthcheck:
+      test: [CMD, python, -c, "import socket; socket.create_connection(('spark-master',7077),2).close()"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    cpus: 1
+    mem_limit: 512m
+  spark-worker-1: &spark-worker
+    image: chess-lakehouse-runner:local
+    profiles: [cluster]
+    entrypoint: [/usr/local/lib/python3.12/site-packages/pyspark/bin/spark-class]
+    command: [org.apache.spark.deploy.worker.Worker, --host, spark-worker-1, --cores, '1', --memory, 768m, --work-dir, /tmp/spark-work, 'spark://spark-master:7077']
+    environment:
+      SPARK_LOCAL_IP: spark-worker-1
+      SPARK_DAEMON_MEMORY: 256m
+    volumes:
+      - pipeline-data:/data
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import socket; socket.create_connection((socket.gethostname(),8081),2).close()"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    cpus: 1
+    mem_limit: 1536m
+  spark-worker-2:
+    <<: *spark-worker
+    command: [org.apache.spark.deploy.worker.Worker, --host, spark-worker-2, --cores, '1', --memory, 768m, --work-dir, /tmp/spark-work, 'spark://spark-master:7077']
+    environment:
+      SPARK_LOCAL_IP: spark-worker-2
+      SPARK_DAEMON_MEMORY: 256m
+  cluster-driver:
+    <<: *runner
+    profiles: [cluster]
+    environment:
+      <<: *admin-env
+      SPARK_MASTER: spark://spark-master:7077
+      SPARK_DRIVER_HOST: cluster-driver
+      SPARK_LOCAL_IP: cluster-driver
+    entrypoint: [python, -m, chess_lakehouse.optimized.cluster_smoke]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init-volume:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+      spark-worker-1:
+        condition: service_healthy
+      spark-worker-2:
+        condition: service_healthy
+volumes:
+  pipeline-data:
+  postgres-data:
+  backup-data:

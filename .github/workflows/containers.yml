@@ -1,0 +1,49 @@
+name: Docker pipeline validation
+on:
+  push:
+    branches: [main, 'CXOED/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create disposable test credentials
+        shell: bash
+        run: |
+          umask 077
+          {
+            echo POSTGRES_USER=chess
+            echo POSTGRES_DB=chess
+            printf 'POSTGRES_PASSWORD='; openssl rand -hex 24
+            printf 'LOADER_PASSWORD='; openssl rand -hex 24
+            printf 'READER_PASSWORD='; openssl rand -hex 24
+          } > .env
+      - name: Validate Compose and build the non-root image
+        run: |
+          docker compose config --quiet
+          docker compose build --build-arg GIT_REVISION=${{ github.sha }} python
+      - name: Run offline and PostgreSQL/Spark integration tests in Docker
+        run: docker compose run --rm tests
+      - name: Check locked dependencies inside Docker
+        run: docker compose run --rm --no-deps --entrypoint python python -m pip check
+      - name: Verify unclean database restart recovery
+        run: bash scripts/crash-drill.sh
+      - name: Verify two-worker Spark execution on synthetic data
+        run: |
+          docker compose --profile tools --profile cluster run --rm --use-aliases cluster-driver
+          docker compose --profile tools --profile cluster stop spark-worker-1 spark-worker-2 spark-master
+      - name: Seed a clearly synthetic, multi-month restore fixture
+        run: docker compose run --rm --entrypoint python tests -m chess_lakehouse.optimized.demo
+      - name: Verify database and Parquet backup/restore
+        run: docker compose run --rm backup-restore
+      - name: Clean disposable CI containers and volumes
+        if: always()
+        run: docker compose --profile tools --profile cluster down --volumes --remove-orphans
