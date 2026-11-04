@@ -4,19 +4,25 @@ x-runner: &runner
   build:
     context: .
     dockerfile: docker/Dockerfile
-  environment:
+  environment: &loader-env
     PGHOST: postgres
     PGPORT: "5432"
     PGDATABASE: ${POSTGRES_DB:-chess}
-    PGUSER: ${POSTGRES_USER:-chess}
-    PGPASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    PGUSER: chess_loader
+    PGPASSWORD: ${LOADER_PASSWORD:?Set LOADER_PASSWORD in .env}
     SPARK_LOCAL_IP: 127.0.0.1
+    SPARK_MASTER: ${SPARK_MASTER:-local[2]}
+    CHESS_IMAGE_ID: ${CHESS_IMAGE_ID:-}
   volumes:
     - pipeline-data:/data
     - ./reports:/reports
   depends_on:
     postgres:
       condition: service_healthy
+    init-volume:
+      condition: service_completed_successfully
+    migrate:
+      condition: service_completed_successfully
   cpus: 2
   mem_limit: 3g
   profiles: [tools]
@@ -26,7 +32,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-chess}
       POSTGRES_DB: ${POSTGRES_DB:-chess}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -36,12 +42,37 @@ services:
       retries: 30
     mem_limit: 1g
     cpus: 2
+  init-volume:
+    <<: *runner
+    user: "0:0"
+    command: [init-volume]
+    depends_on: {}
+    environment: {}
+  migrate:
+    <<: *runner
+    command: [migrate]
+    environment: &admin-env
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-chess}
+      PGUSER: ${POSTGRES_USER:-chess}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PGADMIN_USER: ${POSTGRES_USER:-chess}
+      PGADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      LOADER_PASSWORD: ${LOADER_PASSWORD:?Set LOADER_PASSWORD in .env}
+      READER_PASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
   fetch:
     <<: *runner
     command: [fetch]
   python:
     <<: *runner
     command: [run, --engine, python]
+  python-mp:
+    <<: *runner
+    command: [run, --engine, python_mp]
   spark:
     <<: *runner
     command: [run, --engine, spark]
@@ -50,6 +81,7 @@ services:
     command: [compare]
   tests:
     <<: *runner
+    environment: *admin-env
     entrypoint: [python, -m, pytest]
     command: [-q]
 volumes:

@@ -9,3 +9,20 @@ archive_sha256 = "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd16
 
 # Published monthly input count; includes games that will be rejected.
 expected_games = 121332
+
+[optimized]
+frame_target_bytes = 67108864
+max_record_bytes = 8388608
+copy_batch_rows = 5000
+parse_batch_rows = 1024
+python_workers = 2
+spark_partitions = 2
+spark_master = "local[2]"
+spark_driver_memory = "1g"
+db_writers = 2
+max_reject_ratio = 0.01
+max_unknown_player_ratio = 0.01
+min_free_disk_bytes = 1073741824
+statement_timeout_seconds = 1800
+lock_timeout_seconds = 30
+missing_player_policy = "unknown"
