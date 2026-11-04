@@ -1,0 +1,9 @@
+{
+  "checkpoints_reused": 2,
+  "logged_checkpoints_survived": true,
+  "prior_publication_preserved": true,
+  "resumed_games": 2,
+  "server_restart_detected": true,
+  "status": "passed",
+  "synthetic_fixture": true
+}

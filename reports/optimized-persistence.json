@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "warehouses": {
+    "python": {
+      "month_counts": [
+        [
+          "2013-01-01",
+          121332
+        ]
+      ],
+      "rejects": 0,
+      "fact_foreign_keys": 7,
+      "compatibility_facts": 121332,
+      "unknown_player_games": 218
+    },
+    "python_mp": {
+      "month_counts": [
+        [
+          "2013-01-01",
+          121332
+        ]
+      ],
+      "rejects": 0,
+      "fact_foreign_keys": 7,
+      "compatibility_facts": 121332,
+      "unknown_player_games": 218
+    },
+    "spark": {
+      "month_counts": [
+        [
+          "2013-01-01",
+          121332
+        ]
+      ],
+      "rejects": 0,
+      "fact_foreign_keys": 7,
+      "compatibility_facts": 121332,
+      "unknown_player_games": 218
+    }
+  }
+}

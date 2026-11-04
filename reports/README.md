@@ -1,6 +1,14 @@
 # Generated benchmark reports
 
-`comparison.md` is the human-readable measured comparison; `comparison.json`
+The current historical pipelines are measured in [comparison-v2.md](comparison-v2.md),
+with all nine samples, semantic equality checks and query plans in
+[comparison-v2.json](comparison-v2.json). Operational reports cover
+[database crash recovery](database-crash-recovery.json),
+[two-worker synthetic Spark execution](cluster-smoke.json), and
+[populated warehouse backup/restore](backup-restore.json).
+See [optimized validation](../docs/optimized-validation.md) for scope and provenance.
+
+The earlier `comparison.md` is the baseline measured comparison; `comparison.json`
 contains raw per-run statistics and equality checks. Engine JSON files preserve
 individual sample timings. Generate them with the commands in `docs/docker.md`.
 

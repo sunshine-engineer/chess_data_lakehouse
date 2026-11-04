@@ -21,6 +21,20 @@ remains limited to January 2013; multi-month tests use synthetic fixtures.
 | Documentation | Architecture, models, recovery/backup runbooks, measured case studies, limitations and commands match executed behavior |
 | Git delivery | Feature commits, passing required local/container and remote CI checks, authorized merge to main and verified final repository state |
 
+## Implementation evidence
+
+The implementation and operational gates above are covered by the **55 passing
+Docker tests**, nine real-month benchmark samples, and the executed recovery,
+standalone Spark and populated backup/restore drills. See
+[validation and report links](optimized-validation.md),
+[operating commands and models](optimized-pipeline.md), and
+[measured case studies](case-studies.md). Final Git delivery is verified through
+the feature pull request and CI on the resulting main commit.
+
+Target-scale capacity is deliberately unclaimed: the original one-real-month
+execution boundary remains active. Follow the [capacity plan](capacity-plan.md)
+for a separately approved representative 30 GB compressed archive test.
+
 ## Modeling defaults
 
 - Keep original archives and validated source occurrences in Parquet. Warehouse facts

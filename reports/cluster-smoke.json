@@ -1,0 +1,15 @@
+{
+  "capacity_benchmark": false,
+  "equality": {
+    "spark/dim_date": true,
+    "spark/dim_opening": true,
+    "spark/dim_player": true,
+    "spark/dim_time_control": true,
+    "spark/fact_game": true,
+    "spark/rejected_game": true
+  },
+  "master": "spark://spark-master:7077",
+  "status": "passed",
+  "synthetic_fixture": true,
+  "workers": 2
+}
