@@ -64,6 +64,8 @@ def test_history_rerun_corrections_and_global_identity(database, tmp_path):
     assert second['accepted_games'] == 1 and second['duplicate_games'] == 1
     again = run('python', settings, tmp_path/'reports', archive=archive)
     assert again['total_history_games'] == 3
+    with admin_connect() as admin:
+        assert admin.execute('SELECT count(*) FROM python_current.fact_game').fetchone()[0] == 3
     with warehouse.connect() as conn:
         assert conn.execute('SELECT count(*) FROM warehouse_python.game_identity').fetchone()[0] == 3
         assert conn.execute("SELECT latest_title FROM warehouse_python.dim_player WHERE player_hash=decode(%s,'hex')", (__import__('hashlib').sha256(b'alice').hexdigest(),)).fetchone()[0] == 'GM'
@@ -114,3 +116,89 @@ def test_quality_failure_preserves_published_month(database, tmp_path):
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             with reader.transaction():
                 reader.execute('DELETE FROM warehouse_python.fact_game')
+
+
+def test_all_engines_semantically_equal_and_groups_do_not_mix(database, tmp_path):
+    from chess_lakehouse.optimized.comparison import compare
+    archive, settings = source_settings(tmp_path)
+    for engine in ('python','python_mp','spark'):
+        run(engine, settings, tmp_path/'reports', group='parity-fixture', archive=archive)
+    result = compare('parity-fixture', tmp_path/'reports')
+    assert all(result['equality'].values())
+    assert all(result['summary'][engine]['samples']==1 for engine in ('python','python_mp','spark'))
+    with pytest.raises(ValueError, match='fresh successful sample'):
+        compare('different-group', tmp_path/'reports')
+    # Changing concurrency settings must never pool samples into the previous experiment.
+    run('python', replace(settings,python_workers=3), tmp_path/'reports', group='parity-fixture', archive=archive)
+    with pytest.raises(ValueError, match='mixes source, code'):
+        compare('parity-fixture', tmp_path/'reports')
+
+
+def test_actual_sigkill_then_resume_logged_checkpoints(database, tmp_path):
+    import subprocess
+    import sys
+    import time
+    archive, settings = source_settings(tmp_path)
+    source = tmp_path/'child-settings.json'
+    source.write_text(json.dumps(settings.snapshot()))
+    ready = tmp_path/'ready'
+    child_code = '''
+import json, pathlib, sys, time
+from chess_lakehouse.optimized.settings import Settings,Source
+from chess_lakehouse.optimized import workflow
+values=json.loads(pathlib.Path(sys.argv[1]).read_text()); values.pop('transform_version')
+values['source']=Source(**values['source']); values['data_root']=pathlib.Path(values['data_root'])
+settings=Settings(**values)
+load=workflow.warehouse.load_shards
+def paused(*args,**kwargs):
+    load(*args,**kwargs)
+    pathlib.Path(sys.argv[3]).write_text('ready')
+    time.sleep(60)
+workflow.warehouse.load_shards=paused
+workflow.run('python',settings,pathlib.Path(sys.argv[4]),archive=pathlib.Path(sys.argv[2]))
+'''
+    process = subprocess.Popen([sys.executable,'-c',child_code,str(source),str(archive),str(ready),str(tmp_path/'reports')],
+                               stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+    try:
+        deadline = time.monotonic()+20
+        while not ready.exists():
+            if process.poll() is not None:
+                raise AssertionError(process.stderr.read().decode())
+            if time.monotonic()>deadline:
+                raise AssertionError('child never reached durable load checkpoint')
+            time.sleep(0.05)
+        process.kill()
+        assert process.wait(timeout=5) == -9
+        with warehouse.connect() as conn:
+            run_id,status = conn.execute('SELECT run_id,status FROM control.pipeline_runs ORDER BY started_at DESC LIMIT 1').fetchone()
+            assert status=='running'
+            assert conn.execute('SELECT count(*) FROM control.run_shards WHERE run_id=%s',(run_id,)).fetchone()[0]>0
+        resumed = run('python',settings,tmp_path/'reports',resume=run_id,archive=archive)
+        assert resumed['accepted_games']==2 and resumed['resumed']
+    finally:
+        if process.poll() is None:
+            process.kill(); process.wait(timeout=5)
+        process.stderr.close()
+
+
+def test_retention_protects_current_and_abandon_prevents_resume(database,tmp_path):
+    from chess_lakehouse.optimized.maintenance import cleanup,abandon
+    archive,settings=source_settings(tmp_path)
+    first=run('python',settings,tmp_path/'reports',archive=archive)
+    current=run('python',settings,tmp_path/'reports',archive=archive)
+    with admin_connect() as admin:
+        admin.execute("UPDATE control.pipeline_runs SET finished_at=now()-interval '10 days' WHERE status='complete'")
+    assert cleanup(settings,7)==[first['run_id']]
+    assert (settings.data_root/'runs-v2'/first['run_id']).exists()
+    cleanup(settings,7,apply=True)
+    assert not (settings.data_root/'runs-v2'/first['run_id']).exists()
+    assert (settings.data_root/'runs-v2'/current['run_id']).exists()
+    with pytest.raises(InterruptedError):
+        run('python',settings,tmp_path/'reports',archive=archive,interrupt_after_transform=1)
+    with warehouse.connect() as conn:
+        failed=conn.execute("SELECT run_id FROM control.pipeline_runs WHERE status='failed'").fetchone()[0]
+    abandon(failed,settings)
+    with pytest.raises(ValueError,match='abandoned'):
+        run('python',settings,tmp_path/'reports',archive=archive,resume=failed)
+    with admin_connect() as admin:
+        assert admin.execute('SELECT count(*) FROM python_current.fact_game').fetchone()[0]==2

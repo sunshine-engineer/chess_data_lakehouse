@@ -125,7 +125,11 @@ def transform_shards(engine, frames, settings, root, on_shard=None, interrupt_af
             .config("spark.sql.session.timeZone", "UTC").config("spark.ui.enabled", "false")
             .config("spark.eventLog.enabled", "true").config("spark.eventLog.dir", str(events)))
         if settings.spark_master.startswith("spark://"):
-            builder = builder.config("spark.driver.host", os.environ.get("SPARK_DRIVER_HOST", "spark"))
+            builder = (builder.config("spark.driver.host", os.environ.get("SPARK_DRIVER_HOST", "spark"))
+                       .config("spark.driver.bindAddress", "0.0.0.0")
+                       .config("spark.executor.memory", "512m")
+                       .config("spark.executor.cores", "1")
+                       .config("spark.cores.max", str(settings.spark_partitions)))
         spark = builder.getOrCreate()
         spark.sparkContext.setLogLevel("WARN")
         try:

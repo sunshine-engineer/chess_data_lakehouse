@@ -18,7 +18,7 @@ def interrupted(signum, frame):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["fetch", "prepare", "run", "compare", "migrate", "init-volume", "status", "backfill"])
+    parser.add_argument("command", choices=["fetch", "prepare", "run", "compare", "migrate", "init-volume", "status", "backfill", "cleanup", "abandon"])
     parser.add_argument("--engine", choices=ENGINES, default="python")
     parser.add_argument("--config", default="config/pipeline.toml")
     parser.add_argument("--month")
@@ -32,6 +32,8 @@ def main(argv=None):
     parser.add_argument("--spark-partitions", type=int)
     parser.add_argument("--db-writers", type=int)
     parser.add_argument("--spark-master")
+    parser.add_argument("--retain-days",type=int,default=7)
+    parser.add_argument("--apply",action="store_true",help="Apply retention; otherwise only report candidates")
     args = parser.parse_args(argv)
     if os.environ.get("CHESS_CONTAINER") != "1":
         parser.error("run this command with Docker Compose")
@@ -50,7 +52,7 @@ def main(argv=None):
     if args.command == "migrate":
         from .migrate import migrate
         migrate()
-        event("migrations_applied", schema_version=1)
+        event("migrations_applied", schema_version=2)
         return
     overrides = {name: getattr(args, name) for name in (
         "copy_batch_rows", "frame_target_bytes", "python_workers", "spark_partitions", "db_writers", "spark_master")}
@@ -78,6 +80,14 @@ def main(argv=None):
             rows = conn.execute("SELECT run_id,engine,source_month,status,heartbeat_at,error FROM control.pipeline_runs ORDER BY started_at DESC LIMIT 30").fetchall()
         for row in rows:
             print(json.dumps(dict(zip(("run_id", "engine", "source_month", "status", "heartbeat_at", "error"), row)), default=str))
+    elif args.command == "cleanup":
+        from .maintenance import cleanup
+        cleanup(settings,args.retain_days,args.apply)
+    elif args.command == "abandon":
+        from .maintenance import abandon
+        if not args.resume:
+            parser.error("abandon requires --resume RUN_ID")
+        abandon(args.resume,settings)
 
 
 if __name__ == "__main__":

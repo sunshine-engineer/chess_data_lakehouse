@@ -15,7 +15,8 @@ from uuid import uuid4
 
 from psycopg import sql
 
-from ..pipeline import download, sha256_file
+from ..pipeline import sha256_file
+from .download import download_source
 from .engines import transform_shards
 from .settings import ENGINES
 from .storage import atomic_json, check_disk, file_lock, prepare
@@ -57,10 +58,10 @@ def resources():
 
 
 def fetch(settings):
-    path = settings.data_root / "bronze" / f"lichess_db_standard_rated_{settings.source.month}.pgn.zst"
+    path = settings.data_root / "bronze" / settings.source.sha256 / f"lichess_db_standard_rated_{settings.source.month}.pgn.zst"
     check_disk(path.parent, settings.min_free_disk_bytes)
     with file_lock(path.with_suffix(".download.lock")):
-        download(settings.source.url, path, settings.source.sha256, settings.source.max_download_bytes)
+        download_source(settings)
     event("archive_verified", month=settings.source.month, bytes=path.stat().st_size)
     return path
 
@@ -108,6 +109,8 @@ def run(engine, settings, reports=Path("/reports"), group="manual", resume=None,
                     raise ValueError("resume run does not match engine/source/config/code")
                 if previous[3] == "complete":
                     raise ValueError("completed run is immutable; start a fresh benchmark run")
+                if previous[3] == "abandoned":
+                    raise ValueError("abandoned run cannot be resumed")
                 group = previous[4]
                 conn.execute("UPDATE control.pipeline_runs SET status='running',error=NULL,heartbeat_at=now() WHERE run_id=%s", (run_id,))
             else:

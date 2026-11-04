@@ -183,7 +183,8 @@ def publish(conn, run_id, engine, settings):
     model_bytes = conn.execute("""SELECT sum(pg_total_relation_size(c.oid)) FROM pg_class c
         JOIN pg_namespace n ON n.oid=c.relnamespace
         WHERE n.nspname=%s AND c.relkind='r'""", (schema,)).fetchone()[0]
-    conn.execute(sql.SQL("DROP TABLE {}").format(stage_for(run_id)))
+    conn.execute("SELECT control.drop_stage(%s)", (run_id,))
+    conn.execute("SELECT control.refresh_compatibility(%s)", (engine,))
     return dict(input_games=count, accepted_games=accepted, rejected_games=rejects,
                 duplicate_games=count-accepted-rejects, unknown_player_games=unknowns,
                 total_history_games=int(conn.execute("SELECT sum(accepted_games) FROM control.month_publications WHERE engine=%s", (engine,)).fetchone()[0]),

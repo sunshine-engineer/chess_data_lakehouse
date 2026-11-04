@@ -1,91 +1,86 @@
-# Chess data lakehouse — Python vs Spark
+# Chess historical data pipeline
 
-Two containerized pipelines process the same Lichess month and load a PostgreSQL
-star schema. Python parses games sequentially; Spark parses partitions in parallel.
-Both share validation rules, deterministic keys, chunked bulk loading, and SQL models.
+Containerized Python and PySpark pipelines ingest verified Lichess archives into
+partitioned PostgreSQL star models and typed Parquet. Serial Python, bounded
+multiprocessing Python, and Spark use the same chess validation and natural keys.
 
-**Boundary: January 2013 only. All-month processing remains disabled.**
+**Real-source execution is allowlisted to January 2013. Automatic all-month
+processing remains disabled. Multi-month and cluster checks use synthetic data.**
 
-## Documentation outline
+## Outline
 
-1. Build and run the Docker pipelines.
-2. Query the PostgreSQL data models.
-3. Inspect correctness checks and measured comparison statistics.
-4. Review operation, migration, and earlier standalone implementation notes.
+1. Build and test the non-root Docker runtime.
+2. Process one explicitly approved archive and query historical models.
+3. Verify recovery, backup/restore and comparable performance measurements.
+4. Review the data model, operational runbook and measured case studies.
 
-## Run
+## Start
 
-Requires Docker with Linux containers and Compose; host Python/Java are unnecessary.
+Requires Docker with Compose and Linux containers. No host Python, Java, Spark or
+PostgreSQL installation is required. Keep an existing `.env`: a database volume
+retains its original administrator password.
 
 ```bash
-# First setup only: keep an existing .env.
+# First checkout only:
 cp .env.example .env
-# Edit .env and set a local PostgreSQL password.
+# Set three separate local passwords in .env.
 docker compose build python
 docker compose up -d --wait postgres
 docker compose run --rm tests
-docker compose run --rm fetch
+docker compose run --rm python prepare
 docker compose run --rm python
+docker compose run --rm python-mp
 docker compose run --rm spark
-docker compose run --rm compare
 ```
 
-PowerShell: use `Copy-Item .env.example .env` for the first command.
-For three samples per engine with alternating run order:
+PowerShell uses `Copy-Item .env.example .env` for the initial copy. One-shot
+administrative containers initialize volume ownership and apply versioned migrations;
+regular jobs run as UID 10001 with the restricted database loader role.
+
+## Behavior
+
+- Byte-bounded framed Parquet separates source preparation from chess parsing.
+- Typed validated Parquet and logged PostgreSQL shard checkpoints support explicit
+  resume after interruption; already committed shards are verified and reused.
+- Monthly fact refreshes commit atomically. Loading or rerunning January preserves
+  February and all other retained months.
+- Global game identities prevent cross-archive duplicates. Facts use BIGINT
+  dimension keys, retain titles as played, and link to source/run provenance.
+- Missing player identities use an explicit unknown dimension member and a quality
+  coverage metric. Invalid games go to rejects; publication obeys quality gates.
+- `warehouse_python`, `warehouse_python_mp`, and `warehouse_spark` contain complete
+  histories. Existing `<engine>_current` views expose that history after a successful
+  optimized publication, while retaining the earlier query column shapes.
+
+## Validate and compare
 
 ```bash
+# Three fresh containers per engine, with alternating execution order:
 bash scripts/benchmark.sh 3
+
+# Verify SQL and Parquet backup/restore into a disposable destination:
+docker compose run --rm backup-restore
+
+# Optional: real tasks on two separate Docker worker containers, synthetic data only:
+docker compose --profile tools --profile cluster run --rm --use-aliases cluster-driver
 ```
 
-The original archive is downloaded once, SHA-256 checked, and stored in a Docker
-volume. Each engine independently frames and parses the full month, using chunks
-of 5,000 records. Source and output row counts are reconciled. Invalid games go to
-the rejection table; duplicate IDs do not create duplicate facts.
+Benchmarks reject mixed source, code, image, configuration and resource settings.
+They compare semantic facts, active dimensions and rejects, rather than expecting
+warehouse surrogate numbers to be identical. SQL plans accompany the results.
 
-## Data and results
+See [optimized comparison](reports/comparison-v2.md), [operations and data models](docs/optimized-pipeline.md),
+[delivery evidence](docs/optimized-validation.md), and [portfolio case studies](docs/case-studies.md).
+The [earlier benchmark](reports/comparison.md) and [baseline validation](docs/docker-validation.md)
+remain historical evidence, not target-scale capacity claims.
 
-PostgreSQL runs in its own container with a persistent named volume. Query
-`python_current.fact_game` or `spark_current.fact_game`; corresponding dimension
-and rejection views use the same schema prefix.
-
-| Model | Purpose |
-|---|---|
-| `fact_game` | One accepted game, ratings, result, move counts, and dimension keys |
-| `dim_date` | Actual UTC game-start date and calendar attributes |
-| `dim_player` | Deterministic player hash and latest observed title |
-| `dim_opening` | ECO, opening family, and variation |
-| `dim_time_control` | Initial seconds, increment, and speed |
-| `rejected_game` | Invalid input occurrence with identifier and reason |
-
-Primary keys, five fact-to-dimension foreign keys, typed dates, and check constraints
-are enforced in PostgreSQL. Successful runs publish their current views atomically;
-a failed rerun preserves the last completed dataset.
-
-[Measured comparison](reports/comparison.md) and [raw comparison statistics](reports/comparison.json)
-are generated by the comparison container. They report runtime, throughput, CPU,
-peak container memory, model storage, and exact equality of all six model tables.
-The comparison includes Spark startup and uses equal client resource limits.
-
-## Guides
-
-- [Executed Docker validation](docs/docker-validation.md)
-- [Docker setup, architecture, benchmarks, recovery, and PostgreSQL migration](docs/docker.md)
-- [PostgreSQL example queries](sql/postgres_analytics.sql)
-- [Original field definitions and standalone SQLite/Parquet design](docs/pipeline.md)
-- [Earlier standalone validation — separate from the Docker benchmark](docs/validation.md)
-
-`PROJECT_PLAN.md` describes future GCP/Spark/BigQuery work. This implementation runs
-locally in Docker; it does not provision GCP or claim a multi-node Spark benchmark.
-
-Stop services without deleting data:
+Stop services while retaining named data volumes:
 
 ```bash
-docker compose down
+docker compose --profile tools --profile cluster down
 ```
 
-## Source
-
-[Lichess open database](https://database.lichess.org/) publishes monthly archives
-under CC0. The pinned archive hash comes from the
-[official checksum list](https://database.lichess.org/standard/sha256sums.txt).
-Bulk data, credentials, and database files are excluded from Git.
+Lichess archives are [CC0 source data](https://database.lichess.org/).
+The default archive's SHA-256 comes from the [official checksum list](https://database.lichess.org/standard/sha256sums.txt).
+Credentials, bulk data and backup bundles are excluded from Git. **30 GB/month and
+five-year production capacity require representative load testing and are not claimed.**

@@ -100,6 +100,14 @@ def migrate(conn=None, loader="chess_loader", reader="chess_reader"):
                     conn.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
                     conn.execute(sql.SQL(WAREHOUSE_DDL).format(s=sql.Identifier(schema)))
                 conn.execute("INSERT INTO control.schema_migrations(version,checksum) VALUES(1,%s)", (checksum,))
+            compatibility = script.with_name("002_compatibility.sql")
+            checksum2 = hashlib.sha256(compatibility.read_bytes()).hexdigest()
+            applied2 = conn.execute("SELECT checksum FROM control.schema_migrations WHERE version=2").fetchone()
+            if applied2 and applied2[0] != checksum2:
+                raise ValueError("compatibility migration checksum changed")
+            if not applied2:
+                conn.execute(compatibility.read_text())
+                conn.execute("INSERT INTO control.schema_migrations(version,checksum) VALUES(2,%s)", (checksum2,))
             conn.execute("""CREATE OR REPLACE FUNCTION control.ensure_partition(engine TEXT, month DATE)
                 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
                 DECLARE target TEXT; partition_name TEXT;
@@ -126,8 +134,20 @@ def migrate(conn=None, loader="chess_loader", reader="chess_reader"):
                 END $$""")
             conn.execute("REVOKE ALL ON FUNCTION control.analyze_partition(TEXT,DATE) FROM PUBLIC")
             conn.execute(sql.SQL("GRANT EXECUTE ON FUNCTION control.analyze_partition(TEXT,DATE) TO {}").format(sql.Identifier(loader)))
+            conn.execute("""CREATE OR REPLACE FUNCTION control.drop_stage(run_identifier TEXT)
+                RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+                BEGIN
+                  IF run_identifier !~ '^(python|python_mp|spark)_[a-f0-9]{20}$'
+                     OR NOT EXISTS(SELECT 1 FROM control.pipeline_runs WHERE run_id=run_identifier) THEN
+                    RAISE EXCEPTION 'invalid registered staging table';
+                  END IF;
+                  EXECUTE format('DROP TABLE IF EXISTS staging.%I',run_identifier);
+                END $$""")
+            conn.execute("REVOKE ALL ON FUNCTION control.drop_stage(TEXT) FROM PUBLIC")
+            conn.execute(sql.SQL("GRANT EXECUTE ON FUNCTION control.drop_stage(TEXT) TO {}").format(sql.Identifier(loader)))
             conn.execute(sql.SQL("GRANT USAGE ON SCHEMA control,staging TO {}").format(sql.Identifier(loader)))
             conn.execute(sql.SQL("GRANT CREATE ON SCHEMA staging TO {}").format(sql.Identifier(loader)))
+            conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA staging TO {}").format(sql.Identifier(loader)))
             conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA control TO {}").format(sql.Identifier(loader)))
             # Applied migrations are immutable metadata, not writable by the loader.
             conn.execute(sql.SQL("REVOKE INSERT,UPDATE,DELETE ON control.schema_migrations FROM {}").format(sql.Identifier(loader)))
