@@ -27,6 +27,7 @@ SELECT pg_backend_pid();
 SELECT pg_advisory_xact_lock(hashtext('chess-v2-python'));
 SELECT pg_advisory_xact_lock(hashtext('chess-v2-python_mp'));
 SELECT pg_advisory_xact_lock(hashtext('chess-v2-spark'));
+SELECT pg_advisory_xact_lock(hashtext('personal-study-publication'));
 SELECT pg_export_snapshot();
 SELECT pg_sleep(3600);
 COMMIT;
@@ -43,12 +44,15 @@ done
 if [[ -z "$snapshot" ]]; then echo 'Could not acquire a consistent backup snapshot' >&2; exit 1; fi
 pg_dump --format=custom --no-owner --snapshot="$snapshot" \
   --schema=control --schema=staging --schema=warehouse_python \
-  --schema=warehouse_python_mp --schema=warehouse_spark -f "$bundle/warehouse.dump"
+  --schema=warehouse_python_mp --schema=warehouse_spark --schema=study -f "$bundle/warehouse.dump"
 # The source volume is mounted read-only; immutable shard checksums are preserved.
 tar --exclude='*.tmp' --exclude='*.part' -cf "$bundle/pipeline.tar" -C /data .
+# The personal publication lock blocks new immutable files until the snapshot and
+# artifact bundle have been captured. Hidden temporary directories are not published.
+tar --exclude='./.*' -cf "$bundle/study.tar" -C /study .
 (
   cd "$bundle"
-  sha256sum warehouse.dump pipeline.tar > SHA256SUMS
+  sha256sum warehouse.dump pipeline.tar study.tar > SHA256SUMS
   sha256sum -c SHA256SUMS >/dev/null
 )
 fingerprint() {
@@ -61,7 +65,7 @@ SET LOCAL TIME ZONE 'UTC';
 SELECT format('SELECT %L || ''|'' || count(*) || ''|'' || coalesce(sum(hashtextextended(row_to_json(t)::text,0)::numeric),0) FROM %I.%I t',
               n.nspname||'.'||c.relname,n.nspname,c.relname)
 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-WHERE n.nspname IN ('control','staging','warehouse_python','warehouse_python_mp','warehouse_spark')
+WHERE n.nspname IN ('control','staging','warehouse_python','warehouse_python_mp','warehouse_spark','study')
 AND c.relkind='r' ORDER BY n.nspname,c.relname
 \gexec
 COMMIT;
@@ -73,7 +77,7 @@ created=true
 pg_restore --exit-on-error --no-owner --dbname="$restore_db" "$bundle/warehouse.dump"
 fingerprint "$restore_db" false > "$bundle/restored-fingerprints.txt"
 cmp "$bundle/source-fingerprints.txt" "$bundle/restored-fingerprints.txt"
-invalid=$(psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE n.nspname LIKE 'warehouse_%' AND NOT c.convalidated")
+invalid=$(psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE (n.nspname LIKE 'warehouse_%' OR n.nspname='study') AND NOT c.convalidated")
 [[ "$invalid" == 0 ]]
 # ACLs are part of the backup: reader access survives and writes remain forbidden.
 PGUSER=chess_reader PGPASSWORD="$READER_PASSWORD" psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM warehouse_python.fact_game' >/dev/null
@@ -83,6 +87,16 @@ if PGUSER=chess_reader PGPASSWORD="$READER_PASSWORD" psql --dbname="$restore_db"
 fi
 tar -xf "$bundle/pipeline.tar" -C "$restore_dir"
 tar -df "$bundle/pipeline.tar" -C "$restore_dir" >/dev/null
+mkdir -p "$restore_dir/study"
+tar -xf "$bundle/study.tar" -C "$restore_dir/study"
+tar -df "$bundle/study.tar" -C "$restore_dir/study" >/dev/null
+study_exists=$(psql --dbname="$restore_db" -XqAt -c "SELECT to_regclass('study.games') IS NOT NULL")
+if [[ "$study_exists" == t ]]; then
+  if PGUSER=chess_reader PGPASSWORD="$READER_PASSWORD" psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c 'SELECT * FROM study.games LIMIT 1' >/dev/null 2>&1; then
+    echo 'Archive reader unexpectedly has private-study access after restore' >&2
+    exit 1
+  fi
+fi
 # Ensure the restore tool rejects a deliberately truncated backup.
 head -c 128 "$bundle/warehouse.dump" > "$bundle/corrupt.dump"
 if pg_restore --list "$bundle/corrupt.dump" >/dev/null 2>&1; then
@@ -91,5 +105,5 @@ if pg_restore --list "$bundle/corrupt.dump" >/dev/null 2>&1; then
 fi
 rm "$bundle/corrupt.dump"
 tables=$(wc -l < "$bundle/source-fingerprints.txt")
-printf '{"status":"passed","bundle":"%s","tables_verified":%s,"sql_row_counts_and_fingerprints_match":true,"parquet_bundle_restored":true,"constraints_validated":true,"reader_permissions_validated":true,"corrupt_backup_rejected":true}\n' "$bundle" "$tables" > /reports/backup-restore.json
+printf '{"status":"passed","bundle":"%s","tables_verified":%s,"sql_row_counts_and_fingerprints_match":true,"parquet_bundle_restored":true,"private_study_bundle_restored":true,"constraints_validated":true,"reader_permissions_validated":true,"corrupt_backup_rejected":true}\n' "$bundle" "$tables" > /reports/backup-restore.json
 cat /reports/backup-restore.json

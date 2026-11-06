@@ -38,9 +38,12 @@ each split, and all three classes in every split. Preprocessing lives inside the
 estimator pipeline. Tune logistic regression `C` over 0.1 and 1.0 using validation
 log loss, refit on training plus validation, then evaluate the final test days once.
 
-Compare with a `DummyClassifier(strategy='prior')` fitted on the same refit data.
+Compare with a `DummyClassifier(strategy='prior')` and a ratings-only logistic
+regression using only the two pre-game ratings, fitted on the same splits/refit
+data with the same `C` search. This tests how much clock features add.
 Report log loss, accuracy, balanced accuracy, macro F1, class counts, confusion
-matrix and time-class test slices. Lower log loss is better; accuracy can conceal
+matrix, time-class test slices, multiclass Brier score (sum across three classes,
+range 0–2), classwise ten-bin reliability and empirical ECE. Lower log loss is better; accuracy can conceal
 weak draw performance in this imbalanced dataset. Coefficients describe association
 and correlated features make individual coefficient interpretations unstable.
 
@@ -51,15 +54,25 @@ executed run and measured interpretation.
 
 ## Reproduce
 
-The executed run `20261106T073653Z-ff35205e` used 68,005 training, 23,370 validation
+The current run `20261106T134842Z-4c1ec831` used 68,005 training, 23,370 validation
 and 28,625 test games. Test dates were 25–31 January 2013; selected `C=1.0`.
 
-| Untouched test metric | Logistic model | Class-prior baseline |
-|---|---:|---:|
-| Log loss | 0.7314 | 0.8137 |
-| Accuracy | 63.91% | 51.03% |
-| Balanced accuracy | 43.84% | 33.33% |
-| Macro F1 | 0.4311 | 0.2253 |
+| Historical test metric | Ratings + clock | Ratings only | Class prior |
+|---|---:|---:|---:|
+| Log loss | 0.7314 | 0.7334 | 0.8137 |
+| Accuracy | 63.91% | 63.85% | 51.03% |
+| Balanced accuracy | 43.84% | 43.80% | 33.33% |
+| Macro F1 | 0.4311 | 0.4308 | 0.2253 |
+| Multiclass Brier | 0.4569 | 0.4582 | 0.5299 |
+| Mean classwise ECE | 0.00579 | 0.00680 | 0.00150 |
+
+The clock adds little over ratings alone. Small ECE does not establish useful
+individual predictions: the constant prior has the smallest ECE but the worst
+log loss/Brier. All 28,625 draw probabilities fall in the 0–0.1 bin, with mean
+3.3085% versus observed 3.2943%. This supports aggregate agreement in that bin;
+it does not show that the model distinguishes likely draws from other games.
+Reliability is measured without fitting a post-hoc calibrator. The reused January
+holdout is now a comparative benchmark, not a newly untouched confirmation set.
 
 **Critical finding:** none of the 943 actual test draws was predicted as the most
 likely class. Improved accuracy and log loss do not make this a strong draw
@@ -81,8 +94,10 @@ See `docs/web-app.md` for setup, API examples and artifact recovery.
 This one-month historical holdout does not establish modern-game accuracy,
 unseen-player generalization or calibrated probabilities. Players can recur across
 dates. There is no confidence interval or cross-season validation claim. Next,
-evaluate later explicitly approved months, player-disjoint splits, calibration
-curves and uncertainty by rating band before changing the generalization claim.
+evaluate later explicitly approved games, player-disjoint splits and uncertainty
+by rating band before changing the generalization claim. The personal-study app
+implements frozen later-data evaluation, but actual sunny2g results remain pending
+manual PGN import. Synthetic evaluation verifies code paths only.
 The UI labels all predictions as historical estimates.
 
 ## References

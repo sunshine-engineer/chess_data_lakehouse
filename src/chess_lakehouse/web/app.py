@@ -13,6 +13,7 @@ from werkzeug.exceptions import HTTPException
 from . import data
 from ..ml.artifacts import Artifacts, ArtifactError
 from ..ml.features import prediction_input, vector
+from ..personal.proxy import register as register_personal
 
 CASES={'outcome':('Predicting game outcomes','ml-outcome.md'),
     'length':('Estimating game length','ml-length.md'),
@@ -26,6 +27,7 @@ def create_app(config=None):
         DOCS_ROOT=os.environ.get('DOCS_ROOT','/app/docs'))
     app.config.update(config or {})
     artifacts=Artifacts(app.config['ML_ROOT'])
+    register_personal(app)
 
     @app.after_request
     def headers(response):

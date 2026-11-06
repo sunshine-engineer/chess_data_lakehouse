@@ -14,7 +14,7 @@ with sync_playwright() as p:
     page=browser.new_page(viewport={'width':1536,'height':1050},device_scale_factor=1)
     page.on('pageerror',lambda error:errors.append(str(error)))
     page.on('response',lambda response:failed.append((response.status,response.url)) if response.status>=400 and '/api/' in response.url else None)
-    page.goto(url,wait_until='networkidle')
+    page.goto(url+'/#overview',wait_until='networkidle')
     expect(page.locator('#metrics .metric').first.locator('strong')).to_have_text(f'{expected_games:,}')
     page.screenshot(path=str(artifacts/'overview-desktop.png'),full_page=True)
     if expected_games:
@@ -70,7 +70,9 @@ with sync_playwright() as p:
     page.locator('[data-view=explorer]').click()
     expect(page.locator('#page-label')).to_have_text('No matching rows')
     # A fresh page restores the default even if January has never been published.
-    page.goto(url,wait_until='networkidle')
+    page.goto(url+'/#overview',wait_until='networkidle')
+    # Hash navigation is same-document navigation; force a genuinely fresh load.
+    page.reload(wait_until='networkidle')
     expect(page.locator('#metrics .metric').first.locator('strong')).to_have_text(f'{expected_games:,}')
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'mobile horizontal overflow'

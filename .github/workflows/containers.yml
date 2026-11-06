@@ -25,6 +25,8 @@ jobs:
             printf 'POSTGRES_PASSWORD='; openssl rand -hex 24
             printf 'LOADER_PASSWORD='; openssl rand -hex 24
             printf 'READER_PASSWORD='; openssl rand -hex 24
+            printf 'STUDY_PASSWORD='; openssl rand -hex 24
+            printf 'STUDY_API_TOKEN='; openssl rand -hex 32
           } > .env
       - name: Validate Compose and build the non-root image
         run: |
@@ -51,6 +53,15 @@ jobs:
           docker compose --profile web run --rm --no-deps --entrypoint python web -m pip check
       - name: Verify browser flows on the synthetic empty-January state
         run: docker compose --profile web run --rm -e EXPECT_GAMES=0 -e EXPECT_MODELS=0 browser-tests
+      - name: Test isolated personal imports and engine evidence
+        run: docker compose --profile study run --rm study-tests
+      - name: Verify personal study browser flows on labelled synthetic games
+        env:
+          STUDY_CONFIG: config/study-demo.toml
+        run: |
+          docker compose --profile web --profile study up -d --wait web study-api
+          docker compose --profile web --profile study run --rm personal-browser-tests
+          docker compose run --rm backup-restore
       - name: Clean disposable CI containers and volumes
         if: always()
-        run: docker compose --profile tools --profile cluster --profile web down --volumes --remove-orphans
+        run: docker compose --profile tools --profile cluster --profile web --profile study --profile study-ai down --volumes --remove-orphans

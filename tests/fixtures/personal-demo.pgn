@@ -1,0 +1,358 @@
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0000"]
+[Date "2026.10.01"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0001"]
+[Date "2026.10.02"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0002"]
+[Date "2026.10.03"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0003"]
+[Date "2026.10.04"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0004"]
+[Date "2026.10.05"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0005"]
+[Date "2026.10.06"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0006"]
+[Date "2026.10.07"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0007"]
+[Date "2026.10.08"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0008"]
+[Date "2026.10.09"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0009"]
+[Date "2026.10.10"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0010"]
+[Date "2026.10.11"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0011"]
+[Date "2026.10.12"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0012"]
+[Date "2026.10.13"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0013"]
+[Date "2026.10.14"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0014"]
+[Date "2026.10.15"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0015"]
+[Date "2026.10.16"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0016"]
+[Date "2026.10.17"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0017"]
+[Date "2026.10.18"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0018"]
+[Date "2026.10.19"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0019"]
+[Date "2026.10.20"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "0-1"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic f-pawn example"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0020"]
+[Date "2026.10.21"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0021"]
+[Date "2026.10.22"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0022"]
+[Date "2026.10.23"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0
+
+
+[Event "SYNTHETIC SOFTWARE TEST - NOT REAL PLAYER GAMES"]
+[Site "https://lichess.org/demo0023"]
+[Date "2026.10.24"]
+[White "DemoStudent"]
+[Black "SyntheticOpponent"]
+[WhiteElo "1500"]
+[BlackElo "1550"]
+[Result "1-0"]
+[TimeControl "300+0"]
+[ECO "C20"]
+[Opening "Synthetic king-pawn example"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0

@@ -1,0 +1,1 @@
+{"status":"passed","bundle":"/backups/20261106T142843-31692","tables_verified":30,"sql_row_counts_and_fingerprints_match":true,"parquet_bundle_restored":true,"private_study_bundle_restored":true,"constraints_validated":true,"reader_permissions_validated":true,"corrupt_backup_rejected":true}

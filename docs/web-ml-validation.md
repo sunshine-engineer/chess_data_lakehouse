@@ -8,7 +8,7 @@
 
 ## Actual ML run
 
-Run `20261106T073653Z-ff35205e` executed in the bounded Docker `ml-train` service,
+Initial run `20261106T073653Z-ff35205e` executed in the bounded Docker `ml-train` service,
 reading the existing `warehouse_python` publication through `chess_reader`.
 No archive was downloaded and no source fact was changed. Full source coverage
 was 121,332 games; deterministic sampled coverage was 120,000. Training all three
@@ -34,7 +34,7 @@ silhouette (**0.2770**); repeat-seed ARI was **1.0**. Groups primarily reflected
 observed time-control preferences. These are descriptive findings on this dataset,
 not skill labels or evidence of stable groups across years.
 
-The [raw report](../reports/ml-evaluation.json) includes every candidate score,
+The [initial raw report](../reports/ml-evaluation-initial.json) includes every candidate score,
 confusion matrix, class counts, test slices, group means, publication signature,
 code hash and library versions. Model weights remain in the private named volume.
 The three standalone model cards interpret the results in more detail:
@@ -81,7 +81,12 @@ See [acceptance requirements](web-ml-plan.md) and [operating commands](web-app.m
 
 ## Boundary
 
-Real data is January 2013 only, including December-started games retained with
+This document records the initial archive release. The current
+[personal-study evidence](personal-study-validation.md) records the added service,
+ratings-only/reliability comparison and manual-import boundary. Current metrics
+are in [ml-evaluation.json](../reports/ml-evaluation.json).
+
+The initial archive data is January 2013 only, including December-started games retained with
 their actual dates. Later-month, modern-game, unseen-player and production
 generalization remain unvalidated. The app is local and unauthenticated; it uses
 the reader role and cannot trigger ingestion or training. All-month processing

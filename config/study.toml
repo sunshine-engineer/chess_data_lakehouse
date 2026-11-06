@@ -1,0 +1,14 @@
+# Personal approval is separate from the paused bulk archive catalog.
+player = "sunny2g"
+month = "2026-10"
+max_games = 500
+max_upload_bytes = 10485760
+max_game_plies = 600
+max_total_plies = 100000
+max_versions = 20
+max_cohorts = 50
+max_analyzed_games = 3
+engine_nodes = 20000
+engine_hash_mb = 32
+engine_game_seconds = 120
+minimum_opening_games = 5

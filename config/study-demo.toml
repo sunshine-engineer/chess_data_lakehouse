@@ -1,0 +1,4 @@
+# Test-only profile. Never claim these fixtures are sunny2g's actual games.
+player = "DemoStudent"
+month = "2026-10"
+synthetic_fixture = true

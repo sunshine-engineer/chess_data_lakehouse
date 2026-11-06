@@ -1,1 +1,1 @@
-{"status":"passed","bundle":"/backups/20261104T133421-19684","tables_verified":25,"sql_row_counts_and_fingerprints_match":true,"parquet_bundle_restored":true,"constraints_validated":true,"reader_permissions_validated":true,"corrupt_backup_rejected":true}
+{"status":"passed","bundle":"/backups/20261106T144051-8171","tables_verified":33,"sql_row_counts_and_fingerprints_match":true,"parquet_bundle_restored":true,"private_study_bundle_restored":true,"constraints_validated":true,"reader_permissions_validated":true,"corrupt_backup_rejected":true}
