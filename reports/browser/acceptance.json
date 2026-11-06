@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source_games": 121332,
+  "models_available": true,
+  "desktop_and_mobile": true,
+  "filters": true,
+  "pagination": true,
+  "pipeline_evidence": true,
+  "case_studies": 3,
+  "javascript_errors": [],
+  "api_failures": []
+}

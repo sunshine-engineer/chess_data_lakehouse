@@ -105,6 +105,93 @@ services:
         condition: service_healthy
     cpus: 2
     mem_limit: 1g
+  model-volume:
+    image: chess-lakehouse-web:local
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    profiles: [web]
+    user: "0:0"
+    entrypoint: [sh, -c, "chown 10001:10001 /models"]
+    volumes:
+      - ml-data:/models
+  ml-train:
+    image: chess-lakehouse-web:local
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    profiles: [web]
+    environment: &reader-env
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-chess}
+      PGUSER: chess_reader
+      PGPASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
+    entrypoint: [python, -m, chess_lakehouse.ml.train]
+    volumes:
+      - ml-data:/models
+      - ./reports:/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      model-volume:
+        condition: service_completed_successfully
+    cpus: 2
+    mem_limit: 2g
+  web:
+    image: chess-lakehouse-web:local
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    profiles: [web]
+    environment: *reader-env
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    volumes:
+      - ml-data:/models:ro
+      - ./reports:/evidence:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      model-volume:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    cpus: 2
+    mem_limit: 1g
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  web-tests:
+    image: chess-lakehouse-web:local
+    profiles: [web]
+    environment: *admin-env
+    entrypoint: [python, -m, pytest, -q, tests/test_web_ml.py]
+    volumes:
+      - ./reports:/evidence:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    cpus: 2
+    mem_limit: 2g
+  browser-tests:
+    build:
+      context: .
+      dockerfile: docker/browser.Dockerfile
+    profiles: [web]
+    environment:
+      WEB_URL: http://web:8080
+    volumes:
+      - ./tests/browser:/checks:ro
+      - ./reports/browser:/artifacts
+    depends_on:
+      web:
+        condition: service_healthy
+    cpus: 2
+    mem_limit: 1g
   spark-master:
     image: chess-lakehouse-runner:local
     profiles: [cluster]
@@ -170,3 +257,4 @@ volumes:
   pipeline-data:
   postgres-data:
   backup-data:
+  ml-data:

@@ -13,5 +13,6 @@ data/
 # Raw benchmark samples are retained locally; share the aggregate reports.
 reports/python_*.json
 reports/spark_*.json
+reports/ci-synthetic/
 *.dump
 *.backup

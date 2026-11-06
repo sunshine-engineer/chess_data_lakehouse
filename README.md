@@ -13,6 +13,7 @@ processing remains disabled. Multi-month and cluster checks use synthetic data.*
 2. Process one explicitly approved archive and query historical models.
 3. Verify recovery, backup/restore and comparable performance measurements.
 4. Review the data model, operational runbook and measured case studies.
+5. Explore Chess Atlas and its three documented ML case studies.
 
 ## Start
 
@@ -77,10 +78,32 @@ remain historical evidence, not target-scale capacity claims.
 Stop services while retaining named data volumes:
 
 ```bash
-docker compose --profile tools --profile cluster down
+docker compose --profile tools --profile cluster --profile web down
 ```
 
 Lichess archives are [CC0 source data](https://database.lichess.org/).
 The default archive's SHA-256 comes from the [official checksum list](https://database.lichess.org/standard/sha256sums.txt).
 Credentials, bulk data and backup bundles are excluded from Git. **30 GB/month and
 five-year production capacity require representative load testing and are not claimed.**
+
+## Chess Atlas web app and ML laboratory
+
+After loading the warehouse above, run:
+
+```bash
+docker compose --profile web build web
+docker compose --profile web run --rm ml-train
+docker compose --profile web up -d --wait web
+```
+
+Open **http://localhost:8080** for filtered data charts, paginated game exploration,
+pipeline benchmarks and a model laboratory. The three documented ML studies are
+[outcome classification](docs/ml-outcome.md), [game-length regression](docs/ml-length.md),
+and [descriptive player clustering](docs/ml-clusters.md). Results include actual
+baselines/comparisons, chronological evaluation and limitations; predictions use
+pre-game features only. The app reads PostgreSQL as `chess_reader` and cannot
+start training or ingestion.
+
+See [setup, APIs and operations](docs/web-app.md),
+[executed web/ML evidence](docs/web-ml-validation.md), and
+[evaluation report](reports/ml-evaluation.json). All-month processing remains off.

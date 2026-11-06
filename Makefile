@@ -1,5 +1,5 @@
 DOCKER ?= docker
-.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down
+.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test
 setup build:
 	$(DOCKER) compose build python
 up:
@@ -25,4 +25,12 @@ backup:
 cluster-smoke:
 	$(DOCKER) compose --profile tools --profile cluster run --rm --use-aliases cluster-driver
 down:
-	$(DOCKER) compose --profile tools --profile cluster down
+	$(DOCKER) compose --profile tools --profile cluster --profile web down
+web:
+	$(DOCKER) compose --profile web up -d --wait web
+ml:
+	$(DOCKER) compose --profile web run --rm ml-train
+web-test:
+	$(DOCKER) compose --profile web run --rm web-tests
+browser-test:
+	$(DOCKER) compose --profile web run --rm browser-tests
