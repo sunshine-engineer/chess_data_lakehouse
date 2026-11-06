@@ -1,0 +1,14 @@
+# Deterministic browser API transport. Use explicitly with the base Compose file.
+services:
+  study-api:
+    environment:
+      PYTHONPATH: /app/tests:/app/src
+    command: [waitress-serve, --listen=0.0.0.0:8081, --threads=4, --call, workspace_fixture_server:create_app]
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+  web:
+    environment:
+      PYTHONPATH: /app/src
+    volumes:
+      - ./src:/app/src:ro

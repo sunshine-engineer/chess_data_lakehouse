@@ -1,4 +1,5 @@
-# Personal approval is separate from the paused bulk archive catalog.
+# Historical single-player settings, used only by legacy tests and migration tools.
+# The current account workspace uses STUDY_* resource settings and accepts any dates.
 player = "sunny2g"
 month = "2026-10"
 max_games = 500

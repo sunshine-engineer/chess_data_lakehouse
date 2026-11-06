@@ -49,7 +49,9 @@ pg_dump --format=custom --no-owner --snapshot="$snapshot" \
 tar --exclude='*.tmp' --exclude='*.part' -cf "$bundle/pipeline.tar" -C /data .
 # The personal publication lock blocks new immutable files until the snapshot and
 # artifact bundle have been captured. Hidden temporary directories are not published.
-tar --exclude='./.*' -cf "$bundle/study.tar" -C /study .
+tar --exclude='./.*' --exclude='./workspace/.*' --exclude='./workspace/upload-*' \
+  --exclude='./workspace/tmp' --exclude='./workspace/exports' \
+  -cf "$bundle/study.tar" -C /study .
 (
   cd "$bundle"
   sha256sum warehouse.dump pipeline.tar study.tar > SHA256SUMS

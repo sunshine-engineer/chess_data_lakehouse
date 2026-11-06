@@ -1,197 +1,226 @@
-# Personal study assistant
+# Personal Study workspace
 
 ## Outline
 
-1. Start the local Docker services and manually import approved games.
-2. Compare results, inspect positions and record a review plan.
-3. Ask bounded analytical questions and export reproducible cohorts.
-4. Understand data models, resource limits and recovery.
+1. Sign in and choose a player library.
+2. Import a PGN or download games from a Lichess API link.
+3. Follow findings into a game, position and practice note.
+4. Ask questions, save a study and export reproducible data.
+5. Operate and test the Docker services.
 
-## Start and import
-
-Keep your existing `.env` and database credentials. Add separate strong values
-for `STUDY_PASSWORD` and `STUDY_API_TOKEN` from `.env.example`; never commit `.env`.
+## Start
 
 ```bash
 docker compose --profile web --profile study build web
 docker compose --profile web --profile study up -d --wait web study-api
 ```
 
-Open `http://localhost:8080/#personal`. The approved configuration is
-`config/study.toml`: **sunny2g, October 2026 UTC**. Use the displayed manual
-Lichess export link, save the PGN, select it, confirm the player/month and import.
-The app never fetches this file itself. A 500-game export is a bounded sample if
-the player played more games that month. No authentication token is required for
-public games; private-game access is outside this release.
+Open `http://localhost:8080/#personal`. Create a **Chess Atlas** account, or sign in
+to an existing one. This is a local app account, not a Lichess account. Your Lichess
+password is never requested. Each account's libraries, imports, notes, questions
+and saved studies are separate. A coach can study several players in one account.
 
-Completed standard games from the approved player-month are accepted. Lichess
-`/ID`, `/game/ID`, player URLs and `GameId` headers are recognized. A source URL
-is optional; generic PGNs receive a stable `local_<SHA-256>` identity. Illegal mainlines, inconsistent
-results, conflicting duplicates within a file and oversized files are rejected.
-Missing or invalid optional ratings, ECO and clocks remain null/unknown, and
-missing openings use `Unclassified opening`. Missing opponents use `Unknown opponent`.
-When exactly one player name is absent, the confirmed import scope supplies the
-approved player if needed; both names absent require a color/name correction.
-Missing exact dates use the approved month's first day as a labelled placeholder;
-an explicit date outside the approved month is rejected. Missing results can be
-recovered from a completed movetext result or a provably terminal board; otherwise
-they require correction. Results and both missing player colors are never guessed.
-Header labels and uploaded
-evaluations are not independently verified. Variations/comments are excluded from
-the safe replay; the original upload is retained privately.
+The initial owner's migrated library uses private credentials in
+`data/owner-access.json`, generated once during the upgrade. Open that ignored
+local file, sign in, then change the app password in **Account**. No default or
+shared password is committed. New users register through the interface.
 
-The report displays metadata-default warnings. Per-game `metadata_defaults` and
-`identity_source` are preserved in private typed Parquet, import manifests and
-replay, and default details accompany research manifests/Parquet metadata. Replay
-PGN exports retain `StudyId`/`StudyDefaults` so generic games remain stable on
-reimport. Undated games cannot enter strict later-data validation. Defaults do
-not establish actual daily chronology or opponent strength. Without a source ID,
-identical names/date/time/move sequences are indistinguishable and deduplicate;
-use source IDs or replace mode for corrected local-game identities.
+## Import games
 
-Add/correct mode merges by game ID. Identical uploads reuse the existing version;
-changed games publish a new complete immutable version. Replace mode changes the
-active set and preserves older versions. A failed upload leaves the active version
-unchanged. Version selection lets you reproduce earlier reports and exports.
+Choose **Import games**, then one source:
 
-Changing the approved player/month requires an explicit configuration change and
-service recreation. Each workspace remains scoped by player and month; changing
-configuration does not erase earlier private data. This is a single local owner
-app, with no user accounts or multi-user authorization.
+- **Upload a PGN**: choose a file. Leave **Player to study** empty to detect the
+  common player, or enter a name if the file is ambiguous. Different dates,
+  months and years can belong to the same library.
+- **Import from Lichess**: paste a link such as
+  `https://lichess.org/api/games/user/Sunny2g?tags=true&clocks=true&evals=true&opening=true&literate=true`.
+  The player is read from the URL. The app downloads and processes the games;
+  no manual download step or API token is needed for public games.
 
-## Review loop and interpretation
+There is **no approved-month input or confirmation checkbox**. Dates come from
+the games and are used only to filter analysis. Missing exact dates remain
+unknown; the app does not invent a day or reject a file because of a month setting.
 
-Filter by player color, clock class, opponent-strength band and opening. Score is
-`(wins + 0.5 × draws) / games`; win rate is `wins / games`. Wilson 95% intervals
-describe observed binary win rates, not score intervals or future-win guarantees.
-Opening reference results use the player's other openings with the same color,
-clock class and opponent-strength band (±200 rating for the similar band).
-At least five opening games, three reference games per matched stratum and 50%
-matched coverage are required before flagging a score gap of at least 15 points.
-These are transparent review heuristics, not causal or significance tests.
+The Lichess preview explains the scope. With no `max` option it requests all
+available completed public games. A maximum, date range, color, opponent or clock
+filter already in the link is respected. Required tags/moves are always enabled.
+Only the official HTTPS user-games endpoint is accepted; arbitrary URLs, credentials
+in URLs, nonstandard ports and redirects are refused. No app session or password
+is sent to Lichess. Downloads use one request at a time and wait a full minute
+before retrying HTTP 429, following [Lichess API guidance](https://lichess.org/page/api-tips).
+The [official export specification](https://github.com/lichess-org/api/blob/master/doc/specs/tags/games/api-games-user-username.yaml)
+recommends streaming and documents that omitting `max` downloads all games.
 
-Select a linked game. Replay legal positions, flip the board and look up recurring
-positions within the current filters. Position identity uses board placement,
-side to move, castling and legal en-passant rights, excluding move counters. The
-first occurrence per game counts once. Observed alternatives show frequency and
-results; they do not establish optimal moves. Click a continuation to replay a
-matching example. Source clocks and uploaded evaluations are labelled separately.
+**Import behavior** has two choices:
 
-Request an engine review explicitly for up to three distinct games per version.
-One Stockfish 15.1 worker uses one thread, 32 MiB hash, up to 20,000 nodes and
-0.25 seconds per position, and a 120-second game budget. Check coverage: longer
-games may be analyzed only partly. A preferred alternative plus an evaluation
-drop of at least 150 centipawns produces a review candidate. Mate transitions are
-labelled separately. A checkmate-in-one explanation is verified on the legal
-board; captures/checks are described without claiming a proven material blunder.
-Compare replayable engine lines, then save your own note as queued, reviewed or
-practiced. Engine variation boards are explicitly labelled and must be exited
-before saving a note or asking about the played position.
-
-## Analytics assistant
-
-Supported operations are overview, opening comparisons, clock/color/opponent
-groups and review evidence. Examples: “Summarize my games”, “Where do I underperform
-in blitz games?”, “Compare White versus Black”, “Which games should I review?”
-and “What is the best move here?” on an engine-analyzed replay position.
-Answers include applied filters, immutable dataset version and linked games.
-Unsupported claims, arbitrary numeric/date thresholds, ambiguous mixed filters,
-commands, secret requests and future-rating predictions are refused.
-
-Default routing is deterministic. Optional local model routing:
-
-```bash
-docker compose --profile study-ai up -d --wait study-llm
-docker compose --profile study-ai exec study-llm ollama pull qwen2.5:0.5b
-STUDY_ROUTER=ollama docker compose --profile web --profile study up -d --wait web study-api
-```
-
-PowerShell: set `$env:STUDY_ROUTER='ollama'` before the final command. Model weights
-are a separate download and remain in a named volume. The model receives only
-the question and an operation/filter schema; no raw PGN, comments or notes are
-sent. It cannot write SQL, compute final numbers or generate tactical claims.
-Schema checks and template/filter guards constrain proposals, and an eight-second
-timeout falls back to templates. Structured responses follow an allowlisted JSON
-schema ([Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs));
-model-proposed filters must agree with explicitly recognized question filters.
-The UI exposes the actual route/fallback used.
-CPU is capped at two cores and model memory at 2 GiB. Model routing is optional
-and limited; this is not open-ended chess coaching or a verified strength gain.
-
-## Research and later-data evaluation
-
-Save a named cohort to pin the exact version and filters. Downloads include typed
-Zstandard Parquet with embedded manifest/dictionary, replay PGN, report JSON with
-review evidence and a standalone manifest. Every download has an
-`X-Content-SHA256` header. Current-version links export the full version; saved
-cohort links apply the saved filters. Identifiers can link back to public games,
-so exports are not anonymous. Notes/report exports may contain private content.
-
-The dictionary distinguishes pre-game inputs from post-game targets/descriptors.
-Keep results, moves, opening labels and length out of pre-game predictive inputs.
-For reproducibility retain the downloaded bytes and hash, version/dataset hash,
-filters and code/model run ID; mutable review notes can change later report JSON.
-
-Use “Evaluate frozen models” on at least two real approved games with known dates. It compares
-the frozen January 2013 full model, ratings-only model and prior on strictly later
-dates, with log loss, classwise reliability and multiclass Brier score. It also
-compares length estimates with the frozen median baseline. Nothing is fitted or
-tuned on personal games. One player's month is a transfer check, not modern
-population validation. Fewer than 20 games receive an explicit descriptive-only
-small-sample warning. Synthetic tests prove the evaluation path only.
-
-## Models and service boundaries
-
-| Table | Purpose and key |
+| Choice | What happens |
 |---|---|
-| `study.workspaces` | Approved normalized player/month and active version |
-| `study.imports` | Immutable version, parent, source/dataset hashes, manifest and private artifact path |
-| `study.games` | `(import_id, game_id)` typed player-perspective facts and Parquet row index |
-| `study.positions` | `(import_id, game_id, ply)` normalized position hash and observed next move |
-| `study.cohorts` | Version-pinned name and validated filters |
-| `study.review_items` | Version/game/ply note, progress and timestamps |
-| `study.analysis_jobs` | Bounded queued/running/complete/failed jobs and engine/code/config provenance |
-| `study.validations` | Frozen model run and later-version evaluation, unique per version/model |
+| Add games and update changed games | Keep the current collection, add new game IDs, reuse identical games, and retain a new revision only when information changed. Use this for normal updates. |
+| Use only the games in this import | Make the imported set the active collection. Other games leave the active view; earlier versions and saved studies remain available. Shared payloads are reused. |
 
-Each import writes original PGN, typed per-game Parquet and checksummed manifest
-under `/study/<import UUID>/`. Streaming `COPY` loads game and position rows;
-publication uses a transaction and advisory locks. Historical rows cannot be
-updated/deleted through SQL triggers. This small personal importer is memory
-bounded by its hard limits; it is separate from the chunked bulk archive pipeline.
+The import runs as a background job. You can watch bytes received and games
+processed, cancel it, or return from **Recent imports**. When it completes, the
+app opens a separate analysis workspace. A malformed mainline or conflicting
+copies of one game stops publication and leaves the current collection unchanged.
+Unsupported variants, empty/aborted or unfinished games, and games unrelated to the selected player
+are excluded with counts and bounded explanations, rather than breaking an otherwise
+valid collection. The engine/replay workspace currently supports standard chess.
 
-`web` uses archive `chess_reader`; it has no study SQL access. Its allowlisted
-same-origin proxy authenticates to private `study-api` using a bearer secret.
-`study-api` uses `chess_study`, with access only to the study schema. Admin setup
-runs in one-shot migration containers. Only loopback web port 8080 is published;
-the API, database and optional LLM have no host ports. Application services run
-non-root, with read-only root filesystems and bounded CPU/memory. This local
-boundary is not an internet-facing authentication or tenancy design.
+Game IDs come from source URLs or `GameId`. Generic PGNs receive a stable
+`local_<SHA-256>` identity. Identical source/local games are not stored repeatedly.
+If source identity is missing, identical player/date/time/move sequences cannot be
+distinguished; include source IDs when available. Missing optional ratings,
+opening labels and clocks stay explicitly unknown. Uploaded annotations remain
+labelled as unverified source annotations.
 
-Hard limits: 10 MiB/upload, 500 games/version, 600 plies/game, 100,000 plies/version,
-20 versions/workspace, 50 saved cohorts/workspace and three analyzed games/version.
-No automatic retention/deletion or all-month personal streaming exists. Raw games,
-model weights, credentials and backups stay outside Git.
+## Find a useful study focus
 
-## Tests and recovery
+Your player workspace has separate sections:
+
+- **Your focus**: three summary values and at most three findings. Each finding
+  explains the evidence, a next action and a few example games.
+- **Openings**: at most five common openings with sample size, score and an action
+  to open their games. A low raw score alone is not labelled a proven weakness.
+- **Games**: ten rows per page with opponent, date, clock, color, result and opening.
+  Every game opens its own stable review URL and displays its unique ID.
+- **Ask your study**: question prompts, computed answers and supporting game links.
+- **Saved studies**: pin the exact collection version and filters, then export it.
+
+Use **Period**, color, clock and opponent-strength filters. **Last 7/30/90 days**
+uses current UTC calendar dates; **Choose dates** supports an explicit range.
+Empty results mean no games match, not that a player's performance is zero.
+Question dates such as “last 30 days” and “last month” become visible analysis
+filters. “Last month” means the previous UTC calendar month.
+
+Score is `(wins + 0.5 × draws) / games`. Opening comparisons match the player's
+other openings by color, clock and opponent-strength group (±200 rating).
+A review candidate requires at least five opening games, three reference games
+per matched group, at least 50% matched coverage and a score gap of at least
+15 percentage points. Comparisons are descriptive and do not prove causes.
+Wilson intervals describe observed binary win rates, not expected improvement.
+
+## Review a game
+
+Open a finding's example or a row in **Games**. Replay legal moves, flip the board,
+inspect imported clocks/evaluations, or find recurring positions in the current
+selection. Position counts use the first occurrence per game; observed move
+frequency does not establish move quality. Copy the game link to return to the
+same collection and position. Other accounts cannot open private links.
+
+**Review this game with Stockfish** queues a bounded, explicit analysis. One engine
+worker uses one thread, 32 MiB hash, up to 20,000 nodes/position, 0.25 seconds per
+position and a two-minute game budget. Long games may have partial coverage.
+The library has no lifetime three-game analysis cap; queued work is bounded instead.
+
+A move-loss candidate compares the player's move with a preferred alternative.
+Checkmate-in-one claims are verified on the legal board. Other captures/checks
+are described cautiously. Replay the preferred and opponent-reply lines; engine
+variation boards are explicitly labelled. Return to the played line before saving
+its practice note or asking about that played position. Mark notes **To review**,
+**Reviewed** or **Practiced**. The app does not claim a rating gain from these actions.
+
+The assistant uses approved computational operations; it cannot write SQL or
+invent tactical claims. Examples: “Summarize my games”, “Compare White versus Black”,
+“Where do I underperform in blitz games?”, “What should I study next?” and
+“What is the best move here?” on a reviewed position. Questions requesting future
+ratings, secrets, guarantees or unsupported thresholds are refused. A suggested
+practice plan uses the actual report findings and linked games. It is not an
+open-ended AI chess coach or a substitute for checking the board.
+
+## Reproducible studies and exports
+
+Save a study to pin its snapshot and resolved filters. Downloads include:
+
+| Format | Contents |
+|---|---|
+| Parquet | Typed game facts, ratings, clock values, targets and revision checksums; embedded manifest and data dictionary |
+| PGN | Replayable canonical games with stable source/local IDs |
+| Manifest | Player, version, dataset checksum, filters, row count and feature-availability dictionary |
+| Report | The selected report and evidence-linked findings |
+
+Every download has `X-Content-SHA256`. Export generation uses a server-side cursor
+and Parquet row batches, not a whole-library Python list. Keep the bytes/hash,
+version, filters and code revision for an experiment. Exclude result, opening
+labels, moves and length from predictors intended to run before a game.
+Game IDs can identify public games; exports are not anonymous. Notes and detailed
+real-game results remain private and are not committed to Git.
+
+## Data and processing model
+
+All execution remains in Docker; PostgreSQL stores the account-owned models.
+Migrations `004_workspaces.sql` and `005_workspace_positions.sql` are additive. Applied migration checksums are checked,
+and the prior single-player data remains intact for recovery.
+
+| Model | Role |
+|---|---|
+| `accounts`, `sessions`, `auth_attempts` | Scrypt password hashes, hashed session tokens, CSRF tokens, sign-in throttling |
+| `libraries`, `library_snapshots` | Private player libraries, active collection and immutable version provenance |
+| `game_revisions` | One immutable semantic payload per account/game/checksum, shared across studied players |
+| `snapshot_games` | Small references from versions to shared revisions; composite ownership keys prevent cross-account membership |
+| `workspace_game_facts` | SQL view deriving player perspective, ratings, score and opponent-strength groups |
+| `workspace_positions` | Indexed positions stored once per shared revision, used for recurring-position lookup |
+| `import_jobs`, `import_members` | Persistent job progress and chunked staging; active publication is atomic |
+| `workspace_analysis`, `workspace_reviews` | Version-bound engine evidence and practice notes |
+| `saved_studies`, `legacy_mappings` | Pinned research selections and non-destructive migration lineage |
+
+The API checks ownership on every library, snapshot, job, game, note, analysis and
+export. App sessions use HttpOnly/SameSite cookies with CSRF-protected writes;
+password changes revoke other sessions. The archive web process keeps its reader
+role and proxies allowlisted personal operations to the private study service.
+Neither PostgreSQL nor the private API is exposed on a host port. The web app
+remains bound to loopback. Public hosting, email recovery, Lichess OAuth/ownership
+verification and broader operational hardening are separate deployment work.
+
+Uploads/downloads spool to the study disk volume. Processing is bounded per record
+and chunk; duplicate source files are deleted after completion, and failed staging
+is cleaned. Unchanged reimports create no additional game payload or snapshot.
+Changed information creates a distinct revision, while saved versions reuse its
+references. Legacy archives remain preserved separately during this upgrade.
+Position lookup uses SQL aggregates rather than replaying the entire library in
+Python. A recovery worker indexes older revisions one game at a time; partial
+counts are labelled until that work finishes. Exports use disk files and chunked
+reads, and remove their temporary files after the download closes.
+
+Default quotas are disabled: `STUDY_MAX_LIBRARY_GAMES=0` and
+`STUDY_MAX_STORAGE_BYTES=0`. They can be configured later. Zero does not mean
+infinite physical disk: a free-space reserve stops an import cleanly before the
+volume fills. A per-game record limit, per-task engine budgets and small HTTP/SQL
+pages bound concurrent work without imposing a library game-count limit.
+
+## Operations and tests
 
 ```bash
+# Test both the legacy parser/data protections and new account workspace:
 docker compose --profile study run --rm study-tests
+# Archive web and ML regression:
 docker compose --profile web run --rm web-tests
-# Fresh disposable project only: the browser script refuses real-player seeding.
-WEB_PORT=18081 STUDY_CONFIG=config/study-demo.toml docker compose -p chess-study-demo --profile web --profile study up -d --wait web study-api
-WEB_PORT=18081 STUDY_CONFIG=config/study-demo.toml docker compose -p chess-study-demo --profile web --profile study run --rm personal-browser-tests
+# Explicit offline browser transport, in a fresh disposable project:
+WEB_PORT=18082 docker compose -p chess-workspace-qa -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study run --rm personal-browser-tests
+# Verify SQL and both artifact volumes in a disposable restore destination:
 docker compose run --rm backup-restore
 ```
 
-The restore drill holds publication locks, captures a matching SQL snapshot and
-both artifact volumes, restores into a disposable database/directory, compares
-all row fingerprints and files, checks constraints/reader permissions and rejects
-a truncated dump. Bundles live in `backup-data` and contain private games. Model
-weights are separate: retrain the historical models if `ml-data` is lost. Do not
-delete named volumes to fix a login issue. Keep `.env` with its original passwords.
+`compose.workspace-qa.yaml` serves only labelled synthetic DemoStudent PGNs for
+API browser checks. Never use that override for real imports. Production Compose
+uses the real HTTPS transport. CI makes no real Lichess requests. Live retrieval,
+owner migration and real-data browser checks are separate acceptance evidence.
 
-Restarted engine jobs become failed and require an explicit retry. A publication
-with an uncertain commit acknowledgement retains its files; inspect SQL import
-IDs and hashes before removing any orphan folder. Do not edit checksum-tracked
-applied migrations. Archive January 2013 execution and `all_months_enabled=false`
-remain unchanged. Representative 30 GB compressed monthly capacity is unproven.
+To migrate the initial owner's existing study after applying migrations, run the
+explicit one-shot command with an ignored credential-file mount:
+
+```bash
+docker compose --profile study run --rm -v "$PWD/data:/private" --entrypoint python study-api -m chess_lakehouse.personal.workspace.migrate_legacy --username sunny2g --credential-file /private/owner-access.json
+```
+
+Use the intended local owner name when migrating another installation. This
+command is idempotent and preserves old collection versions,
+cohorts, notes and completed engine evidence. It never assigns legacy data to an
+arbitrary newly registered account. Do not delete named volumes to repair a login.
+
+Restarted running imports are marked interrupted and staged payloads cleaned;
+retry a Lichess link or choose the original PGN again. Queued jobs persist.
+Restarted engine jobs require an explicit retry. Backup bundles contain private
+account/game data and must be kept private. Model weights remain in the separate
+`ml-data` volume. The historical warehouse and bulk all-month archive scheduling
+are unchanged; January archive capacity measurements do not establish multi-year
+or 30 GB/month production capacity.

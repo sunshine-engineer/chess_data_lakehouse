@@ -1,5 +1,5 @@
 DOCKER ?= docker
-.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test study study-test study-ai
+.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test study study-test study-browser-test study-ai
 setup build:
 	$(DOCKER) compose build python
 up:
@@ -39,7 +39,11 @@ study:
 	$(DOCKER) compose --profile web --profile study up -d --wait web study-api
 study-test:
 	$(DOCKER) compose --profile study run --rm study-tests
+study-browser-test:
+	WEB_PORT=18082 $(DOCKER) compose -p chess-workspace-qa -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study up -d --wait web study-api
+	WEB_PORT=18082 $(DOCKER) compose -p chess-workspace-qa -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study run --rm personal-browser-tests
+# Historical router experiment; the current workspace uses computed answers.
 study-ai:
 	$(DOCKER) compose --profile study-ai up -d --wait study-llm
 	$(DOCKER) compose --profile study-ai exec study-llm ollama pull qwen2.5:0.5b
-	STUDY_ROUTER=ollama $(DOCKER) compose --profile web --profile study up -d --wait web study-api
+	@echo 'Legacy router model prepared. The current Personal Study workspace uses computed answers.'

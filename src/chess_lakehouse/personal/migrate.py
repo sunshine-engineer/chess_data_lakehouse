@@ -15,14 +15,15 @@ def bootstrap():
         migrate(conn)
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(hashtext('chess-study-schema'))")
-            script=Path(__file__).parents[1]/'migrations/003_personal.sql'
-            checksum=hashlib.sha256(script.read_bytes()).hexdigest()
-            prior=conn.execute('SELECT checksum FROM control.schema_migrations WHERE version=3').fetchone()
-            if prior and prior[0]!=checksum:
-                raise ValueError('personal migration checksum changed; add a new migration')
-            if not prior:
-                conn.execute(script.read_text())
-                conn.execute('INSERT INTO control.schema_migrations(version,checksum) VALUES(3,%s)',(checksum,))
+            for version,name in ((3,'003_personal.sql'),(4,'004_workspaces.sql'),(5,'005_workspace_positions.sql')):
+                script=Path(__file__).parents[1]/'migrations'/name
+                checksum=hashlib.sha256(script.read_bytes()).hexdigest()
+                prior=conn.execute('SELECT checksum FROM control.schema_migrations WHERE version=%s',(version,)).fetchone()
+                if prior and prior[0]!=checksum:
+                    raise ValueError('personal migration checksum changed; add a new migration')
+                if not prior:
+                    conn.execute(script.read_text())
+                    conn.execute('INSERT INTO control.schema_migrations(version,checksum) VALUES(%s,%s)',(version,checksum))
             if not conn.execute("SELECT 1 FROM pg_roles WHERE rolname='chess_study'").fetchone():
                 conn.execute(sql.SQL('CREATE ROLE chess_study LOGIN PASSWORD {}').format(sql.Literal(password)))
             else:

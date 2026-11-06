@@ -1,5 +1,9 @@
 # Personal chess study assistant delivery
 
+Historical single-player release plan. The current multi-user redesign follows
+[personal-workspace-plan.md](personal-workspace-plan.md); the approved-month form
+and 500-game library cap are superseded.
+
 ## Outline
 
 1. Import a manually supplied, bounded player-month corpus into an isolated study schema.

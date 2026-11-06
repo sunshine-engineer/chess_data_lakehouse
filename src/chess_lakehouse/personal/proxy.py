@@ -1,62 +1,61 @@
-"""Same-origin, route-allowlisted bridge to the isolated private study service."""
+"""Same-origin authenticated streaming bridge; no corpus-sized request buffering."""
+import http.client
 import os
-import urllib.error
-import urllib.request
+import re
+from urllib.parse import urlsplit
 
-from flask import request,Response,jsonify
+from flask import request,Response,jsonify,stream_with_context
 from .pgn import valid_game_id
 
-ROUTES={
-    'context':{'GET'},'imports':{'POST'},'report':{'POST'},'positions':{'POST'},
-    'cohorts':{'POST'},'review':{'POST'},'analysis':{'POST'},'assistant':{'POST'},
-    'ml-validation':{'POST'},'export':{'GET'}
-}
+ROUTES={'session':{'GET'},'signup':{'POST'},'login':{'POST'},'logout':{'POST'},'password':{'POST'},
+    'libraries':{'GET'},'context':{'GET'},'imports':{'GET'},'imports/file':{'POST'},
+    'imports/lichess':{'POST'},'imports/preview':{'POST'},'report':{'POST'},'games':{'POST'},
+    'analysis':{'POST'},'positions':{'POST'},'review':{'POST'},'assistant':{'POST'},
+    'studies':{'GET','POST'},'export':{'GET'}}
 
 
 def register(app):
     @app.before_request
     def protect_personal_writes():
-        if not request.path.startswith('/api/personal/'):
-            return None
-        if request.path=='/api/personal/imports':
-            request.max_content_length=11*1024*1024
-        else:
-            request.max_content_length=16*1024
+        if not request.path.startswith('/api/personal/'):return None
+        request.max_content_length=None if request.path=='/api/personal/imports/file' else 32768
         if request.method not in ('GET','HEAD'):
-            if request.headers.get('X-Study-Action')!='1':
-                return jsonify(error='Use the same-origin personal-study controls.'),403
+            if request.headers.get('X-Study-Action')!='1':return jsonify(error='Use the Personal Study controls.'),403
             origin=request.headers.get('Origin')
             if origin and origin.rstrip('/')!=request.host_url.rstrip('/'):
-                return jsonify(error='Cross-origin personal changes are not allowed.'),403
+                return jsonify(error='Cross-origin account changes are not allowed.'),403
 
     @app.route('/api/personal/<path:route>',methods=['GET','POST'])
     def personal(route):
-        methods={'GET'} if route.startswith('games/') and valid_game_id(route[6:]) else ROUTES.get(route,set())
-        if request.method not in methods:
-            return jsonify(error='Unknown personal-study operation'),404
-        base=os.environ.get('STUDY_SERVICE_URL','http://study-api:8081').rstrip('/')
+        methods=ROUTES.get(route,set())
+        if route.startswith('games/') and valid_game_id(route[6:]):methods={'GET'}
+        if re.fullmatch(r'libraries/[a-fA-F0-9-]{36}/versions',route):methods={'GET'}
+        if re.fullmatch(r'imports/[a-fA-F0-9-]{36}',route):methods={'GET'}
+        if re.fullmatch(r'imports/[a-fA-F0-9-]{36}/(?:cancel|retry)',route):methods={'POST'}
+        if request.method not in methods:return jsonify(error='Unknown study operation'),404
         token=os.environ.get('STUDY_API_TOKEN','')
-        if not token:
-            return jsonify(error='Start the configured personal-study Docker services.'),503
-        query=('?'+request.query_string.decode('ascii')) if request.query_string else ''
+        if not token:return jsonify(error='Start the Personal Study service.'),503
+        base=urlsplit(os.environ.get('STUDY_SERVICE_URL','http://study-api:8081'))
+        if base.scheme not in ('http','https'):return jsonify(error='Invalid study service configuration'),503
+        connection=(http.client.HTTPSConnection if base.scheme=='https' else http.client.HTTPConnection)(base.hostname,base.port,timeout=300)
         headers={'Authorization':'Bearer '+token}
+        for key in ('Cookie','X-CSRF-Token','Content-Type'):
+            if request.headers.get(key):headers[key]=request.headers[key]
         body=None
         if request.method=='POST':
-            body=request.get_data()
-            headers['Content-Type']=request.content_type or 'application/json'
-        upstream=urllib.request.Request(base+'/'+route+query,data=body,headers=headers,method=request.method)
+            body=request.stream
+            if request.content_length is not None:headers['Content-Length']=str(request.content_length)
+        query=('?'+request.query_string.decode('ascii')) if request.query_string else ''
         try:
-            response=urllib.request.urlopen(upstream,timeout=30)
-        except urllib.error.HTTPError as exc:
-            response=exc
-        except (urllib.error.URLError,TimeoutError):
-            return jsonify(error='Personal study service unavailable. Start its Docker profile.'),503
-        with response:
-            payload=response.read(16*1024*1024+1)
-            if len(payload)>16*1024*1024:
-                return jsonify(error='Personal response exceeded the supported size.'),503
-            output=Response(payload,status=response.status,content_type=response.headers.get('Content-Type','application/json'))
-            for key in ('Content-Disposition','X-Content-SHA256'):
-                if key in response.headers:
-                    output.headers[key]=response.headers[key]
-            return output
+            connection.request(request.method,(base.path.rstrip('/') or '')+'/'+route+query,body=body,headers=headers,
+                encode_chunked=body is not None and request.content_length is None)
+            upstream=connection.getresponse()
+        except (OSError,http.client.HTTPException):
+            connection.close();return jsonify(error='The Personal Study service is unavailable. Check its Docker container.'),503
+        forwarded={key:value for key,value in upstream.getheaders() if key.lower() in
+            ('content-type','content-disposition','x-content-sha256','set-cookie','cache-control','content-encoding')}
+        def chunks():
+            try:
+                while block:=upstream.read(65536):yield block
+            finally:upstream.close();connection.close()
+        return Response(stream_with_context(chunks()),status=upstream.status,headers=forwarded,direct_passthrough=True)

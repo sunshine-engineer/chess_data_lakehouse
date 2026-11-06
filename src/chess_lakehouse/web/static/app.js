@@ -68,7 +68,25 @@ async function models(){try{const d=await api('/api/models'),box=$('#model-resul
  const clusters=el('article',null,'panel');clusters.append(el('p','OBSERVED PLAYER PROFILES','eyebrow'),el('h2','Groups describe this archive.'),table(['Group','Players','Mean Elo','Mean moves','Win share','Draw share','Bullet share','Blitz share','Rapid share'],r.clusters.groups.map(g=>[g.cluster,number(g.players),number(g.mean_rating),number(g.mean_moves),percent(g.win_rate),percent(g.draw_rate),percent(g.bullet_share),percent(g.blitz_share),percent(g.rapid_share)])),el('p','Players have at least 10 observed games and five rated observations. Clusters are fitted on aggregated historical behavior; group numbers have no rank.','muted'));box.append(clusters);
  const limits=el('article',null,'panel');limits.append(el('h2','Interpretation boundary'));const list=el('ul');r.limitations.forEach(v=>list.append(el('li',v)));limits.append(list);box.append(limits);
  }catch(e){modelsReady=false;$('#prediction button').disabled=true;notice(e.message);}}
-async function navigate(view){if(!titles[view])view='personal';current=view;document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==view);document.querySelectorAll('.nav').forEach(n=>{const active=n.dataset.view===view;n.classList.toggle('active',active);if(active)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});$('#filters').hidden=!['overview','explorer'].includes(view);$('#page-title').textContent=titles[view][0];$('#page-subtitle').textContent=titles[view][1];$('#breadcrumb').textContent=document.querySelector(`[data-view="${view}"]`).textContent.trim();history.replaceState(null,'',`#${view}`);notice('');window.scrollTo(0,0);const stamp=document.querySelector('.stamp strong');if(stamp&&view!=='personal')stamp.textContent='Lichess · Jan 2013';if(view==='personal')await window.Study.open();if(view==='overview')await overview();if(view==='explorer')await loadGames();if(view==='pipelines')await benchmarks();if(view==='models')await models();}
+async function navigate(route){
+ let view=route.startsWith('personal')?'personal':route;
+ if(!titles[view]){view='personal';route='personal';}
+ current=view;
+ document.body.classList.toggle('personal-view',view==='personal');
+ document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==view);
+ document.querySelectorAll('.nav').forEach(n=>{const active=n.dataset.view===view;n.classList.toggle('active',active);if(active)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+ $('#filters').hidden=!['overview','explorer'].includes(view);
+ $('#page-title').textContent=view==='personal'?'Personal Study':titles[view][0];
+ $('#page-subtitle').textContent=view==='personal'?'Import your games. Find a focus. Practice the position.':titles[view][1];
+ $('#breadcrumb').textContent=document.querySelector(`[data-view="${view}"]`).textContent.trim();
+ history.replaceState(null,'',`#${route}`);notice('');window.scrollTo(0,0);
+ const stamp=document.querySelector('.stamp strong');if(stamp)stamp.textContent=view==='personal'?'Your private game library':'Lichess · Jan 2013';
+ const detail=document.querySelector('.stamp small');if(detail)detail.textContent=view==='personal'?'PGN files & Lichess API imports':'Standard rated games / CC0';
+ $('#study-page-scope').textContent=view==='personal'?'● Personal analysis workspace':'● Historical research dataset';
+ $('#workspace-footer-scope').textContent=view==='personal'?'Your games · Evidence-linked review · Deliberate practice':'January 2013 only · All-month processing disabled';
+ if(view==='personal')await window.Study.open();if(view==='overview')await overview();if(view==='explorer')await loadGames();if(view==='pipelines')await benchmarks();if(view==='models')await models();
+}
+window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)||'personal'));
 document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>navigate(n.dataset.view)));
 $('#filters').addEventListener('submit',async event=>{event.preventDefault();offset=0;const b=$('#filters button');b.disabled=true;await (current==='explorer'?loadGames():overview());b.disabled=false;});
 $('#previous').addEventListener('click',()=>{offset=Math.max(0,offset-25);loadGames();});$('#next').addEventListener('click',()=>{if(hasMore){offset+=25;loadGames();}});
