@@ -15,7 +15,7 @@ from psycopg.types.json import Jsonb
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from .pgn import PAYLOAD_SCHEMA,dataset_hash,parse,position_key
+from .pgn import PAYLOAD_SCHEMA,dataset_hash,parse,position_key,valid_game_id
 
 
 @contextmanager
@@ -64,11 +64,15 @@ def payloads(import_row):
     manifest=import_row['manifest']
     if hashlib.sha256(file.read_bytes()).hexdigest()!=manifest['files']['games.parquet']:
         raise ValueError('personal Parquet checksum mismatch')
-    return pq.read_table(file,schema=PAYLOAD_SCHEMA).to_pylist()
+    rows=pq.read_table(file,schema=PAYLOAD_SCHEMA).to_pylist()
+    for row in rows:
+        row['identity_source']=row.get('identity_source') or 'source'
+        row['metadata_defaults']=row.get('metadata_defaults') or []
+    return rows
 
 
 def payload(import_row,game_id):
-    if not isinstance(game_id,str) or not __import__('re').fullmatch(r'[A-Za-z0-9]{8}',game_id):
+    if not valid_game_id(game_id):
         raise ValueError('invalid game ID')
     rows=payloads(import_row)
     return next((r for r in rows if r['game_id']==game_id),None)
@@ -111,8 +115,10 @@ def publish(content,settings,player,month,mode='append'):
             (temporary/'source.pgn').write_bytes(content)
             pq.write_table(pa.Table.from_pylist(rows,schema=PAYLOAD_SCHEMA),temporary/'games.parquet',
                 compression='zstd',row_group_size=1)
-            manifest=dict(format_version=1,import_id=identifier,parent_id=str(previous['id']) if previous else None,
+            manifest=dict(format_version=2,import_id=identifier,parent_id=str(previous['id']) if previous else None,
                 player=settings.player,month=settings.month,game_count=len(rows),ply_count=total_plies,
+                metadata_defaults={r['game_id']:r['metadata_defaults'] for r in rows if r['metadata_defaults']},
+                local_identity_games=sum(r['identity_source']=='local_content' for r in rows),
                 dataset_sha256=sha,files={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in temporary.iterdir()})
             (temporary/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
             temporary.rename(folder)
@@ -143,4 +149,5 @@ def publish(content,settings,player,month,mode='append'):
             if not committed and not commit_started:
                 shutil.rmtree(folder,ignore_errors=True)
         return dict(import_id=identifier,version=next_version,games=len(rows),
-            duplicate_games=duplicate_count+repeated,corrected_games=corrected,unchanged=False)
+            duplicate_games=duplicate_count+repeated,corrected_games=corrected,unchanged=False,
+            defaulted_games=sum(bool(r['metadata_defaults']) for r in rows))

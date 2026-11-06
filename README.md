@@ -127,4 +127,6 @@ optional local Ollama intent router; all numerical answers still come from code.
 Read [personal-study setup and boundaries](docs/personal-study.md),
 [delivery evidence](docs/personal-study-validation.md), and the
 [synthetic browser checks](reports/personal-demo/acceptance.json).
-Real personal-game acceptance and later-data model results require your manual PGN.
+Manual PGNs can use source URLs, `GameId`, or stable local IDs, with labelled
+defaults for missing optional metadata. The supplied ten October games now pass
+real import and descriptive later-data evaluation; their detailed results stay private.

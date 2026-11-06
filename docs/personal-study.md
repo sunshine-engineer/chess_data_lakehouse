@@ -24,12 +24,30 @@ The app never fetches this file itself. A 500-game export is a bounded sample if
 the player played more games that month. No authentication token is required for
 public games; private-game access is outside this release.
 
-Only completed standard games with that player, a Lichess game ID and an actual
-start date inside the approved month are accepted. Illegal mainlines, inconsistent
+Completed standard games from the approved player-month are accepted. Lichess
+`/ID`, `/game/ID`, player URLs and `GameId` headers are recognized. A source URL
+is optional; generic PGNs receive a stable `local_<SHA-256>` identity. Illegal mainlines, inconsistent
 results, conflicting duplicates within a file and oversized files are rejected.
-Absent ratings and opening labels remain unknown. Header labels and uploaded
+Missing or invalid optional ratings, ECO and clocks remain null/unknown, and
+missing openings use `Unclassified opening`. Missing opponents use `Unknown opponent`.
+When exactly one player name is absent, the confirmed import scope supplies the
+approved player if needed; both names absent require a color/name correction.
+Missing exact dates use the approved month's first day as a labelled placeholder;
+an explicit date outside the approved month is rejected. Missing results can be
+recovered from a completed movetext result or a provably terminal board; otherwise
+they require correction. Results and both missing player colors are never guessed.
+Header labels and uploaded
 evaluations are not independently verified. Variations/comments are excluded from
 the safe replay; the original upload is retained privately.
+
+The report displays metadata-default warnings. Per-game `metadata_defaults` and
+`identity_source` are preserved in private typed Parquet, import manifests and
+replay, and default details accompany research manifests/Parquet metadata. Replay
+PGN exports retain `StudyId`/`StudyDefaults` so generic games remain stable on
+reimport. Undated games cannot enter strict later-data validation. Defaults do
+not establish actual daily chronology or opponent strength. Without a source ID,
+identical names/date/time/move sequences are indistinguishable and deduplicate;
+use source IDs or replace mode for corrected local-game identities.
 
 Add/correct mode merges by game ID. Identical uploads reuse the existing version;
 changed games publish a new complete immutable version. Replace mode changes the
@@ -114,12 +132,13 @@ Keep results, moves, opening labels and length out of pre-game predictive inputs
 For reproducibility retain the downloaded bytes and hash, version/dataset hash,
 filters and code/model run ID; mutable review notes can change later report JSON.
 
-After at least 20 real approved games, use “Evaluate frozen models”. It compares
+Use “Evaluate frozen models” on at least two real approved games with known dates. It compares
 the frozen January 2013 full model, ratings-only model and prior on strictly later
 dates, with log loss, classwise reliability and multiclass Brier score. It also
 compares length estimates with the frozen median baseline. Nothing is fitted or
 tuned on personal games. One player's month is a transfer check, not modern
-population validation. Synthetic tests prove the evaluation path only.
+population validation. Fewer than 20 games receive an explicit descriptive-only
+small-sample warning. Synthetic tests prove the evaluation path only.
 
 ## Models and service boundaries
 

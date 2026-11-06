@@ -137,6 +137,10 @@ def report(settings,identifier=None,filters=None):
         reference=select_games(c,v['id'],{k:value for k,value in filters.items() if k!='opening'})
         result=build(rows,reference,settings,v)
         result['filters']=filters
+        provenance=v['manifest'].get('metadata_defaults',{})
+        result['metadata_defaults']={key:value for key,value in provenance.items() if key in {row['game_id'] for row in rows}}
+        for row in result['games']:
+            row['metadata_defaults']=provenance.get(row['game_id'],[])
         result['review_progress']=c.execute('SELECT game_id,ply,status,note FROM study.review_items WHERE import_id=%s ORDER BY updated_at DESC',(v['id'],)).fetchall()
         result['analysis_jobs']=c.execute('SELECT id,game_id,status,evidence,error FROM study.analysis_jobs WHERE import_id=%s ORDER BY created_at DESC',(v['id'],)).fetchall()
         selected={r['game_id'] for r in rows}

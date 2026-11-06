@@ -121,6 +121,9 @@ window.Study = (() => {
 
   function renderReport() {
     const r = state.report;
+    const defaulted = Object.values(r.metadata_defaults || {});
+    $('#study-defaults').hidden = !defaulted.length;
+    $('#study-defaults').textContent = `${defaulted.length} games use labelled metadata defaults: ${[...new Set(defaulted.flat())].sort().join(', ')}. Unknown ratings and clocks remain unknown. A defaulted date is the approved month's first day, not a verified play date; missing-date games cannot enter later-data model validation. See the export manifest for each game's defaults.`;
     const metrics = $('#study-metrics');
     metrics.replaceChildren();
     for (const [label, value, note] of [
@@ -382,6 +385,7 @@ window.Study = (() => {
       const result = await api('ml-validation', {import_id: state.importId});
       const r = result.report;
       $('#study-validation').replaceChildren(node('p', `${r.rows} later approved games · frozen model ${r.model_run_id}`),
+        node('p', r.sample_warning || 'One player-month; descriptive results only.', 'callout'),
         table(['Model', 'Accuracy', 'Log loss', 'Multiclass Brier'], Object.entries(r.models).map(([name, value]) => [name, pct(value.accuracy), value.log_loss.toFixed(4), value.calibration.multiclass_brier.toFixed(4)])),
         node('p', r.scope, 'callout'));
     } catch (error) { showError(error); }

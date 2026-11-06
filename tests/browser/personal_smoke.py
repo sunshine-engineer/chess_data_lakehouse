@@ -122,6 +122,15 @@ with sync_playwright() as p:
     page.locator('#study-end').click()
     expect(page.locator('#study-board .chess-square')).to_have_count(64)
     page.screenshot(path=str(artifacts/'study-desktop.png'), full_page=True)
+    generic=upload(b'[White "DemoStudent"]\n\n1. f3 e5 2. g4 Qh4# 0-1\n')
+    assert generic['games']==25 and generic['defaulted_games']==1
+    page.reload(wait_until='networkidle')
+    expect(page.locator('#study-defaults')).to_contain_text('game_date')
+    context=page.request.get(url+'/api/personal/context').json()
+    response=page.request.post(url+'/api/personal/report',headers=headers,data={'import_id':context['active_import_id']})
+    local=next(g['game_id'] for g in response.json()['games'] if g['game_id'].startswith('local_'))
+    page.locator('#study-games button').filter(has_text=local).click()
+    expect(page.locator('#study-board .chess-square')).to_have_count(64)
     page.set_viewport_size({'width':390, 'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'mobile horizontal overflow'
     page.screenshot(path=str(artifacts/'study-mobile.png'), full_page=True)
@@ -132,6 +141,7 @@ with sync_playwright() as p:
     'status':'passed', 'source':'SYNTHETIC DemoStudent October 2026, not real user games',
     'games':24, 'desktop_mobile':True, 'legal_replay':True, 'engine_mate_and_variation':True,
     'notes_readback':True, 'version_correction_and_pinned_cohort':True,
+    'generic_defaulted_games_added':1, 'metadata_defaults_and_local_proxy_replay':True,
     'export_formats':['parquet','pgn','manifest','report'],
     'assistant_cases':cases, 'javascript_errors':errors,
     'limitations':'Eight fixed questions validate these paths only; not general language accuracy or chess improvement.'

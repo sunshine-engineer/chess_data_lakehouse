@@ -6,6 +6,34 @@
 2. Historical model comparison and local-model routing results.
 3. Real personal-data acceptance and remaining limits.
 
+## PGN compatibility update and real import
+
+The supplied October export exposed two parser defects: Lichess `/game/ID` URLs
+were rejected, and skipping annotated side variations incorrectly popped the
+mainline builder stack. Both are fixed. Source IDs now support common Lichess URL
+forms and `GameId`; generic PGNs use stable namespaced content IDs. Optional
+metadata defaults and their provenance are visible in reports and exports.
+
+**14 personal integration tests and 8 web/ML tests passed in Docker** after the
+fix, including nested variations, clocks/evaluations, source-ID conflicts, missing
+fields, terminal-result recovery, stable local IDs, replay/export round trips,
+old Parquet compatibility and small-sample/date-provenance validation.
+The synthetic browser acceptance additionally uploads a generic PGN, checks its
+defaulting notice and replays its long local ID through the web proxy on mobile.
+
+The real manually supplied file was imported through the actual browser UI:
+**10 approved October games, 519 mainline plies, no metadata defaults needed**.
+Source-derived counts and player colors matched the report and grounded assistant.
+Replay, one bounded Stockfish review, a saved cohort and four checksummed exports
+passed. Frozen historical models were evaluated on these ten later games, with a
+prominent descriptive-only small-sample warning. No model fitting used those games.
+This resolves the earlier missing-PGN gate; it does not establish modern-population
+accuracy or improvement in chess strength.
+
+Real-game details, exports, screenshots and evaluation results remain private in
+ignored `data/validation/` and the Docker study volume. Only synthetic fixtures and
+aggregate implementation-validation evidence are committed.
+
 ## Verified implementation
 
 Tests run inside Docker; integration tests create disposable databases and private
@@ -40,7 +68,7 @@ They are never seeded into the real sunny2g workspace.
   January publication, including current model inference, filters, pagination and
   desktop/mobile layouts. The [real-volume restore drill](../reports/backup-restore.json)
   matched 33 table fingerprints. The live personal context confirmed sunny2g,
-  October 2026 and zero imported versions; the model-training code hash matched
+  October 2026 and zero imported versions at the initial release; the model-training code hash matched
   the published report, and personal documentation links resolved.
 
 Screenshots: [desktop](../reports/personal-demo/study-desktop.png),
@@ -94,11 +122,11 @@ docker compose --profile web run --rm --no-deps -e STUDY_ROUTER=ollama -e STUDY_
 
 ## User-owned acceptance and limits
 
-The real workspace is configured for **sunny2g · October 2026 UTC**. Actual PGN
-import, coaching relevance and frozen evaluation on that user's games require the
-manual file. No synthetic statistic is a sunny2g result. A later-data evaluation
-endpoint and synthetic integration test do not establish actual modern-game model
-quality. No strength/rating improvement is measured or promised.
+The real workspace is configured for **sunny2g · October 2026 UTC**. The supplied
+manual file has now passed real import/replay/analysis/export and frozen later-data
+evaluation. Coaching usefulness still needs the player's judgment. No synthetic
+statistic is a sunny2g result. Ten personal games do not establish modern-game
+population quality. No strength/rating improvement is measured or promised.
 
 This is a local, single-owner demonstration with hard import/analysis limits.
 Public authentication, multi-user isolation, offsite backups, deletion/retention,
