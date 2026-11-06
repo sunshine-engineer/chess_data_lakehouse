@@ -78,7 +78,7 @@ remain historical evidence, not target-scale capacity claims.
 Stop services while retaining named data volumes:
 
 ```bash
-docker compose --profile tools --profile cluster down
+docker compose --profile tools --profile cluster --profile web down
 ```
 
 Lichess archives are [CC0 source data](https://database.lichess.org/).
