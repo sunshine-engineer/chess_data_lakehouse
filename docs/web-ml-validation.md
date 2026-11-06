@@ -72,6 +72,10 @@ state: an unavailable requested month was replaced by the first published month
 without refreshing the charts. The application now preserves the requested empty
 month, and browser acceptance explicitly checks that selection and empty explorer
 rows remain consistent even when other archive months exist.
+The same synthetic/empty-January browser scenario also passed locally in the
+separate `chess-web-empty` Docker project, using disposable database/model volumes
+and loopback port 18080. Its temporary screenshots were kept outside the real-data
+evidence directory; the real warehouse and its trained models were preserved.
 
 See [acceptance requirements](web-ml-plan.md) and [operating commands](web-app.md).
 
