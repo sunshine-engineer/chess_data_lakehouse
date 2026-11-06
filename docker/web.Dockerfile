@@ -3,6 +3,8 @@ ENV CHESS_CONTAINER=1 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 \
     ML_ROOT=/models EVIDENCE_ROOT=/evidence DOCS_ROOT=/app/docs
 RUN groupadd --gid 10001 chess && useradd --uid 10001 --gid 10001 --create-home chess
+RUN apt-get update && apt-get install -y --no-install-recommends stockfish=15.1-4 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.web.lock ./
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.web.lock

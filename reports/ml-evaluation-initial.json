@@ -1,0 +1,297 @@
+{
+  "split": {
+    "train": {
+      "rows": 68005,
+      "first_date": "2012-12-31",
+      "last_date": "2013-01-18",
+      "class_counts": {
+        "0-1": 30829,
+        "1-0": 34918,
+        "1/2-1/2": 2258
+      }
+    },
+    "validation": {
+      "rows": 23370,
+      "first_date": "2013-01-19",
+      "last_date": "2013-01-24",
+      "class_counts": {
+        "0-1": 10701,
+        "1-0": 11919,
+        "1/2-1/2": 750
+      }
+    },
+    "test": {
+      "rows": 28625,
+      "first_date": "2013-01-25",
+      "last_date": "2013-01-31",
+      "class_counts": {
+        "0-1": 13074,
+        "1-0": 14608,
+        "1/2-1/2": 943
+      }
+    }
+  },
+  "features": [
+    "white_rating",
+    "black_rating",
+    "rating_difference",
+    "average_rating",
+    "initial_seconds",
+    "increment_seconds",
+    "speed_ultrabullet",
+    "speed_bullet",
+    "speed_blitz",
+    "speed_rapid",
+    "speed_classical",
+    "speed_unknown"
+  ],
+  "outcome": {
+    "algorithm": "Multinomial logistic regression",
+    "selection": {
+      "C": 1.0,
+      "validation_log_loss": [
+        {
+          "C": 0.1,
+          "log_loss": 0.7313775742702198
+        },
+        {
+          "C": 1.0,
+          "log_loss": 0.7313664438819741
+        }
+      ]
+    },
+    "test": {
+      "accuracy": 0.639056768558952,
+      "balanced_accuracy": 0.43835921934640815,
+      "macro_f1": 0.43111243033643437,
+      "log_loss": 0.7313757489441263,
+      "classes": [
+        "0-1",
+        "1-0",
+        "1/2-1/2"
+      ],
+      "confusion_matrix": [
+        [
+          7821,
+          5253,
+          0
+        ],
+        [
+          4136,
+          10472,
+          0
+        ],
+        [
+          430,
+          513,
+          0
+        ]
+      ]
+    },
+    "baseline": {
+      "accuracy": 0.5103231441048035,
+      "balanced_accuracy": 0.3333333333333333,
+      "macro_f1": 0.22526002513512056,
+      "log_loss": 0.8136663260780084,
+      "classes": [
+        "0-1",
+        "1-0",
+        "1/2-1/2"
+      ],
+      "confusion_matrix": [
+        [
+          0,
+          13074,
+          0
+        ],
+        [
+          0,
+          14608,
+          0
+        ],
+        [
+          0,
+          943,
+          0
+        ]
+      ]
+    },
+    "rating_difference_coefficients": {
+      "0-1": -0.6290565680123564,
+      "1-0": 0.6521365862767424,
+      "1/2-1/2": -0.023080018264384383
+    }
+  },
+  "length": {
+    "algorithm": "Random forest regression",
+    "selection": {
+      "max_depth": 6,
+      "validation_mae": [
+        {
+          "max_depth": 6,
+          "mae_moves": 12.327193878731363
+        },
+        {
+          "max_depth": 10,
+          "mae_moves": 12.332245325143088
+        }
+      ]
+    },
+    "test": {
+      "mae_moves": 12.386745254986423,
+      "rmse_moves": 15.958080396546285,
+      "r2": 0.03920549624203551
+    },
+    "baseline": {
+      "mae_moves": 12.59814847161572,
+      "rmse_moves": 16.40585048484242,
+      "r2": -0.015469096439045815
+    },
+    "feature_importance": {
+      "white_rating": 0.10052884247395127,
+      "black_rating": 0.10724465992983309,
+      "rating_difference": 0.08963569749917032,
+      "average_rating": 0.4291379515245111,
+      "initial_seconds": 0.22082095152763237,
+      "increment_seconds": 0.04181388861996118,
+      "speed_ultrabullet": 0.0,
+      "speed_bullet": 0.008237799386932051,
+      "speed_blitz": 0.0005522904054962401,
+      "speed_rapid": 0.00045051343930866056,
+      "speed_classical": 0.0015312859666455618,
+      "speed_unknown": 4.61192265583382e-05
+    }
+  },
+  "test_slices": [
+    {
+      "speed": "blitz",
+      "rows": 11083,
+      "accuracy": 0.6369214111702608,
+      "mae_moves": 12.303460875264097
+    },
+    {
+      "speed": "bullet",
+      "rows": 7584,
+      "accuracy": 0.664425105485232,
+      "mae_moves": 11.766375084984512
+    },
+    {
+      "speed": "classical",
+      "rows": 593,
+      "accuracy": 0.6104553119730185,
+      "mae_moves": 12.591442664925188
+    },
+    {
+      "speed": "rapid",
+      "rows": 9309,
+      "accuracy": 0.6228381136534537,
+      "mae_moves": 12.962663288807866
+    },
+    {
+      "speed": "unknown",
+      "rows": 56,
+      "accuracy": 0.625,
+      "mae_moves": 14.98177398390671
+    }
+  ],
+  "clusters": {
+    "algorithm": "Standardized K-means",
+    "players": 2427,
+    "minimum_games": 10,
+    "features": [
+      "mean_rating",
+      "mean_moves",
+      "win_rate",
+      "draw_rate",
+      "bullet_share",
+      "blitz_share",
+      "rapid_share"
+    ],
+    "selected_k": 3,
+    "silhouette": 0.2769705714806232,
+    "seed_stability_ari": 1.0,
+    "one_cluster_inertia": 16989.000000000025,
+    "candidates": [
+      {
+        "k": 2,
+        "silhouette": 0.24455624756866273,
+        "inertia": 12957.6664361363
+      },
+      {
+        "k": 3,
+        "silhouette": 0.2769705714806232,
+        "inertia": 10450.391881577418
+      },
+      {
+        "k": 4,
+        "silhouette": 0.25795425945105654,
+        "inertia": 8710.457422074498
+      }
+    ],
+    "groups": [
+      {
+        "cluster": 1,
+        "players": 799,
+        "mean_rating": 1629.1406121653201,
+        "mean_moves": 34.61779237099237,
+        "win_rate": 0.5299480492103444,
+        "draw_rate": 0.03755795967503362,
+        "bullet_share": 0.09314439655996415,
+        "blitz_share": 0.7477579944771701,
+        "rapid_share": 0.14061753449177955
+      },
+      {
+        "cluster": 2,
+        "players": 1265,
+        "mean_rating": 1467.1661415976425,
+        "mean_moves": 31.25536147114835,
+        "win_rate": 0.4117294121986203,
+        "draw_rate": 0.02987499845132453,
+        "bullet_share": 0.04314670990648935,
+        "blitz_share": 0.19442850553065846,
+        "rapid_share": 0.6909198969585979
+      },
+      {
+        "cluster": 3,
+        "players": 363,
+        "mean_rating": 1717.5898031733616,
+        "mean_moves": 33.92697691281379,
+        "win_rate": 0.5504768306042145,
+        "draw_rate": 0.02784817745631669,
+        "bullet_share": 0.8521330487010598,
+        "blitz_share": 0.1208309225471618,
+        "rapid_share": 0.02181648955342837
+      }
+    ]
+  },
+  "schema_version": 1,
+  "run_id": "20261106T073653Z-ff35205e",
+  "created_at": "2026-11-06T07:36:53.458680+00:00",
+  "engine": "python",
+  "month": "2013-01",
+  "source_signature": {
+    "games": 121332,
+    "first_date": "2012-12-31",
+    "last_date": "2013-01-31",
+    "publication": "095204d8039355bc02153bf1d99e7c91"
+  },
+  "sample_rows": 120000,
+  "sampling": "lowest md5(game_id), deterministic and independent of targets",
+  "max_games": 120000,
+  "seed": 42,
+  "elapsed_seconds": 61.64374603399983,
+  "versions": {
+    "scikit-learn": "1.7.2",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "joblib": "1.5.2"
+  },
+  "training_code_sha256": "251b1d7878a196735886bbbb7746a52bd1fc99fa5afc01fa119640ca9adc219a",
+  "limitations": [
+    "One historical source month; not validated for modern games.",
+    "Game dates provide day-level chronology; players can overlap across splits.",
+    "Opening and post-game attributes are excluded from predictors.",
+    "Clustering is retrospective description, not player skill or cheating detection.",
+    "No causal, fairness, unseen-player or production generalization claim."
+  ]
+}

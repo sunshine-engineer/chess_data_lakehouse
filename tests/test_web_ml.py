@@ -60,7 +60,8 @@ def test_models_evaluate_real_baselines_and_all_classes():
     assert np.isfinite(report['outcome']['test']['log_loss'])
     assert report['length']['baseline']['mae_moves']>0
     assert sum(g['players'] for g in report['clusters']['groups'])==40
-    assert set(models)=={'outcome','length','clusters'}
+    assert set(models)=={'outcome','length','clusters','ratings','prior','length_baseline'}
+    assert 0<=report['outcome']['ratings_baseline']['calibration']['multiclass_brier']<=2
     x=np.array([vector({**rows[0],'white_rating':None,'initial_seconds':None})])
     assert np.isclose(models['outcome'].predict_proba(x).sum(),1)
 
@@ -140,7 +141,7 @@ def test_saved_models_inference_stale_publication_and_corrupt_artifacts(warehous
     rows,players=synthetic_rows();models,report=fit_models(rows,players)
     run_id='20130101T000000Z-bbbbbbbb';folder=tmp_path/run_id;folder.mkdir()
     with data.connect() as c:signature=data.source_signature(c,'python','2013-01')
-    report.update(schema_version=1,run_id=run_id,engine='python',month='2013-01',source_signature=signature,
+    report.update(schema_version=2,run_id=run_id,engine='python',month='2013-01',source_signature=signature,
         versions={p:importlib.metadata.version(p) for p in ('scikit-learn','numpy','joblib','scipy')})
     for name,model in models.items():joblib.dump(model,folder/(name+'.joblib'))
     (folder/'report.json').write_text(json.dumps(report))

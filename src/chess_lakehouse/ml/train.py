@@ -15,6 +15,7 @@ import joblib
 import numpy as np
 from psycopg import sql
 from sklearn.cluster import KMeans
+from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
@@ -27,6 +28,7 @@ from sklearn.preprocessing import StandardScaler
 from threadpoolctl import threadpool_limits
 
 from .features import FEATURES, vector
+from .calibration import reliability
 from ..web.data import ENGINES, connect, source_signature, filters
 
 SEED=42
@@ -81,9 +83,12 @@ def classification_metrics(model,x,y):
     pred=model.predict(x)
     return {'accuracy':float(accuracy_score(y,pred)),
         'balanced_accuracy':float(balanced_accuracy_score(y,pred)),
-        'macro_f1':float(f1_score(y,pred,average='macro',zero_division=0)),
+        'macro_f1':float(f1_score(y,pred,labels=model.classes_,average='macro',zero_division=0)),
         'log_loss':float(log_loss(y,model.predict_proba(x),labels=model.classes_)),
-        'classes':list(model.classes_),'confusion_matrix':confusion_matrix(y,pred,labels=model.classes_).tolist()}
+        'classes':list(model.classes_),'confusion_matrix':confusion_matrix(y,pred,labels=model.classes_).tolist(),
+        'calibration':reliability(model,x,y),
+        'class_support':{str(label):int(sum(np.asarray(y)==label)) for label in model.classes_},
+        'balanced_accuracy_scope':'Mean recall over classes observed in this evaluation sample.'}
 
 
 def regression_metrics(model,x,y):
@@ -106,6 +111,14 @@ def fit_models(rows,players):
         model.fit(x[tr],y[tr])
         outcome_candidates.append((log_loss(y[va],model.predict_proba(x[va]),labels=model.classes_),strength,model))
     _,strength,outcome=min(outcome_candidates,key=lambda v:v[0])
+    ratings_candidates=[]
+    for strength_ratings in (.1,1.0):
+        ratings=make_pipeline(ColumnTransformer([('ratings','passthrough',[0,1])]),
+            SimpleImputer(strategy='median',keep_empty_features=True),StandardScaler(),
+            LogisticRegression(C=strength_ratings,max_iter=1000,random_state=SEED))
+        ratings.fit(x[tr],y[tr])
+        ratings_candidates.append((log_loss(y[va],ratings.predict_proba(x[va]),labels=ratings.classes_),strength_ratings,ratings))
+    _,ratings_strength,ratings=min(ratings_candidates,key=lambda v:v[0])
     length_candidates=[]
     for depth in (6,10):
         model=make_pipeline(SimpleImputer(strategy='median',keep_empty_features=True),
@@ -115,6 +128,7 @@ def fit_models(rows,players):
     _,depth,regressor=min(length_candidates,key=lambda v:v[0])
     fit=np.concatenate([tr,va])
     outcome.fit(x[fit],y[fit]); regressor.fit(x[fit],length[fit])
+    ratings.fit(x[fit],y[fit])
     prior=DummyClassifier(strategy='prior').fit(x[fit],y[fit])
     median=DummyRegressor(strategy='median').fit(x[fit],length[fit])
     split={name:{'rows':len(index),'first_date':min(rows[i]['date'] for i in index),
@@ -125,6 +139,9 @@ def fit_models(rows,players):
         'algorithm':'Multinomial logistic regression','selection':{'C':strength,'validation_log_loss':[
             {'C':c,'log_loss':float(score)} for score,c,_ in outcome_candidates]},
         'test':classification_metrics(outcome,x[te],y[te]),'baseline':classification_metrics(prior,x[te],y[te]),
+        'ratings_baseline':classification_metrics(ratings,x[te],y[te]),
+        'ratings_selection':{'C':ratings_strength,'validation_log_loss':[
+            {'C':c,'log_loss':float(score)} for score,c,_ in ratings_candidates]},
         'rating_difference_coefficients':{label:float(coef[2]) for label,coef in zip(outcome.classes_,outcome[-1].coef_)}},
         'length':{'algorithm':'Random forest regression','selection':{'max_depth':depth,'validation_mae':[
             {'max_depth':d,'mae_moves':float(score)} for score,d,_ in length_candidates]},
@@ -155,7 +172,8 @@ def fit_models(rows,players):
         'candidates':[{'k':n,'silhouette':float(s),'inertia':float(m.inertia_)} for s,n,m in candidates],
         'groups':[{'cluster':j+1,'players':int(sum(km.labels_==j)),
             **{f:float(px[km.labels_==j,i].mean()) for i,f in enumerate(CLUSTER_FEATURES)}} for j in range(k)]}
-    return {'outcome':outcome,'length':regressor,'clusters':make_pipeline(scaler,km)},report
+    return {'outcome':outcome,'ratings':ratings,'prior':prior,'length':regressor,
+        'length_baseline':median,'clusters':make_pipeline(scaler,km)},report
 
 
 def train(engine='python',month='2013-01',max_games=120000,root=None):
@@ -178,7 +196,7 @@ def train(engine='python',month='2013-01',max_games=120000,root=None):
         try:
             for name,model in models.items():
                 joblib.dump(model,temporary/(name+'.joblib'),compress=3)
-            report.update({'schema_version':1,'run_id':run_id,'created_at':datetime.now(timezone.utc).isoformat(),
+            report.update({'schema_version':2,'run_id':run_id,'created_at':datetime.now(timezone.utc).isoformat(),
                 'engine':engine,'month':month,'source_signature':signature,'sample_rows':len(rows),
                 'sampling':'lowest md5(game_id), deterministic and independent of targets','max_games':max_games,
                 'seed':SEED,'elapsed_seconds':time.monotonic()-start,

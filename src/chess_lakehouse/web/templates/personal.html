@@ -1,0 +1,64 @@
+<section id="personal" class="view" aria-label="Personal chess study" hidden>
+  <div class="callout" id="study-scope">Loading the approved personal study…</div>
+  <div class="grid two study-intro">
+    <article class="panel">
+      <p class="eyebrow">YOUR GAMES, YOUR STUDY PLAN</p>
+      <h2>Start with a manual PGN import.</h2>
+      <p>Choose a completed standard-chess export for the approved player and month. Your original PGN stays in the private Docker study volume.</p>
+      <form id="study-import" class="study-form">
+        <label>Player<input id="study-player" name="player" readonly></label>
+        <label>Approved month (UTC)<input id="study-month" name="month" type="month" readonly></label>
+        <label class="wide">PGN file · maximum 10 MiB and 500 games<input name="file" type="file" accept=".pgn,text/plain,application/x-chess-pgn" required></label>
+        <label class="wide">Import behavior<select name="mode"><option value="append">Add games and apply corrections</option><option value="replace">Replace active set; retain previous versions</option></select></label>
+        <label class="study-confirm wide"><input name="approved" type="checkbox" value="1" required><span>I confirm this file belongs to the approved player and month.</span></label>
+        <button class="primary" type="submit">Import and build study report ↗</button>
+      </form>
+      <p id="study-import-status" role="status" aria-live="polite"></p>
+      <a id="study-manual-download" class="text-link" target="_blank" rel="noopener noreferrer">Download a bounded Lichess export manually →</a>
+      <p class="muted">The app does not download games automatically. An export may contain fewer than the full month's games when the 500-game cap is reached.</p>
+    </article>
+    <article class="panel quality">
+      <p class="eyebrow">A PRACTICAL REVIEW LOOP</p><h2>Play. Review. Practice.</h2>
+      <ol class="study-steps"><li>Compare your opening results and opponent strengths.</li><li>Replay linked games before drawing conclusions.</li><li>Request a bounded engine review for selected games.</li><li>Save positions and mark your practice progress.</li></ol>
+      <p>A loss or low opening score is a reason to investigate, not proof of a mistake. Tactical suggestions require an engine review and show its search limits.</p>
+      <div id="study-progress"></div>
+    </article>
+  </div>
+  <div id="study-loaded" hidden>
+    <form id="study-filters" class="filters">
+      <label>Dataset version<select id="study-version"></select></label>
+      <label>My color<select name="color"><option value="">Both colors</option><option value="white">White</option><option value="black">Black</option></select></label>
+      <label>Time class<select name="speed"><option value="">All clocks</option><option>ultrabullet</option><option>bullet</option><option>blitz</option><option>rapid</option><option>classical</option><option>unknown</option></select></label>
+      <label>Opponent strength<select name="opponent_band"><option value="">All opponents</option><option value="weaker">More than 200 below me</option><option value="similar">Within 200 of me</option><option value="stronger">More than 200 above me</option><option value="unknown">Rating unavailable</option></select></label>
+      <label>Opening<select name="opening" id="study-opening"><option value="">All openings</option></select></label>
+      <button class="primary" type="submit">Update study</button>
+    </form>
+    <div id="study-metrics" class="metrics"></div>
+    <article class="panel"><p class="eyebrow">OPENING STUDY REPORT</p><h2>Where should you look more closely?</h2>
+      <p>Score counts a win as 1 point and a draw as ½. Comparisons use your other openings against similarly rated opponents in the same color and clock class.</p>
+      <div id="study-openings"></div><p class="muted">Intervals describe uncertainty in the observed win rate. Small samples, opponent differences and selection bias limit conclusions. Uploaded opening labels are descriptive metadata.</p>
+    </article>
+    <div class="study-workbench">
+      <article class="panel"><p class="eyebrow">REVIEW CANDIDATES</p><h2>Pick a game to investigate.</h2><div id="study-candidates"></div><div id="study-games"></div></article>
+      <article class="panel study-replay"><div class="panel-head"><div><p class="eyebrow">LEGAL GAME REPLAY</p><h2 id="study-replay-title">Select a game.</h2></div><button class="secondary" id="study-flip" type="button">Flip board</button></div>
+        <div id="study-board" class="chess-board" role="img" aria-label="Select an imported game to display its position"></div>
+        <div class="study-replay-controls"><button class="secondary" id="study-start" type="button">Start</button><button class="secondary" id="study-prev" type="button">←</button><label>Ply<input id="study-ply" type="range" min="0" max="0" value="0"></label><button class="secondary" id="study-next" type="button">→</button><button class="secondary" id="study-end" type="button">End</button></div>
+        <p id="study-position-label" aria-live="polite">No game selected.</p><div id="study-moves" class="study-moves"></div>
+        <div class="study-actions"><button class="secondary" id="study-position" type="button">Find this position in my games</button><button class="primary" id="study-analyze" type="button">Request engine review</button></div>
+        <p class="muted">At most three selected games per version. One engine worker, one CPU thread, fixed node/hash limits and a two-minute game budget. Results can cover only part of a game.</p>
+        <div id="study-positions"></div><div id="study-engine"></div>
+        <form id="study-note" class="study-form"><label class="wide">My review or coach's note<textarea name="note" rows="3" maxlength="2000" placeholder="What did you notice? What will you practice?"></textarea></label><label>Status<select name="status"><option value="queued">To review</option><option value="reviewed">Reviewed</option><option value="practiced">Practiced</option></select></label><button class="primary" type="submit">Save study-list item</button></form>
+      </article>
+    </div>
+    <article class="panel"><p class="eyebrow">GROUNDED ANALYTICS ASSISTANT</p><h2>Ask about the evidence in your games.</h2>
+      <form id="study-question" class="study-form"><label class="wide">Question<textarea name="question" rows="2" maxlength="500" placeholder="Where do I underperform in rapid games?" required></textarea></label><button class="primary" type="submit">Ask my study</button></form><div id="study-answer" aria-live="polite"></div>
+      <p class="muted">Answers use approved analytical operations and link to the selected version's games. Tactical claims require completed engine evidence. Unsupported questions are refused.</p>
+    </article>
+    <article class="panel"><p class="eyebrow">REPRODUCIBLE RESEARCH WORKSPACE</p><h2>Save the exact cohort behind a finding.</h2>
+      <form id="study-save-cohort" class="study-form"><label>Cohort name<input name="name" maxlength="80" placeholder="My rapid games as Black" required></label><button class="primary" type="submit">Save current filters and version</button></form>
+      <div class="study-actions"><a id="study-export-parquet" class="text-link">Export current version as Parquet →</a><a id="study-export-pgn" class="text-link">Export replay PGN →</a><a id="study-export-report" class="text-link">Download opening report and review evidence →</a><a id="study-export-manifest" class="text-link">Download data dictionary and manifest →</a></div><div id="study-cohorts"></div>
+      <p class="muted">Saved cohorts stay pinned to an immutable dataset version. Exports include provenance and feature-availability metadata. Private source games and model weights are never committed to Git.</p>
+    </article>
+    <article class="panel"><p class="eyebrow">LATER-DATA MODEL VALIDATION</p><h2>Check the historical model on your approved month.</h2><p>This evaluates frozen January 2013 models on your imported games. A single player's sample does not establish modern-population accuracy.</p><button id="study-validate-model" class="secondary" type="button">Evaluate frozen models on this version</button><div id="study-validation"></div></article>
+  </div>
+</section>

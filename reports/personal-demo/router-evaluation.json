@@ -1,0 +1,104 @@
+{
+  "source": "Eight fixed routing questions; no personal games or generated ground truth",
+  "models": [
+    {
+      "name": "qwen2.5:0.5b",
+      "digest": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67",
+      "size": 397821319
+    }
+  ],
+  "cases": [
+    {
+      "question": "Summarize my games",
+      "expected_intent": "overview",
+      "intent": "overview",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-unavailable-fallback",
+      "seconds": 8.127,
+      "passed": true
+    },
+    {
+      "question": "Where do I underperform in blitz games?",
+      "expected_intent": "openings",
+      "intent": "openings",
+      "expected_filters": {
+        "speed": "blitz"
+      },
+      "filters": {
+        "speed": "blitz"
+      },
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 5.668,
+      "passed": true
+    },
+    {
+      "question": "What is my best opening?",
+      "expected_intent": "openings",
+      "intent": "openings",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 5.304,
+      "passed": true
+    },
+    {
+      "question": "Compare White versus Black",
+      "expected_intent": "color",
+      "intent": "color",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 6.449,
+      "passed": true
+    },
+    {
+      "question": "Compare rapid versus blitz",
+      "expected_intent": "speed",
+      "intent": "speed",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 6.285,
+      "passed": true
+    },
+    {
+      "question": "How did I score against stronger opponents?",
+      "expected_intent": "opponents",
+      "intent": "opponents",
+      "expected_filters": {
+        "opponent_band": "stronger"
+      },
+      "filters": {
+        "opponent_band": "stronger"
+      },
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 5.458,
+      "passed": true
+    },
+    {
+      "question": "What is the best move here?",
+      "expected_intent": "review",
+      "intent": "review",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 6.586,
+      "passed": true
+    },
+    {
+      "question": "Which games should I review?",
+      "expected_intent": "review",
+      "intent": "review",
+      "expected_filters": {},
+      "filters": {},
+      "routing": "ollama-disagreement-fallback",
+      "seconds": 6.001,
+      "passed": true
+    }
+  ],
+  "passed": 8,
+  "total": 8,
+  "accepted_model_routes": 0,
+  "limitation": "Routing smoke test only. Facts, references and refusals are evaluated separately; no general language accuracy claim."
+}

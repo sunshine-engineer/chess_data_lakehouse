@@ -39,7 +39,7 @@ is still a documented finding, not a reason to hide the result.
 
 ## Reproduce and inspect
 
-Executed run `20261106T073653Z-ff35205e` selected maximum depth 6 using validation
+Current run `20261106T134842Z-4c1ec831` selected maximum depth 6 using validation
 data. Its 28,625 test games came from 25–31 January 2013.
 
 | Untouched test metric | Random forest | Median baseline |

@@ -1,0 +1,65 @@
+.study-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
+  margin: 18px 0;
+}
+.study-form .wide { flex-basis: 100%; }
+.study-form input:not([type="checkbox"]), .study-form select { max-width: none; }
+.study-form input[type="file"] { width: 100%; height: auto; }
+.study-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  font: inherit;
+  resize: vertical;
+}
+.study-confirm { flex-direction: row; align-items: center; }
+.study-confirm input { width: 18px; min-width: 18px; height: 18px; }
+.study-steps { padding-left: 20px; line-height: 2.1; }
+.study-workbench { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.25fr); gap: 20px; }
+.study-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.study-candidate { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.study-candidate p { margin: 6px 0; }
+.study-game-button { border: 0; background: none; color: var(--teal); font: inherit; font-weight: 650; padding: 0; }
+.study-game-list { max-height: 430px; overflow: auto; }
+.chess-board {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1;
+  margin: 15px auto;
+  display: grid;
+  grid-template-columns: repeat(8,1fr);
+  border: 3px solid #203f36;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.chess-square { position: relative; display: flex; align-items: center; justify-content: center; font-family: "Segoe UI Symbol", "DejaVu Sans", serif; font-size: clamp(24px,3.6vw,44px); line-height: 1; }
+.chess-square.light { background: #eee8d4; }
+.chess-square.dark { background: #71947c; }
+.chess-square.last-move { box-shadow: inset 0 0 0 4px #d9ad38; }
+.chess-square small { position: absolute; left: 3px; bottom: 3px; color: #233e31; font: 8px system-ui; }
+.chess-white { color: #fff; text-shadow: -1px -1px 0 #172e26,1px -1px 0 #172e26,-1px 1px 0 #172e26,1px 1px 0 #172e26; }
+.chess-black { color: #182b23; }
+.study-replay-controls { display: flex; align-items: center; gap: 8px; }
+.study-replay-controls label { flex: 1; min-width: 0; }
+.study-replay-controls input { width: 100%; min-width: 40px; padding: 0; max-width: none; }
+.study-moves { display: flex; flex-wrap: wrap; gap: 4px; max-height: 150px; overflow: auto; padding: 10px 0; }
+.study-moves button { border: 1px solid var(--line); border-radius: 4px; background: #fff; padding: 4px 7px; font: 11px system-ui; color: var(--ink); }
+.study-moves button.active { background: var(--teal); color: white; }
+.study-engine-item { padding: 14px; border-left: 3px solid var(--gold); margin: 12px 0; background: #faf7ef; }
+.study-replay { align-self: start; }
+.study-pill { display: inline-block; margin-right: 7px; color: #526d60; font-size: 10px; }
+#study-loaded .metrics { margin-top: 20px; }
+#study-scope { overflow-wrap: anywhere; }
+@media(max-width:1100px) { .study-workbench { grid-template-columns: 1fr; } }
+@media(max-width:700px) {
+  .study-form label { flex: 1; min-width: 110px; }
+  .study-form input { width: 100%; }
+  .study-form .primary { width: 100%; }
+  .chess-square { font-size: 32px; }
+  .study-replay-controls { gap: 5px; }
+  .study-replay-controls button { padding: 7px; }
+}

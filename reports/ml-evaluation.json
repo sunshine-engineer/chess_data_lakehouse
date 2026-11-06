@@ -86,7 +86,179 @@
           513,
           0
         ]
-      ]
+      ],
+      "calibration": {
+        "multiclass_brier": 0.4569181176215092,
+        "classwise_ece": {
+          "0-1": 0.009037029370025396,
+          "1-0": 0.008201967878254543,
+          "1/2-1/2": 0.00014204254343787998
+        },
+        "mean_classwise_ece": 0.0057936799305726054,
+        "reliability_bins": {
+          "0-1": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 619,
+              "mean_probability": 0.06821001717956081,
+              "observed_frequency": 0.06462035541195477
+            },
+            {
+              "lower": 0.1,
+              "upper": 0.2,
+              "count": 2004,
+              "mean_probability": 0.1561853453908648,
+              "observed_frequency": 0.1721556886227545
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.3,
+              "count": 3579,
+              "mean_probability": 0.253882170843541,
+              "observed_frequency": 0.24392288348700755
+            },
+            {
+              "lower": 0.3,
+              "upper": 0.4,
+              "count": 5136,
+              "mean_probability": 0.3527345716751823,
+              "observed_frequency": 0.34190031152647976
+            },
+            {
+              "lower": 0.4,
+              "upper": 0.5,
+              "count": 5930,
+              "mean_probability": 0.4499092622727956,
+              "observed_frequency": 0.46323777403035415
+            },
+            {
+              "lower": 0.5,
+              "upper": 0.6,
+              "count": 5036,
+              "mean_probability": 0.5478534067988257,
+              "observed_frequency": 0.5478554408260524
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.7,
+              "count": 3356,
+              "mean_probability": 0.6458633951906488,
+              "observed_frequency": 0.6543504171632897
+            },
+            {
+              "lower": 0.7,
+              "upper": 0.8,
+              "count": 1836,
+              "mean_probability": 0.7442536910251494,
+              "observed_frequency": 0.7478213507625272
+            },
+            {
+              "lower": 0.8,
+              "upper": 0.9,
+              "count": 910,
+              "mean_probability": 0.8432050454428076,
+              "observed_frequency": 0.8615384615384616
+            },
+            {
+              "lower": 0.9,
+              "upper": 1.0,
+              "count": 219,
+              "mean_probability": 0.9287897348167252,
+              "observed_frequency": 0.9178082191780822
+            }
+          ],
+          "1-0": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 358,
+              "mean_probability": 0.06975026089677044,
+              "observed_frequency": 0.05865921787709497
+            },
+            {
+              "lower": 0.1,
+              "upper": 0.2,
+              "count": 1204,
+              "mean_probability": 0.15618346490354457,
+              "observed_frequency": 0.16279069767441862
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.3,
+              "count": 2389,
+              "mean_probability": 0.25602388236247803,
+              "observed_frequency": 0.2532440351611553
+            },
+            {
+              "lower": 0.3,
+              "upper": 0.4,
+              "count": 4041,
+              "mean_probability": 0.3540997712337892,
+              "observed_frequency": 0.34075723830734966
+            },
+            {
+              "lower": 0.4,
+              "upper": 0.5,
+              "count": 5500,
+              "mean_probability": 0.4518090902056585,
+              "observed_frequency": 0.4450909090909091
+            },
+            {
+              "lower": 0.5,
+              "upper": 0.6,
+              "count": 5751,
+              "mean_probability": 0.5487671426351521,
+              "observed_frequency": 0.5416449313162928
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.7,
+              "count": 4519,
+              "mean_probability": 0.6471146921464569,
+              "observed_frequency": 0.6614295198052667
+            },
+            {
+              "lower": 0.7,
+              "upper": 0.8,
+              "count": 2935,
+              "mean_probability": 0.7459766748411877,
+              "observed_frequency": 0.7488926746166951
+            },
+            {
+              "lower": 0.8,
+              "upper": 0.9,
+              "count": 1522,
+              "mean_probability": 0.8431967836627094,
+              "observed_frequency": 0.8390275952693824
+            },
+            {
+              "lower": 0.9,
+              "upper": 1.0,
+              "count": 406,
+              "mean_probability": 0.9290766141715355,
+              "observed_frequency": 0.9408866995073891
+            }
+          ],
+          "1/2-1/2": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 28625,
+              "mean_probability": 0.033085273984485915,
+              "observed_frequency": 0.032943231441048035
+            }
+          ]
+        },
+        "bins": 10,
+        "definition": "Brier is the mean sum of squared errors across three classes (range 0\u20132). ECE is an empirical one-vs-rest bin diagnostic, not a guarantee."
+      },
+      "class_support": {
+        "0-1": 13074,
+        "1-0": 14608,
+        "1/2-1/2": 943
+      },
+      "balanced_accuracy_scope": "Mean recall over classes observed in this evaluation sample."
     },
     "baseline": {
       "accuracy": 0.5103231441048035,
@@ -114,6 +286,265 @@
           943,
           0
         ]
+      ],
+      "calibration": {
+        "multiclass_brier": 0.5298895085045665,
+        "classwise_ece": {
+          "0-1": 0.002232940459620414,
+          "1-0": 0.0022568832549775264,
+          "1/2-1/2": 2.394279535720273e-05
+        },
+        "mean_classwise_ece": 0.0015045888366517143,
+        "reliability_bins": {
+          "0-1": [
+            {
+              "lower": 0.4,
+              "upper": 0.5,
+              "count": 28625,
+              "mean_probability": 0.45450068399452803,
+              "observed_frequency": 0.45673362445414845
+            }
+          ],
+          "1-0": [
+            {
+              "lower": 0.5,
+              "upper": 0.6,
+              "count": 28625,
+              "mean_probability": 0.512580027359781,
+              "observed_frequency": 0.5103231441048035
+            }
+          ],
+          "1/2-1/2": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 28625,
+              "mean_probability": 0.03291928864569083,
+              "observed_frequency": 0.032943231441048035
+            }
+          ]
+        },
+        "bins": 10,
+        "definition": "Brier is the mean sum of squared errors across three classes (range 0\u20132). ECE is an empirical one-vs-rest bin diagnostic, not a guarantee."
+      },
+      "class_support": {
+        "0-1": 13074,
+        "1-0": 14608,
+        "1/2-1/2": 943
+      },
+      "balanced_accuracy_scope": "Mean recall over classes observed in this evaluation sample."
+    },
+    "ratings_baseline": {
+      "accuracy": 0.638532751091703,
+      "balanced_accuracy": 0.4380035544014544,
+      "macro_f1": 0.4307632661188047,
+      "log_loss": 0.7333957061139159,
+      "classes": [
+        "0-1",
+        "1-0",
+        "1/2-1/2"
+      ],
+      "confusion_matrix": [
+        [
+          7816,
+          5258,
+          0
+        ],
+        [
+          4146,
+          10462,
+          0
+        ],
+        [
+          428,
+          515,
+          0
+        ]
+      ],
+      "calibration": {
+        "multiclass_brier": 0.45823339683225384,
+        "classwise_ece": {
+          "0-1": 0.010148709375125324,
+          "1-0": 0.01023919237917495,
+          "1/2-1/2": 2.0394145661226104e-05
+        },
+        "mean_classwise_ece": 0.006802765299987167,
+        "reliability_bins": {
+          "0-1": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 596,
+              "mean_probability": 0.06959312166251733,
+              "observed_frequency": 0.06711409395973154
+            },
+            {
+              "lower": 0.1,
+              "upper": 0.2,
+              "count": 1941,
+              "mean_probability": 0.15651390004520985,
+              "observed_frequency": 0.17053065430190623
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.3,
+              "count": 3544,
+              "mean_probability": 0.2542321774479225,
+              "observed_frequency": 0.24012415349887134
+            },
+            {
+              "lower": 0.3,
+              "upper": 0.4,
+              "count": 5183,
+              "mean_probability": 0.3528327519749027,
+              "observed_frequency": 0.3415010611614895
+            },
+            {
+              "lower": 0.4,
+              "upper": 0.5,
+              "count": 6058,
+              "mean_probability": 0.44999232479872725,
+              "observed_frequency": 0.4628590293826345
+            },
+            {
+              "lower": 0.5,
+              "upper": 0.6,
+              "count": 5059,
+              "mean_probability": 0.5475922398900178,
+              "observed_frequency": 0.5556434077881004
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.7,
+              "count": 3355,
+              "mean_probability": 0.6455577778316738,
+              "observed_frequency": 0.6491803278688525
+            },
+            {
+              "lower": 0.7,
+              "upper": 0.8,
+              "count": 1791,
+              "mean_probability": 0.743764212716104,
+              "observed_frequency": 0.7537688442211056
+            },
+            {
+              "lower": 0.8,
+              "upper": 0.9,
+              "count": 890,
+              "mean_probability": 0.8420360523075642,
+              "observed_frequency": 0.8426966292134831
+            },
+            {
+              "lower": 0.9,
+              "upper": 1.0,
+              "count": 208,
+              "mean_probability": 0.9267046940688763,
+              "observed_frequency": 0.9086538461538461
+            }
+          ],
+          "1-0": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 333,
+              "mean_probability": 0.06962261930825032,
+              "observed_frequency": 0.07507507507507508
+            },
+            {
+              "lower": 0.1,
+              "upper": 0.2,
+              "count": 1174,
+              "mean_probability": 0.15553528430590843,
+              "observed_frequency": 0.1686541737649063
+            },
+            {
+              "lower": 0.2,
+              "upper": 0.3,
+              "count": 2332,
+              "mean_probability": 0.2557613994982404,
+              "observed_frequency": 0.24528301886792453
+            },
+            {
+              "lower": 0.3,
+              "upper": 0.4,
+              "count": 4043,
+              "mean_probability": 0.3541940440559196,
+              "observed_frequency": 0.34207271827850605
+            },
+            {
+              "lower": 0.4,
+              "upper": 0.5,
+              "count": 5565,
+              "mean_probability": 0.45162576137940974,
+              "observed_frequency": 0.441329739442947
+            },
+            {
+              "lower": 0.5,
+              "upper": 0.6,
+              "count": 5923,
+              "mean_probability": 0.5489553777513758,
+              "observed_frequency": 0.5421239236873207
+            },
+            {
+              "lower": 0.6,
+              "upper": 0.7,
+              "count": 4485,
+              "mean_probability": 0.6470041162904329,
+              "observed_frequency": 0.6651059085841694
+            },
+            {
+              "lower": 0.7,
+              "upper": 0.8,
+              "count": 2896,
+              "mean_probability": 0.745232198797189,
+              "observed_frequency": 0.7506906077348067
+            },
+            {
+              "lower": 0.8,
+              "upper": 0.9,
+              "count": 1507,
+              "mean_probability": 0.8429626523983469,
+              "observed_frequency": 0.8387524883875249
+            },
+            {
+              "lower": 0.9,
+              "upper": 1.0,
+              "count": 367,
+              "mean_probability": 0.9282325293520007,
+              "observed_frequency": 0.9318801089918256
+            }
+          ],
+          "1/2-1/2": [
+            {
+              "lower": 0.0,
+              "upper": 0.1,
+              "count": 28625,
+              "mean_probability": 0.03296362558670926,
+              "observed_frequency": 0.032943231441048035
+            }
+          ]
+        },
+        "bins": 10,
+        "definition": "Brier is the mean sum of squared errors across three classes (range 0\u20132). ECE is an empirical one-vs-rest bin diagnostic, not a guarantee."
+      },
+      "class_support": {
+        "0-1": 13074,
+        "1-0": 14608,
+        "1/2-1/2": 943
+      },
+      "balanced_accuracy_scope": "Mean recall over classes observed in this evaluation sample."
+    },
+    "ratings_selection": {
+      "C": 1.0,
+      "validation_log_loss": [
+        {
+          "C": 0.1,
+          "log_loss": 0.7333841922692254
+        },
+        {
+          "C": 1.0,
+          "log_loss": 0.7333817458017348
+        }
       ]
     },
     "rating_difference_coefficients": {
@@ -179,7 +610,7 @@
       "speed": "classical",
       "rows": 593,
       "accuracy": 0.6104553119730185,
-      "mae_moves": 12.591442664925188
+      "mae_moves": 12.591442664925186
     },
     {
       "speed": "rapid",
@@ -191,7 +622,7 @@
       "speed": "unknown",
       "rows": 56,
       "accuracy": 0.625,
-      "mae_moves": 14.98177398390671
+      "mae_moves": 14.981773983906711
     }
   ],
   "clusters": {
@@ -264,9 +695,9 @@
       }
     ]
   },
-  "schema_version": 1,
-  "run_id": "20261106T073653Z-ff35205e",
-  "created_at": "2026-11-06T07:36:53.458680+00:00",
+  "schema_version": 2,
+  "run_id": "20261106T134842Z-4c1ec831",
+  "created_at": "2026-11-06T13:48:42.284784+00:00",
   "engine": "python",
   "month": "2013-01",
   "source_signature": {
@@ -279,14 +710,14 @@
   "sampling": "lowest md5(game_id), deterministic and independent of targets",
   "max_games": 120000,
   "seed": 42,
-  "elapsed_seconds": 61.64374603399983,
+  "elapsed_seconds": 35.59824623999884,
   "versions": {
     "scikit-learn": "1.7.2",
     "numpy": "2.2.6",
     "scipy": "1.15.3",
     "joblib": "1.5.2"
   },
-  "training_code_sha256": "251b1d7878a196735886bbbb7746a52bd1fc99fa5afc01fa119640ca9adc219a",
+  "training_code_sha256": "6c14ec89409ae76b6ced5e3d828a9cdcaf88df800efa8123c8e6f820f9627e91",
   "limitations": [
     "One historical source month; not validated for modern games.",
     "Game dates provide day-level chronology; players can overlap across splits.",

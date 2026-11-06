@@ -43,7 +43,7 @@ can reflect the source's rating/time-control mix rather than persistent traits.
 
 ## Measured evidence and reproduction
 
-Executed run `20261106T073653Z-ff35205e` included **2,427 eligible players**.
+Current run `20261106T134842Z-4c1ec831` included **2,427 eligible players**.
 
 | Candidate k | Silhouette | Inertia |
 |---|---:|---:|

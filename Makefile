@@ -1,5 +1,5 @@
 DOCKER ?= docker
-.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test
+.PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test study study-test study-ai
 setup build:
 	$(DOCKER) compose build python
 up:
@@ -25,7 +25,7 @@ backup:
 cluster-smoke:
 	$(DOCKER) compose --profile tools --profile cluster run --rm --use-aliases cluster-driver
 down:
-	$(DOCKER) compose --profile tools --profile cluster --profile web down
+	$(DOCKER) compose --profile tools --profile cluster --profile web --profile study --profile study-ai down
 web:
 	$(DOCKER) compose --profile web up -d --wait web
 ml:
@@ -34,3 +34,12 @@ web-test:
 	$(DOCKER) compose --profile web run --rm web-tests
 browser-test:
 	$(DOCKER) compose --profile web run --rm browser-tests
+study:
+	$(DOCKER) compose --profile web --profile study build web
+	$(DOCKER) compose --profile web --profile study up -d --wait web study-api
+study-test:
+	$(DOCKER) compose --profile study run --rm study-tests
+study-ai:
+	$(DOCKER) compose --profile study-ai up -d --wait study-llm
+	$(DOCKER) compose --profile study-ai exec study-llm ollama pull qwen2.5:0.5b
+	STUDY_ROUTER=ollama $(DOCKER) compose --profile web --profile study up -d --wait web study-api
