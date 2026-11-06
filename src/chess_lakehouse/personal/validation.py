@@ -23,8 +23,10 @@ def validate(settings,identifier):
         if previous:
             return dict(id=str(previous['id']),report=previous['report'],cached=True)
         rows=db.payloads(v)
-        if len(rows)<20:
-            raise ValueError('Import at least 20 later games before recording a personal model evaluation.')
+        if any('game_date' in r.get('metadata_defaults',[]) for r in rows):
+            raise ValueError('Later-data model validation needs actual game dates; this version contains month-defaulted dates.')
+        if len(rows)<2:
+            raise ValueError('Model evaluation needs at least two dated games; a single game can still be imported and studied.')
         if min(r['game_date'] for r in rows)<=model_report['split']['test']['last_date']:
             raise ValueError('Personal evaluation games must be strictly later than every benchmark train/validation/test date.')
         # Evaluation is frozen: no fitting, tuning or threshold selection on personal games.
@@ -34,6 +36,9 @@ def validate(settings,identifier):
         metrics={name:classification_metrics(artifacts.model(model_report['run_id'],name),x,y)
             for name in ('outcome','ratings','prior')}
         report=dict(import_id=str(v['id']),dataset_sha256=v['dataset_sha256'],rows=len(rows),
+            small_sample=len(rows)<20,
+            sample_warning='Fewer than 20 games: descriptive metrics only; too little evidence to estimate generalization.' if len(rows)<20 else
+                'One player-month: results do not establish population generalization.',
             player=settings.player,month=settings.month,model_run_id=model_report['run_id'],
             benchmark_last_date=model_report['split']['test']['last_date'],
             first_personal_date=min(r['game_date'] for r in rows),last_personal_date=max(r['game_date'] for r in rows),

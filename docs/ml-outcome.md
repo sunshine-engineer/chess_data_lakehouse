@@ -96,8 +96,10 @@ unseen-player generalization or calibrated probabilities. Players can recur acro
 dates. There is no confidence interval or cross-season validation claim. Next,
 evaluate later explicitly approved games, player-disjoint splits and uncertainty
 by rating band before changing the generalization claim. The personal-study app
-implements frozen later-data evaluation, but actual sunny2g results remain pending
-manual PGN import. Synthetic evaluation verifies code paths only.
+implements frozen later-data evaluation. The supplied ten sunny2g October games
+now pass that path with a descriptive-only small-sample warning; detailed results
+remain private. This small transfer check does not establish modern-population
+quality. Synthetic evaluation verifies code paths only.
 The UI labels all predictions as historical estimates.
 
 ## References

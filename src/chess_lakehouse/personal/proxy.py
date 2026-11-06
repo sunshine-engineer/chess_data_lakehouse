@@ -1,10 +1,10 @@
 """Same-origin, route-allowlisted bridge to the isolated private study service."""
 import os
-import re
 import urllib.error
 import urllib.request
 
 from flask import request,Response,jsonify
+from .pgn import valid_game_id
 
 ROUTES={
     'context':{'GET'},'imports':{'POST'},'report':{'POST'},'positions':{'POST'},
@@ -31,7 +31,7 @@ def register(app):
 
     @app.route('/api/personal/<path:route>',methods=['GET','POST'])
     def personal(route):
-        methods={'GET'} if re.fullmatch(r'games/[A-Za-z0-9]{8}',route) else ROUTES.get(route,set())
+        methods={'GET'} if route.startswith('games/') and valid_game_id(route[6:]) else ROUTES.get(route,set())
         if request.method not in methods:
             return jsonify(error='Unknown personal-study operation'),404
         base=os.environ.get('STUDY_SERVICE_URL','http://study-api:8081').rstrip('/')

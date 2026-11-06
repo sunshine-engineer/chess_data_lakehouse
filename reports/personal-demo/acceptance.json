@@ -7,6 +7,8 @@
   "engine_mate_and_variation": true,
   "notes_readback": true,
   "version_correction_and_pinned_cohort": true,
+  "generic_defaulted_games_added": 1,
+  "metadata_defaults_and_local_proxy_replay": true,
   "export_formats": [
     "parquet",
     "pgn",

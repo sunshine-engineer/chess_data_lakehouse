@@ -12,7 +12,7 @@ from . import repository as db
 from .reports import select_games,validate_filters
 
 DICTIONARY={
-    'game_id':{'meaning':'Lichess source game ID','availability':'identifier; not a model feature'},
+    'game_id':{'meaning':'Source game ID or local_ plus content SHA-256 when source identity is absent','availability':'identifier; not a model feature'},
     'game_date':{'meaning':'UTC game-start date','availability':'pre-game'},
     'player_color':{'meaning':'Approved player color','availability':'pre-game'},
     'player_rating':{'meaning':'Player header rating','availability':'pre-game; nullable'},
@@ -56,6 +56,9 @@ def export(settings,identifier=None,cohort_id=None,format='parquet',filters=None
         manifest=dict(format_version=1,import_id=str(v['id']),version=v['version'],player=settings.player,
             month=settings.month,dataset_sha256=v['dataset_sha256'],filters=filters,rows=len(rows),
             data_dictionary=DICTIONARY,privacy='Private personal study; game IDs may identify public source games.')
+        selected_ids={row['game_id'] for row in rows}
+        manifest['metadata_defaults']={key:value for key,value in v['manifest'].get('metadata_defaults',{}).items() if key in selected_ids}
+        manifest['date_default']='Missing exact dates use the approved month first day as a labelled placeholder, not a verified play date.'
         if format=='report':
             from .reports import report
             value=report(settings,str(v['id']),filters)

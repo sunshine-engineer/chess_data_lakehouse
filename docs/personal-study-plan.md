@@ -21,7 +21,7 @@ and saved cohorts remain reproducible within that workspace.
 
 | Requirement | Evidence required |
 |---|---|
-| Bounded manual ingestion | File/game/ply limits, exact approved player/month, legal mainlines, duplicate/correction handling, atomic version publication, original and typed Parquet lineage |
+| Bounded manual ingestion | File/game/ply limits, confirmed player/month, labelled defaults for absent optional metadata, legal mainlines, duplicate/correction handling, atomic version publication, original and typed Parquet lineage |
 | Isolation | Separate restricted study writer/service, read-only archive application, internal service authentication, same-origin write protection, no private PGNs in Git |
 | Personal report | Player/color/time/opponent filters, opening score and win intervals, comparison with other games against similar opponent-strength groups, linked examples and explicit small-sample limits |
 | Replay and positions | Legal board states and move list, clocks/imported annotations labelled by origin, recurring-position lookup and observed alternatives with counts |

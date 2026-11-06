@@ -97,6 +97,71 @@ def test_parser_contract_and_legal_replay(settings):
     assert rows[0]['player_color']=='black' and rows[0]['outcome']=='win'
 
 
+def test_annotated_export_urls_and_source_identity(settings):
+    original=games_bytes(1)
+    annotated=original.replace(b'https://lichess.org/demo0000',b'https://lichess.org/game/demo0000').replace(
+        b'1. f3 e5 2. g4 Qh4#',b'1. f3 { [%clk 0:05:00] [%eval -0.5] } (1. e4 e5 (1... c5) 2. Nf3) e5 2. g4 Qh4#')
+    rows,_=pgn.parse(annotated,settings)
+    row=rows[0]
+    assert row['game_id']=='demo0000' and len(row['moves'])==4
+    assert row['clocks'][0]==300 and row['uploaded_eval_cp'][0]==-50
+    for url in (b'https://lichess.org/demo0000/black?x=1',b'https://www.lichess.org/game/demo0000',
+            b'lichess.org/demo0000',b'https://lichess.org/demo0000ABCD'):
+        assert pgn.parse(original.replace(b'https://lichess.org/demo0000',url),settings)[0][0]['game_id']=='demo0000'
+    tagged=original.replace(b'[Site "https://lichess.org/demo0000"]',b'[GameId "demo0000"]')
+    assert pgn.parse(tagged,settings)[0][0]['game_id']=='demo0000'
+    with pytest.raises(ValueError,match='different games'):
+        pgn.parse(original.replace(b'[Date',b'[GameId "demo9999"]\n[Date'),settings)
+
+
+def test_missing_metadata_defaults_and_local_export_identity(settings):
+    sparse=b'''[White "DemoStudent"]
+[Result "0-1"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+'''
+    row=pgn.parse(sparse,settings)[0][0]
+    assert row['game_id'].startswith('local_') and len(row['game_id'])==70
+    assert row['game_date']=='2026-10-01' and row['black']=='Unknown opponent'
+    assert row['opponent_band']=='unknown' and row['player_rating'] is None
+    assert row['speed']=='unknown' and row['opening']=='Unclassified opening' and row['eco'] is None
+    assert {'game_id','game_date','opponent_name','time_control','eco','opening'}<=set(row['metadata_defaults'])
+    assert pgn.parse(sparse,settings)[0][0]==row
+    assert pgn.parse(row['pgn'].encode(),settings)[0][0]==row
+    inferred=pgn.parse(sparse.replace(b'[White "DemoStudent"]',b'[Black "OtherPlayer"]'),settings)[0][0]
+    assert inferred['white']==settings.player and 'player_name' in inferred['metadata_defaults']
+    ended=pgn.parse(sparse.replace(b'[Result "0-1"]',b'[Result "*"]').replace(b'Qh4# 0-1',b'Qh4# *'),settings)[0][0]
+    assert ended['result']=='0-1' and 'result' in ended['metadata_defaults']
+    with pytest.raises(ValueError,match='result is missing'):
+        pgn.parse(sparse.replace(b'[Result "0-1"]',b'[Result "*"]').replace(b'f3 e5 2. g4 Qh4# 0-1',b'e4 e5 *'),settings)
+    with pytest.raises(ValueError,match='both missing'):
+        pgn.parse(sparse.replace(b'[White "DemoStudent"]',b''),settings)
+    fallback=games_bytes(1).replace(b'[Date "2026.10.01"]',b'[UTCDate "????.??.??"]\n[Date "2026.10.01"]').replace(
+        b'WhiteElo "1500"',b'WhiteElo "unrated"').replace(b'TimeControl "300+0"',b'TimeControl "invalid"').replace(b'ECO "C20"',b'ECO "?"')
+    normalized=pgn.parse(fallback,settings)[0][0]
+    assert normalized['game_date']=='2026-10-01' and 'game_date' not in normalized['metadata_defaults']
+    assert normalized['player_rating'] is None and normalized['speed']=='unknown' and normalized['eco'] is None
+
+
+def test_default_provenance_persists_and_local_games_replay(database,settings):
+    content=b'[White "DemoStudent"]\n\n1. f3 e5 2. g4 Qh4# 0-1\n'
+    imported=db.publish(content,settings,settings.player,settings.month)
+    assert imported['defaulted_games']==1
+    with db.connect() as c:
+        v=db.version(c,settings)
+        row=db.payloads(v)[0]
+        assert db.payload(v,row['game_id'])==row
+    assert db.publish(content,settings,settings.player,settings.month)['unchanged']
+    report=reports.report(settings)
+    assert report['metadata_defaults'][row['game_id']]==row['metadata_defaults']
+    export,*_=research.export(settings,format='pgn')
+    assert pgn.parse(export,settings)[0][0]==row
+    metadata,*_=research.export(settings,format='manifest')
+    assert json.loads(metadata)['metadata_defaults'][row['game_id']]==row['metadata_defaults']
+    client=create_app({'SETTINGS':settings,'TOKEN':'local-test','WORKER':False,'TESTING':True}).test_client()
+    assert client.get('/games/'+row['game_id'],headers={'Authorization':'Bearer local-test'}).status_code==200
+
+
 def test_atomic_import_dedup_versions_and_permissions(database,settings):
     first=db.publish(games_bytes(),settings,settings.player,settings.month)
     again=db.publish(games_bytes(),settings,settings.player,settings.month)
@@ -289,3 +354,25 @@ def test_later_approved_validation_is_frozen_cached_and_version_pinned(database,
     assert result['report']['rows']==24 and set(result['report']['models'])=={'outcome','ratings','prior'}
     assert result['report']['first_personal_date']>result['report']['benchmark_last_date']
     assert validate(settings,imported['import_id'])['cached']
+    small=db.publish(games_bytes(8),settings,settings.player,settings.month,mode='replace')
+    small_report=validate(settings,small['import_id'])['report']
+    assert small_report['rows']==8 and small_report['small_sample'] and 'descriptive' in small_report['sample_warning']
+    single=db.publish(games_bytes(1),settings,settings.player,settings.month,mode='replace')
+    with pytest.raises(ValueError,match='at least two'):validate(settings,single['import_id'])
+    dated=db.publish(games_bytes(1).replace(b'[Date "2026.10.01"]',b''),settings,settings.player,settings.month,mode='replace')
+    with pytest.raises(ValueError,match='actual game dates'):validate(settings,dated['import_id'])
+
+
+def test_legacy_private_parquet_remains_readable(settings,tmp_path,monkeypatch):
+    from pathlib import Path
+    import pyarrow as pa
+    monkeypatch.setenv('STUDY_ROOT',str(tmp_path))
+    identifier=str(uuid4());folder=Path(tmp_path)/identifier;folder.mkdir()
+    rows=pgn.parse(games_bytes(1),settings)[0]
+    legacy=pgn.PAYLOAD_SCHEMA.remove(pgn.PAYLOAD_SCHEMA.get_field_index('metadata_defaults'))
+    legacy=legacy.remove(legacy.get_field_index('identity_source'))
+    pq.write_table(pa.Table.from_pylist(rows,schema=legacy),folder/'games.parquet')
+    v={'id':identifier,'manifest':{'files':{'games.parquet':hashlib.sha256((folder/'games.parquet').read_bytes()).hexdigest()}}}
+    restored=db.payloads(v)[0]
+    assert restored['metadata_defaults']==[] and restored['identity_source']=='source'
+    assert restored['game_id']=='demo0000' and len(restored['moves'])==4
