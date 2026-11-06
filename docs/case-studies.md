@@ -5,6 +5,25 @@
 1. Correct historical data across monthly reruns and corrections.
 2. Recover interrupted processing without publishing partial results.
 3. Compare serial, process-based and Spark execution using reproducible evidence.
+4. Extend the warehouse into a read-only application and measured ML experiments.
+
+## Application and ML extensions
+
+Chess Atlas connects these historical models to a Docker web app with real data
+filters, statistics, game exploration and benchmark provenance. Its ML laboratory
+contains three additional standalone case studies:
+
+- [Pre-game outcome classification](ml-outcome.md): logistic regression versus a
+  class-prior baseline; temporal evaluation and draw-class diagnostics.
+- [Game-length regression](ml-length.md): random forest versus a median predictor;
+  pre-game features, MAE/RMSE and time-class error slices.
+- [Observed player groups](ml-clusters.md): standardized K-means, candidate k
+  comparisons, silhouette/inertia and initialization stability; descriptive only.
+
+Each card documents the question, feature/target grain, method, evidence,
+limitations and Docker reproduction. See [application operations](web-app.md) and
+[executed validation](web-ml-validation.md). Independent portfolio ML findings do
+not establish commercial ML experience or modern-game generalization.
 
 ## Historical correctness
 

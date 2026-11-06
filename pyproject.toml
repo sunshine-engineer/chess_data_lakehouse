@@ -12,6 +12,7 @@ dependencies = ["python-chess==1.999", "zstandard==0.25.0", "pyarrow==26.0.1"]
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
 containers = ["pyspark==3.5.7", "psycopg[binary]==3.2.13"]
+web = ["Flask==3.1.2", "waitress==3.0.2", "Markdown==3.9", "scikit-learn==1.7.2", "numpy==2.2.6", "psycopg[binary]==3.2.13"]
 
 [project.scripts]
 chess-pipeline = "chess_lakehouse.pipeline:main"
@@ -25,4 +26,4 @@ testpaths = ["tests"]
 cache_dir = "/tmp/chess-pytest-cache"
 
 [tool.setuptools.package-data]
-chess_lakehouse = ["schema.sql", "postgres_schema.sql", "migrations/*.sql"]
+chess_lakehouse = ["schema.sql", "postgres_schema.sql", "migrations/*.sql", "web/templates/*.html", "web/static/*.css", "web/static/*.js"]

@@ -44,6 +44,13 @@ jobs:
         run: docker compose run --rm --entrypoint python tests -m chess_lakehouse.optimized.demo
       - name: Verify database and Parquet backup/restore
         run: docker compose run --rm backup-restore
+      - name: Build and test web analytics and ML in Docker
+        run: |
+          docker compose --profile web build web browser-tests
+          docker compose --profile web run --rm web-tests
+          docker compose --profile web run --rm --no-deps --entrypoint python web -m pip check
+      - name: Verify browser flows on the synthetic empty-January state
+        run: docker compose --profile web run --rm -e EXPECT_GAMES=0 -e EXPECT_MODELS=0 browser-tests
       - name: Clean disposable CI containers and volumes
         if: always()
-        run: docker compose --profile tools --profile cluster down --volumes --remove-orphans
+        run: docker compose --profile tools --profile cluster --profile web down --volumes --remove-orphans

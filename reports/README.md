@@ -1,5 +1,9 @@
 # Generated benchmark reports
 
+`ml-evaluation.json` contains actual January model measurements and provenance for
+the three ML case studies. `browser/acceptance.json` and screenshots record executed
+web interactions. These are separate from the historical ingestion benchmarks.
+
 The current historical pipelines are measured in [comparison-v2.md](comparison-v2.md),
 with all nine samples, semantic equality checks and query plans in
 [comparison-v2.json](comparison-v2.json). Operational reports cover
