@@ -67,6 +67,12 @@ under concurrent traffic. CI also runs web tests and browser checks against its
 explicit synthetic/empty-January state; it does not download the real archive or
 invent real-source model scores.
 
+The initial CI browser check exposed a month-selector mismatch in the empty-data
+state: an unavailable requested month was replaced by the first published month
+without refreshing the charts. The application now preserves the requested empty
+month, and browser acceptance explicitly checks that selection and empty explorer
+rows remain consistent even when other archive months exist.
+
 See [acceptance requirements](web-ml-plan.md) and [operating commands](web-app.md).
 
 ## Boundary

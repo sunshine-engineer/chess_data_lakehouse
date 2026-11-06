@@ -42,7 +42,7 @@ async function overview(){
   const bandOrder=r=>Number.isNaN(Number(r.label))?Infinity:Number(r.label);const bands=[...d.rating_bands].sort((a,b)=>bandOrder(a)-bandOrder(b));chart('#rating-chart',bands);
   $('#quality').replaceChildren();[['Unknown player games',number(d.unknown_player_games)],['Missing rating games',number(s.missing_ratings)],['Rejected records (archive)',number(d.archive_rejects)],['Published source',params().get('month')]].forEach(([a,b])=>{const row=el('div',null,'quality-stat');row.append(el('span',a),el('strong',b));$('#quality').append(row);});
   $('#openings').replaceChildren(table(['ECO','Opening family','Games','Share of view'],d.openings.map(o=>[o.eco,o.label,number(o.count),percent(o.count/(s.games||1))])));
-  if(d.months.length){const selected=params().get('month');$('#month').replaceChildren(...d.months.map(m=>{const o=el('option',m);o.value=m;return o;}));if(d.months.includes(selected))$('#month').value=selected;}
+  const selected=params().get('month');const months=[...new Set([selected,...d.months])].sort();$('#month').replaceChildren(...months.map(m=>{const o=el('option',m);o.value=m;return o;}));$('#month').value=selected;
   notice(s.games?'':'No games match the selected filters.');
  }catch(e){if(sequence===overviewSequence)notice(`Filters could not be applied: ${e.message}`);}
 }

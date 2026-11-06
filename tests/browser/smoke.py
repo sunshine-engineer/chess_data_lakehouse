@@ -62,6 +62,16 @@ with sync_playwright() as p:
         with page.expect_response(lambda response:'/api/overview?' in response.url and f'engine={engine}' in response.url):
             page.get_by_role('button',name='Apply filters').click()
         expect(page.locator('#metrics .metric').first.locator('strong')).to_have_text(f'{expected_games:,}')
+    # Preserve an explicitly requested empty month even when others are published.
+    page.evaluate("const option=new Option('2099-12','2099-12');document.querySelector('#month').add(option);document.querySelector('#month').value='2099-12'")
+    page.get_by_role('button',name='Apply filters').click()
+    expect(page.locator('#metrics .metric').first.locator('strong')).to_have_text('0')
+    expect(page.locator('#month')).to_have_value('2099-12')
+    page.locator('[data-view=explorer]').click()
+    expect(page.locator('#page-label')).to_have_text('No matching rows')
+    page.locator('[data-view=overview]').click()
+    page.select_option('#month','2013-01');page.get_by_role('button',name='Apply filters').click()
+    expect(page.locator('#metrics .metric').first.locator('strong')).to_have_text(f'{expected_games:,}')
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'mobile horizontal overflow'
     page.screenshot(path=str(artifacts/'overview-mobile.png'),full_page=True)
