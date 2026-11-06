@@ -144,7 +144,7 @@ def test_lichess_url_validation_and_download_processing(database,config):
         assert job['input_path'] is None
 
 
-def test_grounded_findings_filters_and_real_engine(database,config):
+def test_grounded_findings_filters_and_real_engine(database,config,monkeypatch):
     account=owner();record=imported(account,games_bytes(24),config)
     r=insights.report(account,record['library_id'],config=config)
     assert r['summary']['games']==24 and r['summary']['score_rate']==.5
@@ -164,6 +164,17 @@ def test_grounded_findings_filters_and_real_engine(database,config):
     position=analysis.positions(account,record['library_id'],None,'demo0000',0,{})
     assert position['games']==24 and position['pending_games']==0
     assert {v['move'] for v in position['alternatives']}=={'f3','e4'}
+    from datetime import date
+    class StudyDate(date):
+        @classmethod
+        def today(cls):return cls(2026,11,6)
+    monkeypatch.setattr(analysis,'date',StudyDate)
+    recent=analysis.answer(account,record['library_id'],None,'Summarize my games in the last few months',{},config)
+    assert recent['filters']=={'from_date':'2026-08-01','to_date':'2026-10-31'}
+    assert recent['metrics']['games']==24
+    current=analysis.answer(account,record['library_id'],None,'What should I study this month?',{},config)
+    assert current['filters']=={'from_date':'2026-11-01','to_date':'2026-11-06'}
+    assert current['supported'] is False and current['metrics']['games']==0
 
 
 def test_cancel_quotas_and_failure_leave_no_duplicate_or_orphan_payloads(database,config):

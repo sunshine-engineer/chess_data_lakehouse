@@ -18,8 +18,10 @@
 | Study evidence | Exact aggregates, period filters, real Stockfish mate evidence, indexed recurring positions and unsupported-question refusal |
 | Exports | Parquet types, immutable saved selections, four checksummed formats and temporary-file cleanup |
 | Web/ML regression | 8 tests passed |
+| Archive browser regression | Desktop/mobile charts, filters, pagination, benchmarks, models and case studies passed |
 | Desktop/mobile browser | 8 end-to-end scenarios passed with no JavaScript errors; includes engine-polling draft preservation and two-account isolation |
 | Dependency check | `python -m pip check` passed inside the web image |
+| Full repository CI | Docker pipeline, Spark cluster, crash recovery, backups, web/ML and workspace checks passed on the implementation commit |
 
 The browser API transport is explicitly **offline and synthetic**, enabled only
 through `compose.workspace-qa.yaml`. It validates URL handling and application
@@ -47,7 +49,29 @@ historical game and stopped before publication: the active collection remained
 156 games, staging was cleared, and no orphan payloads remained. The importer
 was corrected and regression-tested before retrying.
 
-The final live-import and restore results are recorded here only after completion.
+The real retry completed: **12,525 source records read, 12,363 new games, 156
+unchanged games reused, six excluded records, and 12,519 active games**. The six
+exclusions were two empty games and four unsupported-variant records. Imported
+dates span 2017-12-06 to 2026-11-06. There is no default game-count or month cap.
+
+The final storage audit verified exactly 12,519 game payloads for 12,519 distinct
+game IDs, zero unindexed revisions, 676,692 indexed position rows, no staging
+members or leftover uploads, and no changed/missing revisions from the original
+156-game October collection. Both earlier collection versions and the existing
+saved study remain available.
+
+Real-owner desktop/mobile acceptance passed sign-in, full-history report
+arithmetic, October filtering (156 games), ten-row pagination, dedicated game
+replay, indexed position lookup, grounded questions and the preserved saved-study
+manifest, with no JavaScript errors. The date-question regression also checks
+“this month” and “last few months” against a fixed test date.
+
+The final [backup/restore record](../reports/backup-restore.json) verified **48
+tables** with matching row counts/fingerprints, valid constraints, restored
+pipeline/private-study artifact bundles, retained reader restrictions and rejection
+of a deliberately corrupted dump. The restore destination was disposable; the
+live application data was preserved.
+
 Private job records, credentials, game details and real-data browser captures
 are retained under ignored `data/validation/workspace-live/`; they are not Git
 artifacts. Initial local access is in ignored `data/owner-access.json`.

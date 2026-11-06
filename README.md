@@ -128,8 +128,8 @@ service uses the separate `study` schema. Answers come from computed operations
 and actual engine evidence rather than unconstrained generated claims.
 
 Read the [current setup and data model](docs/personal-study.md),
-[redesign plan](docs/personal-workspace-plan.md) and
-[executed validation](docs/personal-workspace-validation.md), plus the
+[redesign plan](docs/personal-workspace-plan.md),
+[executed validation](docs/personal-workspace-validation.md), and
 [workspace browser evidence](reports/personal-demo/workspace-acceptance.json).
 The earlier [single-player delivery evidence](docs/personal-study-validation.md)
 and [legacy runbook](docs/personal-study-legacy.md) remain historical references.

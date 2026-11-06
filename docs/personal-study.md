@@ -127,6 +127,11 @@ ratings, secrets, guarantees or unsupported thresholds are refused. A suggested
 practice plan uses the actual report findings and linked games. It is not an
 open-ended AI chess coach or a substitute for checking the board.
 
+Question periods are shown as exact filters in every answer. “Last few days”
+means seven days; “last few months” means the previous three complete calendar
+months. “Last N months” accepts 1–60 complete calendar months; “this month” runs
+from the first day through today (UTC). Use custom dates for another definition.
+
 ## Reproducible studies and exports
 
 Save a study to pin its snapshot and resolved filters. Downloads include:

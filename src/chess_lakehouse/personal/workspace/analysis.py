@@ -92,6 +92,7 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
     if not isinstance(question,str) or not question.strip() or len(question)>500:raise ValueError('Ask a question of up to 500 characters')
     applied=insights.filters(selected or {})
     question=re.sub(r'\blast (?:few|seven) days\b','last 7 days',question,flags=re.I)
+    question=re.sub(r'\blast few months\b','last 3 months',question,flags=re.I)
     question=re.sub(r'\blast week\b','last 7 days',question,flags=re.I)
     # Dates are analytical filters; they never determine whether a file may be imported.
     relative=re.search(r'\blast\s+(\d{1,3})\s+days?\b',question,re.I)
@@ -101,6 +102,17 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
         applied.update(from_date=(date.today()-timedelta(days=days-1)).isoformat(),to_date=date.today().isoformat())
         routed=question[:relative.start()]+question[relative.end():]
     else:routed=question
+    months=re.search(r'\blast\s+(\d{1,2})\s+months?\b',routed,re.I)
+    if months:
+        count=int(months[1])
+        if not 1<=count<=60:raise ValueError('Choose 1–60 calendar months, or use custom dates')
+        end=date.today().replace(day=1)-timedelta(days=1)
+        first=end.year*12+end.month-count
+        applied.update(from_date=date(first//12,first%12+1,1).isoformat(),to_date=end.isoformat())
+        routed=routed[:months.start()]+routed[months.end():]
+    if re.search(r'\bthis month\b',routed,re.I):
+        applied.update(from_date=date.today().replace(day=1).isoformat(),to_date=date.today().isoformat())
+        routed=re.sub(r'\bthis month\b','',routed,flags=re.I)
     routed=re.sub(r'\blast\s+month\b','',routed,flags=re.I) if re.search(r'\blast\s+month\b',routed,re.I) else routed
     if re.search(r'\blast\s+month\b',question,re.I):
         end=date.today().replace(day=1)-timedelta(days=1);applied.update(from_date=end.replace(day=1).isoformat(),to_date=end.isoformat())
