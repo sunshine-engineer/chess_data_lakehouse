@@ -9,7 +9,7 @@ are explicitly synthetic; they are separate from the user's real libraries.
 |---|---|
 | Python, multiprocessing, Spark and PostgreSQL regression | 57 passed, 6 modules skipped because the runner has no Flask; web/study checks run in their own image |
 | Public analytics/model/API regression | 15 passed, including all-published-month filtering, archive planning and workload selection |
-| Private study/board/learning regression | 33 passed, including legal castling/en passant/promotion, account isolation, durable variations, real Stockfish and drill grading |
+| Private study/board/learning regression | 34 passed in CI, including legal castling/en passant/promotion, account isolation, durable variations, real Stockfish and drill grading |
 | Final queue and teaching-source checks | 3 passed: shared queue bounds and reproducible samples from HTTP/HTTPS Site headers |
 | Study browser regression | 9 scenarios passed: imports, private libraries, engine findings, unsaved notes, saved studies, exports and navigation |
 | New board/learning browser acceptance | 3 scenario groups passed on desktop/mobile; seven lessons, legal trials, saved configuration, promotion, private progress and guest practice |
@@ -18,7 +18,7 @@ are explicitly synthetic; they are separate from the user's real libraries.
 See `reports/practice/practice-acceptance.json` and the associated synthetic
 desktop/mobile captures. Pipeline/public/study test modules cover different
 dependencies; a runner skip does not stand in for passing a web or study test.
-Latest small display refinements are rechecked before release.
+The final display refinements were also checked against the deployed app.
 
 ## Private-data preservation
 
@@ -85,11 +85,12 @@ and the interrupted-job replacement; it is part of interpreting the measurements
 - [x] Public desktop/mobile acceptance passes on the expanded retained archive.
 - [x] Pre-existing private-data fingerprints match after deployment.
 - [x] Backup/isolated restore includes the new academy/private tables and passes.
-- [ ] Both complete workload repeats finish; all three historical models match semantically.
-- [ ] Final branch CI and review artifacts correspond to the delivered commit.
+- [x] Both complete workload repeats finish; all three historical models match semantically.
+- Final branch CI and review acceptance must match the delivered head: inspect the live checks on [PR #7](https://github.com/sunshine-engineer/chess_data_lakehouse/pull/7). CI state is external to the commit it validates, rather than a self-updating checkbox.
 
-No unfinished gate is implied by the source test results above. This document is
-updated with terminal live evidence before the work is marked complete.
+Source and recovery updates `3224054` and `c939dfe` passed CI (runs 42369695481
+and 42370262031). The final delivered head is verified against the PR's live
+checks before closure. Earlier stacked PRs are not merged by this work.
 
 `reports/board-learning-live.json` verifies both real 12,519-game libraries,
 403,928 archive facts and 1,800 historical teaching games. Every sampled position,
@@ -100,3 +101,11 @@ not full-archive phase statistics. Existing January model artifacts remained fre
 checks against the deployed larger archive and historical lessons.
 The existing populated-app browser suite also passed all 12 scenarios against
 the deployed service (`reports/product-expanded/acceptance.json`).
+
+The completed scale group contains 18 fresh monthly runs: two complete
+403,928-game workload repeats per path. All 12 equality checks passed. The deployed
+benchmark API serves the same report (`reports/scale/api-acceptance.json`). The
+original January evidence remains separate and unchanged.
+The final benchmark browser check verified all 18 monthly rows, all three source
+months, report download and desktop/mobile layout
+(`reports/scale/browser-acceptance.json`).

@@ -26,6 +26,14 @@ games per page. Follow a linked loss into its board before interpreting an openi
 score. Explicit Stockfish reviews add search-limited tactical evidence and legal
 continuations. Practice notes record what to check next time.
 
+The configurable SVG board adds legal trial moves, promotion choices, saved
+continuations and bounded position searches without editing the imported game.
+Learn & practice connects seven original opening, middlegame and endgame lessons
+to full-library opening counts, completed engine reviews and real worked examples.
+Private examples use a clearly labelled 30-game sample; historical examples use
+600 games from each of three verified monthly archives. Foundation drills grade
+their stated legal goal, while recorded game moves remain observations.
+
 ## What was verified
 
 The authorised real-history acceptance loaded 12,519 standard games, reused the
@@ -34,6 +42,9 @@ Storage checks found one payload per unchanged game, preserved earlier versions,
 and complete recurring-position indexing. Two-account tests exercise private
 resource boundaries, and desktop/mobile checks cover the complete study loop.
 The executed record is in [workspace validation](personal-workspace-validation.md).
+The added learning workflow also passed checks against both real 12,519-game
+libraries and 1,800 public teaching games, including legal move/FEN verification
+and desktop/mobile acceptance. See the [board and learning validation](board-learning-archives-validation.md).
 
 ## What the result supports
 
