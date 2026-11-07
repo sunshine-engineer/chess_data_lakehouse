@@ -21,5 +21,6 @@ reports/scale/workload-*.json
 reports/expanded-import/
 reports/practice-regression/*.png
 reports/practice-empty/*.png
+reports/product-expanded/*.png
 *.dump
 *.backup

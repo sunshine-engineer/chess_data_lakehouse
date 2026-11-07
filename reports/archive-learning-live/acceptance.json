@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "archive_games": 403928,
+  "teaching_games": 1800,
+  "checks": [
+    "403928-game cumulative view and cursor pagination over three actual publications",
+    "1800 real historical teaching games, ISO month labels, all three phases and recorded-move replay"
+  ],
+  "desktop_mobile": true,
+  "private_mutations": false,
+  "javascript_errors": []
+}

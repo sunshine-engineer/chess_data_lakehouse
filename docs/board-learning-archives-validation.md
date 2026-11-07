@@ -28,11 +28,20 @@ positions, one saved study and two existing engine reviews across the local
 accounts. These are global storage counts, not one player's unique-game count.
 The same fingerprints matched after the environment/Docker restart.
 
-The earlier backup/isolated restore check passed for all 48 existing tables,
+The initial backup/isolated restore check passed for all 48 existing tables,
 including row fingerprints, constraints, archive reader isolation, private files
 and deliberate corrupt-backup rejection. Migrations 006/007 are additive;
 earlier checksum-bound migrations are unchanged. A post-deployment restore and
-preservation comparison remain release gates below.
+preservation comparison were also verified after deployment. The expanded-archive
+pre-deployment restore verified 50 tables; the post-deployment restore verified
+all 56 tables, including the new teaching and private practice state.
+
+One intermediate attempt failed because the mounted shell script was edited while
+Bash was reading it. Its unfinished bundle was not reported as a successful
+restore. The command now copies the script inside its container before executing
+it, keeping each run immutable. Both the stable-script rerun and the new
+container-frozen-script command passed all 56 table checks. The final bundle is
+recorded in `reports/backup-restore.json`.
 
 ## Approved live workload
 
@@ -64,18 +73,30 @@ time/CPU/Parquet totals sum its months; peak client memory is the maximum monthl
 peak. PostgreSQL resources and other host activity are outside those client
 metrics. Two complete repeats do not establish a general engine ranking or
 30 GB compressed/month and multi-year production capacity.
+`reports/scale/environment.json` records uncontrolled host activity/cache state
+and the interrupted-job replacement; it is part of interpreting the measurements.
 
 ## Live release gates
 
-- [ ] Main parallel-Python publication contains all 403,928 accepted games.
-- [ ] Historical teaching examples are materialized from all three verified sources, with input/sample counts and no player identities.
-- [ ] New app images and migrations 006/007 are deployed and healthy.
-- [ ] Real-library learning evidence and public historical examples are checked against the deployed APIs.
-- [ ] Public desktop/mobile acceptance passes on the expanded retained archive.
-- [ ] Pre-existing private-data fingerprints match after deployment.
-- [ ] Backup/isolated restore includes the new academy/private tables and passes.
+- [x] Main parallel-Python publication contains all 403,928 accepted games.
+- [x] Historical teaching examples are materialized from all three verified sources, with input/sample counts and no player identities.
+- [x] New app images and migrations 006/007 are deployed and healthy.
+- [x] Real-library learning evidence and public historical examples are checked against the deployed APIs.
+- [x] Public desktop/mobile acceptance passes on the expanded retained archive.
+- [x] Pre-existing private-data fingerprints match after deployment.
+- [x] Backup/isolated restore includes the new academy/private tables and passes.
 - [ ] Both complete workload repeats finish; all three historical models match semantically.
 - [ ] Final branch CI and review artifacts correspond to the delivered commit.
 
 No unfinished gate is implied by the source test results above. This document is
 updated with terminal live evidence before the work is marked complete.
+
+`reports/board-learning-live.json` verifies both real 12,519-game libraries,
+403,928 archive facts and 1,800 historical teaching games. Every sampled position,
+SAN/UCI move and resulting FEN was checked. The examples contain 1,800 opening,
+1,721 middlegame and 677 endgame positions. These are teaching-sample counts,
+not full-archive phase statistics. Existing January model artifacts remained fresh.
+`reports/archive-learning-live/acceptance.json` records the read-only desktop/mobile
+checks against the deployed larger archive and historical lessons.
+The existing populated-app browser suite also passed all 12 scenarios against
+the deployed service (`reports/product-expanded/acceptance.json`).

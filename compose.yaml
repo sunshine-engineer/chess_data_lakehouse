@@ -94,7 +94,8 @@ services:
       PGUSER: ${POSTGRES_USER:-chess}
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       READER_PASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
-    entrypoint: [bash, /ops/backup-restore.sh]
+    # Freeze the script for this run; host edits cannot change Bash's read offset.
+    entrypoint: [bash, -ec, "cp /ops/backup-restore.sh /tmp/chess-backup-restore.sh\nexec bash /tmp/chess-backup-restore.sh"]
     volumes:
       - pipeline-data:/data:ro
       - study-data:/study:ro
