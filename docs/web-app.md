@@ -28,7 +28,8 @@ docker compose --profile web run --rm ml-train
 docker compose --profile web up -d --wait web
 ```
 
-Open **http://localhost:8080**. Set `WEB_PORT` in `.env` if that loopback port is in
+Open **http://localhost:8080/#overview** for the archive workspace, or
+**http://localhost:8080/#personal** for private game study. Set `WEB_PORT` in `.env` if that loopback port is in
 use. All Python, training, PostgreSQL and browser checks run inside containers.
 The UI has no build-time npm dependencies or external font/chart/CDN requests.
 It runs with Waitress, not Flask's development server.
@@ -43,13 +44,18 @@ and adequate date/class coverage must still pass. Training never downloads data.
 
 | Page | What it proves or exposes |
 |---|---|
-| Overview | Real PostgreSQL counts, rating/move averages, game dates, speeds, results, rating bands, top opening families and unknown/missing coverage |
-| Game explorer | Filtered facts, 25-row UI pages, ratings, results, game dates and moves; no player usernames |
-| Pipeline benchmarks | Historical committed comparison report with run group, sample count, CPU/memory/time and semantic checks; separate from the currently serving image |
-| ML laboratory | Three measured models, baselines/comparisons, temporal split counts, outcome confusion matrix, speed slices, group profiles and interactive pre-game predictions |
-| Case studies | Three model cards covering question, features, leakage controls, method, metrics, limitations and reproduction |
+| Archive overview | Actual publication coverage, filtered counts/charts, descriptive highlights, linked clocks/results/openings and explicit missing-data coverage |
+| Game explorer | Search by source game ID, game-date ordering, cursor browsing through the full result set, recorded-fact detail pages, public-source links and bounded CSV exports |
+| Pipeline benchmarks | Time/memory comparison plots, median metrics, individual repeat runs, semantic checks, source provenance and evidence download |
+| Model insights | Separate scenario, evaluation and player-profile views; estimates, baselines and comparable archive observations from one verified model run |
+| Case studies | Five practical stories spanning personal study, pipeline engineering and the three model applications; shared navigation and linked methodology |
 
-Overview and explorer share warehouse/month/speed/average-rating filters. Default
+Overview and explorer share publication/month/clock/result/average-rating/date/ECO
+filters. Game-ID search and date ordering belong to the explorer. Filter values
+are encoded in view URLs: reloading, sharing and browser Back restore the selection.
+The copy-view control falls back to the browser address bar when clipboard access
+is unavailable. Navigation preserves the archive selection; Reset clears it.
+Default
 rating bounds include missing-rating games; explicit rating bounds exclude them.
 Rejected-record count describes the whole selected archive, because rejected rows
 do not necessarily have usable speed or rating fields to apply fact filters.
@@ -64,15 +70,29 @@ their true game dates. Model training sorts those dates rather than archive labe
 |---|---|
 | `GET /healthz` | Database connectivity; does not imply populated data or trained models |
 | `GET /api/overview` | One consistent read-only snapshot of filtered aggregate panels |
-| `GET /api/games` | Same filters, `limit` 1–100, `offset` 0–10,000; bounded exploration rather than full export |
+| `GET /api/catalog` | Actual public archive publications, counts, date coverage, publication times and UTC check time; no private study data |
+| `GET /api/games` | Same filters, `limit` 1–100, date/ID ordering and filter-bound keyset cursor; legacy `offset` remains limited to 0–10,000 |
+| `GET /api/games/{id}` | Recorded facts, clock, opening, original source link and publication lineage; no moves or usernames |
+| `GET /api/games.csv` | Matching facts and lineage, default 5,000 rows; explicit `export_limit` 1–10,000, bounded disk spooling, checksum and truncation headers |
 | `GET /api/benchmarks` | Committed `comparison-v2.json`; explicit unavailable state when missing |
 | `GET /api/models` | Verified model report and freshness versus its warehouse publication |
+| `POST /api/predictions` | Outcome probabilities, game-length estimate, saved baselines and descriptive comparable-archive observations from one model run |
 | `POST /api/predict/outcome` | Win/draw/loss probabilities from the saved logistic pipeline |
 | `POST /api/predict/length` | Expected full moves from the saved regression pipeline |
-| `GET /case-studies/{outcome,length,clusters}` | Checked-in model documentation, rendered locally |
+| `GET /api/evidence/{benchmarks,models}` | Download the verified benchmark or model evaluation JSON; no weights or private data |
+| `GET /api/case-studies` | Five curated product-story summaries |
+| `GET /case-studies/{personal,pipelines,outcome,length,clusters}` | Practical cases and trusted checked-in methodology, rendered with application navigation |
+| `GET /guides/{name}` | Allowlisted operating guides, with internal documentation links resolved |
 
 Filter names: `engine` (`python`, `python_mp`, `spark`), `month` (`YYYY-MM`), `speed`,
-`min_rating` and `max_rating` (0–4000). SQL values are parameters; schema names come
+`min_rating` and `max_rating` (0–4000), `result` (`1-0`, `0-1`, `1/2-1/2`),
+`from_date`/`to_date` (inclusive ISO game dates), `eco` (A00–E99), and exact eight-character
+`game_id`. Explorer `sort` is `id`, `newest` or `oldest`; a returned `next_cursor`
+is passed as `cursor` with the same selection. A changed selection requires a
+first-page request. Cursors avoid deep OFFSET scans and have no 10,000-row ceiling.
+Each response is internally snapshot-consistent; pages browse the current publication,
+not a long-lived database snapshot. Refresh after a new source publication.
+SQL values are parameters; schema names come
 from an allowlist. Queries time out after eight seconds. There is no arbitrary SQL,
 training, shell execution, artifact upload or mutation endpoint. Game IDs, not
 player identities, appear in bounded exploration.
@@ -91,6 +111,22 @@ thresholds. There is no guarantee that every valid input is well represented by
 the historical training sample. Bodies are limited to 4 KiB. Invalid input gets
 400; stale model predictions get 409; unavailable/corrupt models or database
 dependencies get 503 without connection details or tracebacks in responses.
+
+The primary scenario tool calls `POST /api/predictions` once, so outcome, length
+and saved baselines carry the same run ID. The archive comparison requires the
+same time class and both ratings within 200 points; it is labelled as descriptive
+full-archive observations, not a confidence interval or the training sample.
+A second publication check inside that read snapshot rejects a source change
+during preparation. Missing/corrupt/stale models disable estimates while the
+methodology and historical evidence remain accessible. Editing inputs or opening
+a different matchup link clears the previous estimate. Missing or stale model
+states clear prior estimates too; a returning verified publication restores the
+tool. Cancelled or superseded responses cannot replace the active view.
+
+CSV exports are explicitly capped and ordered by game ID. `X-Export-Rows`,
+`X-Export-Total`, `X-Export-Truncated` and `X-Content-SHA256` describe the file.
+Text beginning with spreadsheet-formula characters is escaped. Temporary files
+close after streaming; the full library is never collected into a Python list.
 
 ## ML evidence and artifacts
 
@@ -140,6 +176,11 @@ all-month execution or on-request model fitting.
 
 ## Tests and teardown
 
+The [product acceptance record](product-workspace-validation.md) covers the
+finished sidebar flows, populated/empty states, race handling and read-only
+preview. `make product-preview` opens that optional preview on localhost:18083;
+`make product-test` runs the same browser acceptance against it.
+
 ```bash
 docker compose --profile web run --rm web-tests
 docker compose --profile web build browser-tests
@@ -151,7 +192,8 @@ docker compose run --rm tests
 
 Web tests create/drop disposable databases and leave the real warehouse intact.
 Browser checks use the running populated app: desktop/mobile, filters, pagination,
-benchmarks, predictions and model-card links. Screenshots and an acceptance report
+search/detail pages, bounded CSV, benchmark evidence, predictions/baselines,
+missing/stale models, failure recovery and case-reader links. Screenshots and an acceptance report
 go to `reports/browser/`. CI uses synthetic/empty application states, not fabricated
 real-month model scores. Local real-data results are documented separately.
 

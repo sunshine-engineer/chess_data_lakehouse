@@ -1,0 +1,25 @@
+'use strict';
+(()=>{
+ const A=window.Atlas,{$,el,link,table,number,metric}=A,names={python:'Python',python_mp:'Parallel Python',spark:'Spark'};
+ function comparison(target,entries,key,unit){
+  const box=$(target);box.replaceChildren();const best=Math.min(...entries.map(([,r])=>r[key])),maximum=Math.max(...entries.map(([,r])=>r[key]),1);
+  for(const [name,r] of entries){const row=el('div',null,'comparison-bar'+(r[key]===best?' highlight':'')),caption=el('div'),track=el('div',null,'bar-track'),fill=el('div',null,'bar-fill');caption.append(el('span',names[name]||name),el('strong',number(r[key])+' '+unit));fill.style.width=(r[key]/maximum*100)+'%';track.append(fill);row.append(caption,track);box.append(row);}
+ }
+ A.pages.pipelines=()=>A.load(signal=>A.request('/api/benchmarks',{},signal),d=>{
+  const summary=$('#benchmark-summary'),box=$('#benchmark');summary.replaceChildren();box.replaceChildren();$('#benchmark-time').replaceChildren();$('#benchmark-memory').replaceChildren();$('#benchmark-checks').replaceChildren();$('#benchmark-context').replaceChildren();
+  if(!d.available){box.append(A.empty('No benchmark publication yet','Recorded measurements will appear here when a comparison has been published.',link('Read the comparison method →','/case-studies/pipelines')));return;}
+  const entries=Object.entries(d.summaries),times=entries.filter(([,r])=>Number.isFinite(r.median_elapsed_seconds)),fastest=times.reduce((a,b)=>a[1].median_elapsed_seconds<b[1].median_elapsed_seconds?a:b),baseline=d.summaries.python,checks=Object.entries(d.equality),passed=checks.filter(([,v])=>v===true).length;
+  summary.append(metric('Lowest recorded wall time',names[fastest[0]],number(fastest[1].median_elapsed_seconds)+' seconds · median'),metric('Compared processing paths',number(entries.length),entries.map(([k])=>names[k]).join(' · ')),metric('Equivalent model checks',passed+'/'+checks.length,'Historical semantic comparisons'),metric('Repeat runs per path',entries.map(([,r])=>r.samples).join(' / '),'Repeated measurements, not a capacity forecast'));
+  comparison('#benchmark-time',entries,'median_elapsed_seconds','s');comparison('#benchmark-memory',entries,'median_container_peak_memory_mib','MiB');
+  box.append(table(['Processing path','Runs','Median time','Games / sec','Peak memory','CPU time','Parquet size'],entries.map(([name,r])=>[names[name],r.samples,number(r.median_elapsed_seconds)+' s',number(r.median_input_games_per_second),number(r.median_container_peak_memory_mib)+' MiB',number(r.median_container_cpu_seconds)+' s',number(r.median_parquet_bytes/1048576)+' MiB'])));
+  const samples=el('details',null,'model-details'),sampleRows=[];for(const [engine,values] of Object.entries(d.samples||{}))values.forEach((r,i)=>sampleRows.push([names[engine],i+1,number(r.elapsed_seconds)+' s',number(r.container_peak_memory_mib)+' MiB',number(r.input_games),r.run_id]));samples.append(el('summary','Inspect the individual runs'),table(['Path','Run','Elapsed','Peak memory','Input games','Run ID'],sampleRows));box.append(samples);
+  const all=passed===checks.length&&checks.length>0;$('#benchmark-checks').append(el('p',all?'All '+checks.length+' recorded semantic checks passed.':'Some checks are missing or failed. Inspect the records before comparing performance.',all?'check-pass':'check-fail'));
+  for(const [name,value] of checks){const row=el('div',null,'check-row');row.append(el('span',name.replace('python_mp/','Parallel Python / ').replace('spark/','Spark / ')),el('strong',value===true?'Passed':value===false?'Failed':'Unknown',value===true?'check-pass':value===false?'check-fail':'check-unknown'));$('#benchmark-checks').append(row);}
+  const context=$('#benchmark-context');context.append(el('p',d.measurement),el('p','Source archives: '+d.histories.map(r=>r[0].slice(0,7)).join(', ')),el('p','Shared framing and download are excluded. Spark startup is included. Client metrics exclude PostgreSQL and remote workers. Local historical runs do not establish 30 GB/month or multi-year capacity.','muted'));
+  if(baseline&&fastest[0]!=='python')context.prepend(el('p',names[fastest[0]]+' completed this workload in '+number(100*(1-fastest[1].median_elapsed_seconds/baseline.median_elapsed_seconds))+'% less median wall time than Python. Memory and CPU costs differ.'));
+  const provenance=el('details',null,'model-details');provenance.append(el('summary','Source and benchmark provenance'),el('p','Group: '+d.benchmark_group),table(['Archive','SHA-256'],d.histories.map(r=>[r[0].slice(0,7),r[1]])));context.append(provenance);
+ });
+ A.pages.studies=()=>A.load(signal=>A.request('/api/case-studies',{},signal),d=>{
+  const box=$('#case-study-list');box.replaceChildren();for(const [index,c] of d.cases.entries()){const card=el('article',null,'panel story-card');card.append(el('p',String(index+1).padStart(2,'0')+' / '+c.category,'eyebrow'),el('h2',c.title),el('p',c.question),el('p',c.result,'story-outcome'),link('Read the case study →','/case-studies/'+c.id));box.append(card);}
+ });
+})();

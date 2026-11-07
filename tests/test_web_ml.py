@@ -153,11 +153,19 @@ def test_saved_models_inference_stale_publication_and_corrupt_artifacts(warehous
     probabilities=c.post('/api/predict/outcome',json=payload).json['probabilities']
     assert abs(sum(probabilities.values())-1)<1e-9
     assert c.post('/api/predict/length',json=payload).json['estimated_moves']>0
+    scenario=c.post('/api/predictions',json=payload)
+    assert scenario.status_code==200
+    assert scenario.json['run_id']==run_id
+    assert scenario.json['probabilities']==probabilities
+    assert set(scenario.json['baselines'])=={'ratings_only','class_prior','median_moves'}
+    assert scenario.json['comparable']['games']>0
+    assert abs(sum(scenario.json['baselines']['class_prior'].values())-1)<1e-9
     with admin_connect() as admin:
         admin.execute("INSERT INTO control.pipeline_runs(run_id,engine,source_month,source_sha256,benchmark_group,config_hash,code_hash,image_id,settings,runtime,status) VALUES('replacement','python','2013-01-01',%s,'fixture','','','','{}','{}','complete')",('b'*64,))
         admin.execute("UPDATE warehouse_python.fact_game SET run_id='replacement'")
     assert c.get('/api/models').json['fresh'] is False
     assert c.post('/api/predict/outcome',json=payload).status_code==409
+    assert c.post('/api/predictions',json=payload).status_code==409
     (folder/'outcome.joblib').write_bytes(b'corrupt')
     assert c.get('/api/models').status_code==503
 

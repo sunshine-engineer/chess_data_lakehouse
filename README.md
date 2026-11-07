@@ -110,6 +110,14 @@ See [setup, APIs and operations](docs/web-app.md),
 [executed web/ML evidence](docs/web-ml-validation.md), and
 [evaluation report](reports/ml-evaluation.json). All-month processing remains off.
 
+The finished archive workspace adds linked overview findings, shareable filters,
+source-ID search, game details, full cursor browsing and bounded CSV downloads.
+Pipeline pages show measured time/memory trade-offs and repeat-run evidence.
+**Model insights** separates matchup estimates, baseline/observational comparisons,
+evaluation and player profiles. Five case studies retain the application
+navigation. See [product acceptance](docs/product-workspace-validation.md) for
+populated/empty-state, mobile, recovery and Personal Study regression results.
+
 ## Personal Study workspace
 
 Set distinct `STUDY_PASSWORD` and random `STUDY_API_TOKEN` values in your existing

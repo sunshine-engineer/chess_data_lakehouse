@@ -49,7 +49,9 @@ class Artifacts:
                 raise ValueError('model dependency version mismatch; retrain in this image')
         return report
 
-    @lru_cache(maxsize=4)
+    # A scenario uses five estimators; retain two immutable publications without
+    # evicting the outcome model on every baseline comparison.
+    @lru_cache(maxsize=10)
     def model(self,run_id,name):
         if name not in ('outcome','length','ratings','prior','length_baseline'):
             raise ValueError('unsupported prediction model')

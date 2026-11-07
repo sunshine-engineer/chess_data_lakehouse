@@ -156,6 +156,35 @@ with sync_playwright() as p:
     other.goto(url+'/#personal/'+library+'/overview',wait_until='networkidle')
     expect(other.locator('#study-alert')).to_contain_text('not found in your account')
     checks.append('two-account browser isolation and protected deep links/exports')
+    # Leaving an in-flight upload must keep the chosen sidebar page active;
+    # the background import should still finish and remain in Recent imports.
+    page.get_by_role('link',name='Import games',exact=True).click()
+    expect(page.locator('#study-import-page')).to_be_visible()
+    page.locator('#study-source-file').click()
+    page.locator('#study-import-mode').select_option('merge')
+    page.locator('#study-import-form input[name=file]').set_input_files('/fixtures/personal-demo.pgn')
+    pending=[]
+    def hold_upload(route):pending.append(route)
+    page.route('**/api/personal/imports/file',hold_upload)
+    page.locator('#study-import-submit').click()
+    deadline=time.monotonic()+10
+    while not pending and time.monotonic()<deadline:page.wait_for_timeout(100)
+    assert pending
+    page.locator('[data-view=overview]').click()
+    expect(page.locator('#overview')).to_be_visible()
+    with page.expect_response(lambda r:r.url.endswith('/api/personal/imports/file') and r.request.method=='POST') as response:
+        pending[0].continue_()
+    job_id=response.value.json()['job_id']
+    deadline=time.monotonic()+30;status=None
+    while time.monotonic()<deadline:
+        status=page.request.get(url+'/api/personal/imports/'+job_id).json()['status']
+        if status=='complete':break
+        page.wait_for_timeout(250)
+    assert status=='complete'
+    expect(page.locator('#overview')).to_be_visible()
+    assert page.url.endswith('#overview')
+    page.unroute('**/api/personal/imports/file',hold_upload)
+    checks.append('sidebar navigation survives delayed upload completion while the background import finishes')
     assert not errors,errors
     browser.close()
 
