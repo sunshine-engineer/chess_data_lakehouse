@@ -51,11 +51,12 @@ before retrying HTTP 429, following [Lichess API guidance](https://lichess.org/p
 The [official export specification](https://github.com/lichess-org/api/blob/master/doc/specs/tags/games/api-games-user-username.yaml)
 recommends streaming and documents that omitting `max` downloads all games.
 
-**Import behavior** has two choices:
+**Import behavior** has three choices:
 
 | Choice | What happens |
 |---|---|
-| Add games and update changed games | Keep the current collection, add new game IDs, reuse identical games, and retain a new revision only when information changed. Use this for normal updates. |
+| Add new games only (recommended) | Add missing IDs without changing stored games. Unfiltered Lichess links use a saved checkpoint; first connection checks IDs without downloading old moves. |
+| Refresh games, including changed information | Keep the current collection, add new IDs and retain a new revision for changed information. Use this deliberately for corrections. |
 | Use only the games in this import | Make the imported set the active collection. Other games leave the active view; earlier versions and saved studies remain available. Shared payloads are reused. |
 
 The import runs as a background job. You can watch bytes received and games
@@ -107,12 +108,17 @@ selection. Position counts use the first occurrence per game; observed move
 frequency does not establish move quality. Copy the game link to return to the
 same collection and position. Other accounts cannot open private links.
 
-**Review this game with Stockfish** queues a bounded, explicit analysis. One engine
-worker uses one thread, 32 MiB hash, up to 20,000 nodes/position, 0.25 seconds per
-position and a two-minute game budget. Long games may have partial coverage.
+**Analyse complete game** queues an explicit analysis with up to five minutes.
+One engine worker uses one thread and 32 MiB hash. It checks each played position,
+then compares each player decision with multiple candidate lines. Progress and
+coverage counts show exactly what finished. Very long games may have partial coverage.
 The library has no lifetime three-game analysis cap; queued work is bounded instead.
 
-A move-loss candidate compares the player's move with a preferred alternative.
+A finding compares the player's move with three distinct alternatives where legal.
+Every detected loss of at least 1.50 pawn units is listed, with a paragraph and
+replay controls for each line. Scores are from the player's perspective; a better
+defense can still leave a losing position. See the [sync and review guide](incremental-sync-game-review.md)
+for checkpoint rules, limits and implementation details.
 Checkmate-in-one claims are verified on the legal board. Other captures/checks
 are described cautiously. Replay the preferred and opponent-reply lines; engine
 variation boards are explicitly labelled. Return to the played line before saving
@@ -165,6 +171,7 @@ and the prior single-player data remains intact for recovery.
 | `workspace_game_facts` | SQL view deriving player perspective, ratings, score and opponent-strength groups |
 | `workspace_positions` | Indexed positions stored once per shared revision, used for recurring-position lookup |
 | `import_jobs`, `import_members` | Persistent job progress and chunked staging; active publication is atomic |
+| `library_sync_state`, `sync_pending_games`, `import_game_queue` | Successful sync cutoffs, late-finishing games and owner-scoped requested-ID staging |
 | `workspace_analysis`, `workspace_reviews` | Version-bound engine evidence and practice notes |
 | `saved_studies`, `legacy_mappings` | Pinned research selections and non-destructive migration lineage |
 
@@ -179,7 +186,7 @@ verification and broader operational hardening are separate deployment work.
 Uploads/downloads spool to the study disk volume. Processing is bounded per record
 and chunk; duplicate source files are deleted after completion, and failed staging
 is cleaned. Unchanged reimports create no additional game payload or snapshot.
-Changed information creates a distinct revision, while saved versions reuse its
+Explicit refresh of changed information creates a distinct revision, while saved versions reuse its
 references. Legacy archives remain preserved separately during this upgrade.
 Position lookup uses SQL aggregates rather than replaying the entire library in
 Python. A recovery worker indexes older revisions one game at a time; partial

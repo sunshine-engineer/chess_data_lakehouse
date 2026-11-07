@@ -128,6 +128,10 @@ Set distinct `STUDY_PASSWORD` and random `STUDY_API_TOKEN` values in your existi
 Lichess games API link, and open the resulting player workspace. There is no
 approved-month form or default library game-count cap. Player names can be
 selected or detected automatically. Repeated games reuse their stored payloads.
+**Sync new games** fetches only missing game moves after an initial metadata check;
+stored games stay unchanged by default. Full-game Stockfish reviews allow up to
+five minutes and explain three alternative lines at detected mistakes. Read the
+[sync and review guide](docs/incremental-sync-game-review.md).
 
 Separate pages provide a short study focus, opening comparisons, ten-row game
 pages, board/engine review, questions and version-pinned saved studies. Accounts

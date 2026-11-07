@@ -22,7 +22,7 @@ def settings(settings):
     if not binary.is_file():
         raise ValueError('Stockfish is unavailable in this study-service image')
     values=dict(binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
-        analysis_version=2,analysis_code_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        analysis_version=3,analysis_code_sha256=hashlib.sha256((Path(__file__).read_bytes()+Path(__file__).with_name('review.py').read_bytes())).hexdigest(),
         threads=1,hash_mb=settings.engine_hash_mb,nodes=settings.engine_nodes,
         game_seconds=settings.engine_game_seconds,review_loss_cp=150)
     fingerprint=hashlib.sha256(json.dumps(values,sort_keys=True).encode()).hexdigest()
@@ -53,87 +53,10 @@ def enqueue(config,identifier,game_id):
         return dict(id=job_id,status='queued',cached=False)
 
 
-def analyze(row,config):
+def analyze(row,config,progress=None):
+    from .review import analyze as review
     binary,options,_=settings(config)
-    start=time.monotonic()
-    board=chess.Board(row['initial_fen'])
-    positions=[board.copy()]
-    for uci in row['moves']:
-        board.push_uci(uci);positions.append(board.copy())
-    scores=[]
-    with chess.engine.SimpleEngine.popen_uci(str(binary),timeout=5) as engine:
-        engine.configure({'Threads':1,'Hash':config.engine_hash_mb})
-        name=engine.id.get('name','Stockfish')
-        for board in positions:
-            remaining=config.engine_game_seconds-(time.monotonic()-start)
-            if remaining<=.1:
-                break
-            info=engine.analyse(board,chess.engine.Limit(nodes=config.engine_nodes,time=min(.25,remaining)),
-                info=chess.engine.INFO_ALL)
-            score=info['score'].white()
-            pv=info.get('pv',[])[:8]
-            line=board.copy();san=[];uci=[]
-            for move in pv:
-                if move not in line.legal_moves:
-                    break
-                san.append(line.san(move));uci.append(move.uci());line.push(move)
-            scores.append(dict(cp=score.score(mate_score=100000),mate=score.mate(),
-                depth=info.get('depth'),nodes=info.get('nodes'),pv_uci=uci,pv_san=san))
-    candidates=[]
-    sign=1 if row['player_color']=='white' else -1
-    for i in range(min(len(row['moves']),len(scores)-1)):
-        before=positions[i]
-        if ('white' if before.turn else 'black')!=row['player_color']:
-            continue
-        a,b=scores[i],scores[i+1]
-        loss=max(0,int(sign*(a['cp']-b['cp'])))
-        suggested=a['pv_uci'][0] if a['pv_uci'] else None
-        if loss<150 or not suggested or suggested==row['moves'][i]:
-            continue
-        played_san=before.san(chess.Move.from_uci(row['moves'][i]))
-        suggested_san=before.san(chess.Move.from_uci(suggested))
-        mate_transition=a['mate'] is not None or b['mate'] is not None
-        change='a changed mating evaluation' if mate_transition else f'an evaluation drop of about {loss/100:.2f} pawns'
-        candidates.append(dict(ply=i+1,played_uci=row['moves'][i],played_san=played_san,
-            suggested_uci=suggested,suggested_san=suggested_san,loss_cp=loss,
-            before_cp=a['cp'],after_cp=b['cp'],before_mate=a['mate'],after_mate=b['mate'],
-            depth_before=a['depth'],depth_after=b['depth'],pv_uci=a['pv_uci'],pv_san=a['pv_san'],
-            summary=f'After {played_san}, the search recorded {change}; compare {suggested_san}.',
-            practice='Replay the position before this move. Compare checks, captures and threats, then examine the engine line.'))
-        item=candidates[-1]
-        actual_after=positions[i+1]
-        reply=chess.Move.from_uci(b['pv_uci'][0]) if b['pv_uci'] else None
-        if reply and reply in actual_after.legal_moves:
-            reply_san=actual_after.san(reply)
-            continuation=actual_after.copy();continuation.push(reply)
-            if continuation.is_checkmate():
-                item['motif']='Allows checkmate in one'
-                item['explanation']=f'After {played_san}, {reply_san} is a legal reply that checkmates. Practice checking the opponent’s forcing replies before committing to the move.'
-            elif actual_after.is_capture(reply):
-                captured=actual_after.piece_at(reply.to_square)
-                piece=chess.piece_name(captured.piece_type) if captured else 'pawn'
-                item['motif']='Material capture in the engine reply'
-                item['explanation']=f'The engine continuation starts with {reply_san}, capturing a {piece}. Review whether the compensation is sufficient; the capture alone does not prove a material blunder.'
-            elif actual_after.gives_check(reply):
-                item['motif']='Checking reply in the engine line'
-                item['explanation']=f'The engine reply {reply_san} gives check. Compare the forcing reply with the alternative before your move.'
-        item.setdefault('motif','Evaluation-loss review candidate')
-        item.setdefault('explanation','The bounded engine search prefers another move. Inspect both continuations; no specific tactical motif is established.')
-        for label,start_board,line in (('preferred',before,a['pv_uci']),('reply',actual_after,b['pv_uci'])):
-            preview=start_board.copy();fens=[preview.fen()]
-            for uci in line:
-                move=chess.Move.from_uci(uci)
-                if move not in preview.legal_moves:
-                    break
-                preview.push(move);fens.append(preview.fen())
-            item[label+'_positions']=fens
-        item['reply_pv_san']=b['pv_san']
-    candidates.sort(key=lambda r:-r['loss_cp'])
-    return dict(engine=name,budget=options,elapsed_seconds=time.monotonic()-start,
-        analyzed_plies=max(0,len(scores)-1),total_plies=len(row['moves']),
-        complete_coverage=len(scores)==len(positions),candidates=candidates[:20],positions=scores,
-        interpretation='Search-limited review candidates, not proof of an objective mistake. Mate scores are not pawn estimates.',
-        source='Local Stockfish analysis of this immutable imported game')
+    return review(row,config,binary,options,progress)
 
 
 def run_one(config):

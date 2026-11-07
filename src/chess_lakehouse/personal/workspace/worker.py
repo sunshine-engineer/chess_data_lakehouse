@@ -27,7 +27,9 @@ def analyze_one(config):
     try:
         if row['settings_hash']!=engine.settings(config)[2]:raise ValueError('Engine settings changed. Request a new review.')
         payload=db.perspective(revision['payload'],row['player'])
-        evidence=engine.analyze(payload,config)
+        def progress(value):
+            with db.connect() as c:c.execute('UPDATE study.workspace_analysis SET progress=%s WHERE id=%s',(Jsonb(value),row['id']))
+        evidence=engine.analyze(payload,config,progress)
         evidence['player_color']=payload['player_color']
         with db.connect() as c:c.execute("UPDATE study.workspace_analysis SET status='complete',evidence=%s,finished_at=now() WHERE id=%s",(Jsonb(evidence),row['id']))
     except Exception as e:

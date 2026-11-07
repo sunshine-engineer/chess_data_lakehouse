@@ -22,5 +22,7 @@ reports/expanded-import/
 reports/practice-regression/*.png
 reports/practice-empty/*.png
 reports/product-expanded/*.png
+reports/incremental-review/workspace-*.png
+reports/incremental-practice/*.png
 *.dump
 *.backup

@@ -13,13 +13,13 @@ class Config:
     min_free_disk_bytes: int = 256*1024*1024
     engine_nodes: int = 20000
     engine_hash_mb: int = 32
-    engine_game_seconds: int = 120
+    engine_game_seconds: int = 300
     minimum_opening_games: int = 5
     engine_queue_limit: int = 10
 
     def __post_init__(self):
         for name,maximum in (('batch_games',1000),('max_record_bytes',32*1024*1024),('max_game_plies',5000),
-                ('engine_nodes',100000),('engine_hash_mb',64),('engine_game_seconds',180),('engine_queue_limit',100)):
+                ('engine_nodes',100000),('engine_hash_mb',64),('engine_game_seconds',300),('engine_queue_limit',100)):
             if not 1<=getattr(self,name)<=maximum:raise ValueError(name+' exceeds supported per-task resource bounds')
         if self.max_library_games<0 or self.max_storage_bytes<0 or self.min_free_disk_bytes<0:raise ValueError('Storage quotas cannot be negative')
 

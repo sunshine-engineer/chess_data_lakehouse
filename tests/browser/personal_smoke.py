@@ -64,8 +64,14 @@ with sync_playwright() as p:
     expect(page.locator('#study-note textarea')).to_have_value('Unsaved draft must survive engine polling.')
     assert page.locator('#study-board .chess-square small').first.text_content()==first_square
     page.unroute('**/api/personal/games/*',pending_review)
-    expect(page.locator('#study-engine')).to_contain_text('Allows checkmate in one',timeout=60000)
-    page.locator('#study-engine button').filter(has_text='Opponent reply 1: Qh4#').first.click()
+    expect(page.locator('#study-engine')).to_contain_text('Allows checkmate in one',timeout=300000)
+    expect(page.locator('#study-engine .study-engine-item').first.locator('.study-engine-line')).to_have_count(3)
+    expect(page.locator('#study-engine')).to_contain_text('Scores are from your side')
+    expect(page.locator('#study-engine')).to_contain_text('Complete game checked')
+    page.locator('.study-review-panel').screenshot(path=str(artifacts/'game-review-desktop.png'))
+    page.locator('#study-engine summary').filter(has_text='Why the played move loses ground').first.click()
+    reply=page.locator('#study-engine details').filter(has=page.locator('summary',has_text='Why the played move loses ground')).last
+    reply.get_by_role('button',name='Next →',exact=True).click()
     expect(page.locator('#study-position-label')).to_contain_text('ENGINE VARIATION')
     page.locator('#study-engine button').filter(has_text='Return to played game').first.click()
     page.locator('#study-note textarea').fill('Synthetic practice: inspect forcing replies before pushing a pawn.')
@@ -185,6 +191,26 @@ with sync_playwright() as p:
     assert page.url.endswith('#overview')
     page.unroute('**/api/personal/imports/file',hold_upload)
     checks.append('sidebar navigation survives delayed upload completion while the background import finishes')
+    page.locator('[data-view=personal]').click()
+    page.get_by_role('link',name='My libraries',exact=True).click()
+    expect(page.locator('#study-home')).to_be_visible()
+    expect(page.locator('#study-home')).to_contain_text('Continue your chess study.')
+    fonts=page.locator('.study-account-control').evaluate_all('(items)=>items.map(e=>({font:getComputedStyle(e).font,height:e.getBoundingClientRect().height}))')
+    assert len({v['font'] for v in fonts})==1 and len({v['height'] for v in fonts})==1,fonts
+    page.screenshot(path=str(artifacts/'libraries-mobile.png'),full_page=True)
+    for index in range(2):
+        page.get_by_role('button',name='Sync new games',exact=True).click()
+        expect(page.locator('#study-import-page')).to_be_visible()
+        expect(page.locator('#study-analysis-page')).to_be_visible(timeout=60000)
+        expect(page.locator('#study-metrics .metric strong').first).to_have_text('24',timeout=60000)
+        latest=page.request.get(url+'/api/personal/imports').json()['jobs'][0]
+        assert latest['status']=='complete' and latest['mode']=='append' and latest['new_games']==0,latest
+        assert latest['sync_mode']==('initial_metadata' if index==0 else 'incremental')
+        if index==0:assert latest['skipped_old_games']==24
+        page.get_by_role('link',name='My libraries',exact=True).click()
+        expect(page.locator('#study-home')).to_be_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    checks.append('consistent toolbar typography, revised library copy and two metadata-only add-only syncs')
     assert not errors,errors
     browser.close()
 

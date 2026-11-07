@@ -19,7 +19,7 @@ class Settings:
     max_analyzed_games: int = 3
     engine_nodes: int = 20000
     engine_hash_mb: int = 32
-    engine_game_seconds: int = 120
+    engine_game_seconds: int = 300
     minimum_opening_games: int = 5
     synthetic_fixture: bool = False
 
@@ -33,7 +33,7 @@ class Settings:
         for name,maximum in (('max_games',500),('max_upload_bytes',10*1024*1024),('max_game_plies',600),
                 ('max_total_plies',100000),('max_versions',20),('max_cohorts',50),
                 ('max_analyzed_games',3),('engine_nodes',100000),('engine_hash_mb',64),
-                ('engine_game_seconds',180),('minimum_opening_games',20)):
+                ('engine_game_seconds',300),('minimum_opening_games',20)):
             if not 1<=getattr(self,name)<=maximum:
                 raise ValueError(f'{name} exceeds supported personal-study bounds')
 
