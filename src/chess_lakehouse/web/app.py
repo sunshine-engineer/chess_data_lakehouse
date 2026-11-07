@@ -22,12 +22,17 @@ CASES={'outcome':('Predicting game outcomes','ml-outcome.md'),
 
 def create_app(config=None):
     app=Flask(__name__)
-    app.config.update(MAX_CONTENT_LENGTH=4096,JSON_SORT_KEYS=False,
+    app.config.update(MAX_CONTENT_LENGTH=None,JSON_SORT_KEYS=False,
         ML_ROOT=os.environ.get('ML_ROOT','/models'),EVIDENCE_ROOT=os.environ.get('EVIDENCE_ROOT','/evidence'),
         DOCS_ROOT=os.environ.get('DOCS_ROOT','/app/docs'))
     app.config.update(config or {})
     artifacts=Artifacts(app.config['ML_ROOT'])
     register_personal(app)
+
+    @app.before_request
+    def limit_archive_requests():
+        if not request.path.startswith('/api/personal/'):
+            request.max_content_length=4096
 
     @app.after_request
     def headers(response):

@@ -4,8 +4,9 @@ Containerized Python and PySpark pipelines ingest verified Lichess archives into
 partitioned PostgreSQL star models and typed Parquet. Serial Python, bounded
 multiprocessing Python, and Spark use the same chess validation and natural keys.
 
-**Real-source execution is allowlisted to January 2013. Automatic all-month
-processing remains disabled. Multi-month and cluster checks use synthetic data.**
+**Bulk archive execution is allowlisted to January 2013 and all-month archive
+scheduling remains disabled. Personal libraries accept any dates through manual
+PGNs or user-requested Lichess API imports. Cluster checks use synthetic data.**
 
 ## Outline
 
@@ -109,24 +110,29 @@ See [setup, APIs and operations](docs/web-app.md),
 [executed web/ML evidence](docs/web-ml-validation.md), and
 [evaluation report](reports/ml-evaluation.json). All-month processing remains off.
 
-## Personal chess study
+## Personal Study workspace
 
 Set distinct `STUDY_PASSWORD` and random `STUDY_API_TOKEN` values in your existing
 `.env`, then run `make study` (or the Docker commands in the runbook). Open
-**http://localhost:8080/#personal**. Manually download and upload the approved
-**sunny2g · October 2026 UTC** PGN, confirm its scope, and build the report.
-The app imports at most 500 games and never downloads personal games automatically.
+**http://localhost:8080/#personal**. Create an app account, upload a PGN or paste a
+Lichess games API link, and open the resulting player workspace. There is no
+approved-month form or default library game-count cap. Player names can be
+selected or detected automatically. Repeated games reuse their stored payloads.
 
-The study adds opening comparisons, legal board replay, recurring positions,
-selected-game Stockfish reviews, notes, evidence-linked analytical answers and
-versioned research exports. The archive app keeps its read-only database role;
-a private service writes only the separate `study` schema and private volume.
-The default assistant uses deterministic operations. `make study-ai` enables an
-optional local Ollama intent router; all numerical answers still come from code.
+Separate pages provide a short study focus, opening comparisons, ten-row game
+pages, board/engine review, questions and version-pinned saved studies. Accounts
+keep libraries and notes private. Imports run in background jobs, process bounded
+chunks and can be cancelled. Library/storage quotas are configurable and disabled
+by default. The archive app keeps its read-only database role; the private study
+service uses the separate `study` schema. Answers come from computed operations
+and actual engine evidence rather than unconstrained generated claims.
 
-Read [personal-study setup and boundaries](docs/personal-study.md),
-[delivery evidence](docs/personal-study-validation.md), and the
-[synthetic browser checks](reports/personal-demo/acceptance.json).
-Manual PGNs can use source URLs, `GameId`, or stable local IDs, with labelled
-defaults for missing optional metadata. The supplied ten October games now pass
-real import and descriptive later-data evaluation; their detailed results stay private.
+Read the [current setup and data model](docs/personal-study.md),
+[redesign plan](docs/personal-workspace-plan.md),
+[executed validation](docs/personal-workspace-validation.md), and
+[workspace browser evidence](reports/personal-demo/workspace-acceptance.json).
+The earlier [single-player delivery evidence](docs/personal-study-validation.md)
+and [legacy runbook](docs/personal-study-legacy.md) remain historical references.
+Private owner access is generated once in ignored `data/owner-access.json` during
+migration; sign in with it and change the app password. Other users register normally.
+Real games, passwords, screenshots and detailed study results stay outside Git.

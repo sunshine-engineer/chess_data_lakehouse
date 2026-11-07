@@ -2,7 +2,7 @@
 [Site "https://lichess.org/demo0000"]
 [Date "2026.10.01"]
 [White "DemoStudent"]
-[Black "SyntheticOpponent"]
+[Black "SyntheticOpponentA"]
 [WhiteElo "1500"]
 [BlackElo "1550"]
 [Result "0-1"]

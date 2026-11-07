@@ -55,12 +55,10 @@ jobs:
         run: docker compose --profile web run --rm -e EXPECT_GAMES=0 -e EXPECT_MODELS=0 browser-tests
       - name: Test isolated personal imports and engine evidence
         run: docker compose --profile study run --rm study-tests
-      - name: Verify personal study browser flows on labelled synthetic games
-        env:
-          STUDY_CONFIG: config/study-demo.toml
+      - name: Verify multi-user workspace browser flows with offline API transport
         run: |
-          docker compose --profile web --profile study up -d --wait web study-api
-          docker compose --profile web --profile study run --rm personal-browser-tests
+          docker compose -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study up -d --wait web study-api
+          docker compose -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study run --rm personal-browser-tests
           docker compose run --rm backup-restore
       - name: Clean disposable CI containers and volumes
         if: always()

@@ -67,16 +67,17 @@ def game_identity(headers,names,game_date,initial_fen,moves,defaults):
 
 
 def game_date(headers,settings,defaults):
+    flexible=getattr(settings,'flexible_dates',False)
     for key in ('UTCDate','Date'):
         raw=headers.get(key,'').strip()
         prefix=re.match(r'^(\d{4})[.-](\d{2})',raw)
-        if prefix and '-'.join(prefix.groups())!=settings.month:
+        if not flexible and prefix and '-'.join(prefix.groups())!=settings.month:
             raise ValueError('all game-start dates must be in the approved personal month')
         try:
             parsed=datetime.strptime(raw.replace('-','.'),'%Y.%m.%d').date()
         except ValueError:
             continue
-        if parsed.isoformat()[:7]!=settings.month:
+        if not flexible and parsed.isoformat()[:7]!=settings.month:
             raise ValueError('all game-start dates must be in the approved personal month')
         return parsed
     defaults.add('game_date')
@@ -233,11 +234,12 @@ def parse(content,settings):
             eco=None;defaults.add('eco')
         opening=h.get('Opening','').strip()[:200]
         if missing(opening): opening='Unclassified opening';defaults.add('opening')
-        identifier,identity_source,site=game_identity(h,names,date.isoformat(),initial_fen,moves,defaults)
+        date_text=date.isoformat() if date else None
+        identifier,identity_source,site=game_identity(h,names,date_text,initial_fen,moves,defaults)
         # Rebuild a safe mainline PGN: selected headers, no comments or variations.
         safe=chess.pgn.Game()
         safe.setup(chess.Board(initial_fen))
-        safe.headers.update(Event='Personal study',Site=site,Date=date.strftime('%Y.%m.%d'),
+        safe.headers.update(Event='Personal study',Site=site,Date=date.strftime('%Y.%m.%d') if date else '????.??.??',
             White=names['white'],Black=names['black'],Result=result,
             TimeControl=control['time_control_key'] if control['speed']!='unknown' else '-')
         if identity_source=='local_content':safe.headers['StudyId']=identifier
@@ -252,7 +254,7 @@ def parse(content,settings):
         tail=safe
         for uci in moves:
             tail=tail.add_variation(chess.Move.from_uci(uci))
-        row=dict(game_id=identifier,game_date=date.isoformat(),white=names['white'],black=names['black'],
+        row=dict(game_id=identifier,game_date=date_text,white=names['white'],black=names['black'],
             white_rating=ratings['white'],black_rating=ratings['black'],result=result,player_color=color,
             player_rating=own,opponent_rating=other,opponent_band=band,outcome=outcome,
             points={'win':1.,'draw':.5,'loss':0.}[outcome],speed=control['speed'],
