@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source": "Synthetic timed DemoStudent PGNs; no real player data",
+  "checks": [
+    "import lands in timestamp-ordered games table with clear added-game message",
+    "last-three answer lists its exact games; editor switches within that selection and questions stay game-scoped",
+    "legal correction, exact-position engine question, stale-answer clearing and practice note",
+    "recent selection, result/opponent filters and page survive editor navigation and reload"
+  ],
+  "desktop_mobile": true,
+  "javascript_errors": []
+}

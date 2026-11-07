@@ -32,7 +32,8 @@ def save(owner,library_id,snapshot_id,name,selected):
     selected=insights.filters(selected or {})
     with db.connect() as c:
         snap=db.snapshot(c,owner,library_id,snapshot_id);key=str(uuid4())
-        c.execute('INSERT INTO study.saved_studies(id,owner_id,snapshot_id,name,filters) VALUES(%s,%s,%s,%s,%s)',(key,owner,snap['id'],name.strip(),Jsonb(selected)))
+        resolved=insights.cohort(c,owner,snap,selected)
+        c.execute('INSERT INTO study.saved_studies(id,owner_id,snapshot_id,name,filters,game_ids) VALUES(%s,%s,%s,%s,%s,%s)',(key,owner,snap['id'],name.strip(),Jsonb(selected),resolved.get('_game_ids')))
         return {'id':key,'name':name.strip(),'snapshot_id':str(snap['id']),'filters':selected}
 
 
@@ -52,7 +53,9 @@ def prepare(owner,library_id=None,snapshot_id=None,study_id=None,selected=None,f
             if not saved:raise ValueError('Saved study not found in your account')
             original=c.execute('SELECT library_id FROM study.library_snapshots WHERE owner_id=%s AND id=%s',(owner,saved['snapshot_id'])).fetchone()
             library_id=original['library_id'];snapshot_id=saved['snapshot_id'];selected=saved['filters']
-        snap=db.snapshot(c,owner,library_id,snapshot_id);clause,params=insights.where(owner,snap,selected)
+        snap=db.snapshot(c,owner,library_id,snapshot_id)
+        scope_ids=saved['game_ids'] if study_id else None
+        resolved=insights.cohort(c,owner,snap,selected,scope_ids);clause,params=insights.where(owner,snap,resolved)
         count=c.execute('SELECT count(*) AS n FROM study.workspace_game_facts f WHERE '+clause,params).fetchone()['n']
         manifest={'format_version':2,'player':snap['player'],'library_id':str(snap['library_id']),'snapshot_id':str(snap['id']),
             'version':snap['version'],'dataset_sha256':snap['dataset_sha256'],'rows':count,'filters':selected,
@@ -63,7 +66,7 @@ def prepare(owner,library_id=None,snapshot_id=None,study_id=None,selected=None,f
         path=folder/(str(uuid4())+'.'+format)
         try:
             if format in ('manifest','report'):
-                value=manifest if format=='manifest' else insights.report(owner,library_id,snap['id'],selected,config)
+                value=manifest if format=='manifest' else insights.report(owner,library_id,snap['id'],selected,config,scope_ids)
                 path.write_text(json.dumps(value,indent=2,default=str,allow_nan=False)+'\n')
             else:
                 with c.cursor(name='research_export') as cursor:

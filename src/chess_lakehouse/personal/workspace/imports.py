@@ -197,7 +197,8 @@ def iterate(path,player,config,known=None):
                     if headers is None:break
                     identity=source_id(headers)
                     if identity and known(identity):
-                        yield number,{'_existing_id':identity};continue
+                        from .chronology import pgn_time
+                        yield number,{'_existing_id':identity,'_started_at':pgn_time(headers)};continue
                     stream.seek(position)
                 game=chess.pgn.read_game(RecordReader(stream,config.max_record_bytes),Visitor=builder)
                 if game is None:break
@@ -216,7 +217,8 @@ def iterate(path,player,config,known=None):
                     if 'game result is missing' in str(error):
                         yield number,{'_game_id':game_id,'_skip_reason':'Unfinished game with no completed result'};continue
                     raise
-                yield number,rows[0]
+                from .chronology import pgn_time
+                yield number,dict(rows[0],_started_at=pgn_time(game.headers))
             except (ValueError,IndexError,UnicodeError) as e:
                 # A malformed record has uncertain boundaries: stop atomically, rather than skip another game.
                 raise ValueError('Game '+str(number)+': '+str(e)) from None
@@ -300,7 +302,7 @@ def process(record,config,opener=None):
                 if cancelled(owner,key):raise Cancelled()
                 sha.update(block)
         update(owner,key,player=player,library_id=lib['id'],source_sha256=sha.hexdigest(),phase='Reading and deduplicating games')
-        total=new=changed=duplicates=rejected=0;batch=[];batch_bytes=0;diagnostics=[]
+        total=new=changed=duplicates=rejected=0;batch=[];batch_bytes=0;diagnostics=[];skip_counts={}
         def flush():
             nonlocal new,changed,duplicates,batch,batch_bytes
             if not batch:return
@@ -330,6 +332,11 @@ def process(record,config,opener=None):
                 return bool(active and c.execute('SELECT 1 FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s AND game_id=%s',(owner,active,identity)).fetchone())
         for _,row in iterate(path,player,config,known if record['mode']=='append' else None):
             total+=1
+            if total%config.batch_games==1 and cancelled(owner,key):raise Cancelled()
+            started=row.pop('_started_at',None)
+            if started:
+                from .chronology import save
+                with db.connect() as c:save(c,owner,row.get('game_id') or row.get('_existing_id'),started,'pgn_utc')
             if is_sync:
                 if row.get('_skip_reason')=='Game does not contain the selected player':raise ValueError('Lichess returned a requested game for a different player; retry sync')
                 identity=row.get('game_id') or row.get('_game_id') or row.get('_existing_id')
@@ -337,11 +344,15 @@ def process(record,config,opener=None):
                     queued=c.execute('SELECT pending FROM study.import_game_queue WHERE owner_id=%s AND job_id=%s AND game_id=%s',(owner,key,identity)).fetchone()
                     if not queued:raise ValueError('Lichess returned a game outside this sync request')
                     unfinished=row.get('_skip_reason','').startswith('Unfinished') or queued['pending'] and row.get('_skip_reason','').startswith('Empty')
+                    if unfinished and row.get('_skip_reason','').startswith('Empty'):row['_skip_reason']='Unfinished game with no completed result'
                     c.execute('UPDATE study.import_game_queue SET resolved=%s,pending=%s WHERE owner_id=%s AND job_id=%s AND game_id=%s',
                         (not unfinished,unfinished,owner,key,identity))
             if '_existing_id' in row:duplicates+=1;continue
             if '_skip_reason' in row:
                 rejected+=1
+                reason=row['_skip_reason']
+                kind='unfinished' if reason.startswith('Unfinished') else 'empty' if reason.startswith('Empty') else 'variant' if reason.startswith('Unsupported') else 'unrelated'
+                skip_counts[kind]=skip_counts.get(kind,0)+1
                 if len(diagnostics)<10:diagnostics.append({'game_number':total,'reason':row['_skip_reason']})
                 continue
             batch.append(row);batch_bytes+=len(db.canonical(row).encode())
@@ -349,8 +360,8 @@ def process(record,config,opener=None):
         flush()
         with db.connect() as c:
             from psycopg.types.json import Jsonb
-            c.execute('UPDATE study.import_jobs SET games_processed=%s,new_games=%s,changed_games=%s,duplicate_games=%s,rejected_games=%s,diagnostics=%s WHERE owner_id=%s AND id=%s',
-                (total,new,changed,duplicates,rejected,Jsonb(diagnostics),owner,key))
+            c.execute('UPDATE study.import_jobs SET games_processed=%s,new_games=%s,changed_games=%s,duplicate_games=%s,rejected_games=%s,diagnostics=%s,skip_counts=%s WHERE owner_id=%s AND id=%s',
+                (total,new,changed,duplicates,rejected,Jsonb(diagnostics),Jsonb(skip_counts),owner,key))
         publish(owner,key,config)
     except Cancelled:
         cleanup_staging(owner,key)

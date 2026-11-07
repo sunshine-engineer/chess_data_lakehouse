@@ -132,6 +132,10 @@ selected or detected automatically. Repeated games reuse their stored payloads.
 stored games stay unchanged by default. Full-game Stockfish reviews allow up to
 five minutes and explain three alternative lines at detected mistakes. Read the
 [sync and review guide](docs/incremental-sync-game-review.md).
+The [recent-game workflow](docs/recent-game-study.md) adds a timestamp-ordered
+games table, result/opponent filters, exact “last 3 games” answers and contextual
+questions for played positions and trial lines. Imports open the games table
+with a clear added/up-to-date/pending message.
 
 Separate pages provide a short study focus, opening comparisons, ten-row game
 pages, board/engine review, questions and version-pinned saved studies. Accounts

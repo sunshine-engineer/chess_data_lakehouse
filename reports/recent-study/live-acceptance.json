@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "library_games": 12525,
+  "exact_recent_games": 3,
+  "source_ids_and_timestamps_matched": true,
+  "result_counts_matched": true,
+  "recent_results": {
+    "loss": 1,
+    "win": 2
+  },
+  "selected_game_summary_games": 1,
+  "exact_trial_engine_question": true,
+  "live_import_outcomes": [
+    {
+      "new_games": 0,
+      "pending_games": 0,
+      "message": "Your library is up to date. No new completed games were found."
+    },
+    {
+      "new_games": 0,
+      "pending_games": 0,
+      "message": "Your library is up to date. No new completed games were found."
+    }
+  ],
+  "backfill_checkpoint_unchanged": true,
+  "raw_private_games_exported": false,
+  "independent_recent_metadata_checked": 50
+}

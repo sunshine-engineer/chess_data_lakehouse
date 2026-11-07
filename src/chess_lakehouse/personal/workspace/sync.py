@@ -9,6 +9,7 @@ import re
 import time
 import urllib.parse
 import urllib.request
+from datetime import datetime,timezone
 
 from . import storage as db
 
@@ -47,7 +48,9 @@ def download(record,config,opener=None):
             active=db.library(c,owner,lib['id'])['active_snapshot']
             known={r['game_id'] for r in c.execute('SELECT game_id FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s AND game_id=ANY(%s)',
                 (owner,active,[r[0] for r in batch])).fetchall()} if active else set()
-            for identity,pending in batch:
+            from .chronology import save
+            for identity,pending,created in batch:
+                save(c,owner,identity,datetime.fromtimestamp(created/1000,timezone.utc),'lichess')
                 if identity in known:old+=1;continue
                 c.execute('INSERT INTO study.import_game_queue(owner_id,job_id,game_id,pending) VALUES(%s,%s,%s,%s) ON CONFLICT(job_id,game_id) DO UPDATE SET pending=EXCLUDED.pending',
                     (owner,key,identity,pending))
@@ -66,7 +69,7 @@ def download(record,config,opener=None):
             if created>until or since and created<since:raise ValueError('Lichess metadata fell outside the requested time window')
             variant=value.get('variant','standard');variant=variant.get('key') if isinstance(variant,dict) else variant
             metadata+=1
-            if variant=='standard':batch.append((identity,value.get('status') in ('created','started')))
+            if variant=='standard':batch.append((identity,value.get('status') in ('created','started'),created))
             if len(batch)>=config.batch_games or metadata%config.batch_games==0:flush()
             if metadata%config.batch_games==0 and imports.cancelled(owner,key):raise imports.Cancelled()
         flush()
@@ -103,4 +106,5 @@ def publish(c,record):
     c.execute('''INSERT INTO study.library_sync_state(owner_id,library_id,watermark_ms,last_job_id) VALUES(%s,%s,%s,%s)
         ON CONFLICT(library_id) DO UPDATE SET watermark_ms=greatest(study.library_sync_state.watermark_ms,EXCLUDED.watermark_ms),
         last_job_id=EXCLUDED.last_job_id,updated_at=now()''',(owner,library,record['sync_until_ms'],key))
+    c.execute('UPDATE study.import_jobs SET pending_games=(SELECT count(*) FROM study.sync_pending_games WHERE owner_id=%s AND library_id=%s) WHERE owner_id=%s AND id=%s',(owner,library,owner,key))
     c.execute('DELETE FROM study.import_game_queue WHERE owner_id=%s AND job_id=%s',(owner,key))
