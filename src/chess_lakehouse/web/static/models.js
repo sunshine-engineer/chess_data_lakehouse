@@ -7,9 +7,12 @@
  function fold(title,...nodes){const n=el('details',null,'model-details');n.append(el('summary',title),...nodes);return n;}
  function tabs(){const value=state.route.params.get('tab'),tab=['scenario','evidence','profiles'].includes(value)?value:'scenario';document.querySelectorAll('[data-model-tab]').forEach(n=>{n.href=A.href('models',{tab:n.dataset.modelTab});n.classList.toggle('active',n.dataset.modelTab===tab);if(n.dataset.modelTab===tab)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});for(const name of ['scenario','evidence','profiles'])$('#model-'+name).hidden=name!==tab;}
  function render(d){
-  publication=d;ready=d.available&&d.fresh;$('#prediction button').disabled=!ready;const status=$('#model-status');status.replaceChildren();
+  const previous=publication;publication=d;ready=d.available&&d.fresh;$('#prediction button').disabled=!ready;const status=$('#model-status');status.replaceChildren();
   if(!d.available){status.append(A.empty('No model publication available','You can still explore the archive and read how the estimates are evaluated.',link('Read the outcome case study →','/case-studies/outcome')));$('#model-results').replaceChildren();$('#model-clusters').replaceChildren();$('#prediction-result').replaceChildren(A.empty('Estimates are unavailable','A verified model publication is needed before this tool can run.'));return;}
-  const r=d.report,copy=el('p');copy.append(el('strong',d.fresh?'Current publication · '+r.month:'Archive changed · estimates paused','model-state-label'),el('span',number(r.sample_rows)+' sampled games · test dates '+r.split.test.first_date+' to '+r.split.test.last_date+'. Estimates describe this historical archive.'));
+  const r=d.report,copy=el('p');
+  if(!d.fresh){++predictionToken;$('#prediction-result').replaceChildren(A.empty('Estimates paused','The archive changed. Inspect the historical evidence or refresh after a matching model is published.'));}
+  else if(previous?.available===false||previous?.fresh===false||(previous?.report?.run_id&&previous.report.run_id!==r.run_id)){++predictionToken;$('#prediction-result').replaceChildren(A.empty('Ready to explore','Explore this matchup to calculate an estimate from the current publication.'));}
+  copy.append(el('strong',d.fresh?'Current publication · '+r.month:'Archive changed · estimates paused','model-state-label'),el('span',number(r.sample_rows)+' sampled games · test dates '+r.split.test.first_date+' to '+r.split.test.last_date+'. Estimates describe this historical archive.'));
   const actions=el('div',null,'model-status-actions');actions.append(link('Download evaluation','/api/evidence/models'),link('Method & limitations','/case-studies/outcome'));status.append(copy,actions);
   const results=$('#model-results');results.replaceChildren();const scores=el('div',null,'grid three');
   scores.append(card('OUTCOME MODEL',r.outcome.test.log_loss.toFixed(3)+' log loss','Class-prior baseline '+r.outcome.baseline.log_loss.toFixed(3)+'. Lower is better; probability quality and class performance need separate inspection.'),card('GAME-LENGTH MODEL',r.length.test.mae_moves.toFixed(2)+' moves MAE','Median baseline '+r.length.baseline.mae_moves.toFixed(2)+' moves. This is an average historical error, not a per-game interval.'),card('PLAYER PROFILES',r.clusters.selected_k+' observed groups',number(r.clusters.players)+' eligible player aggregates. Descriptive profiles, without a skill ranking.'));results.append(scores);
@@ -28,7 +31,8 @@
   const profiles=el('div',null,'profile-cards');for(const group of r.clusters.groups){const n=el('article',null,'panel profile-card');n.append(el('p','OBSERVED GROUP '+group.cluster,'eyebrow'),el('h3',number(group.players)+' players'),el('p','Mean rating '+number(group.mean_rating)+' · mean length '+number(group.mean_moves)+' moves'),el('p','Win share '+pct(group.win_rate)+' · draw share '+pct(group.draw_rate)),el('p','Bullet '+pct(group.bullet_share)+' · blitz '+pct(group.blitz_share)+' · rapid '+pct(group.rapid_share)));profiles.append(n);}clusters.append(profiles);
   const diagnostics=el('article',null,'panel');diagnostics.append(el('h2','How stable is this grouping?'),el('p','Silhouette '+r.clusters.silhouette.toFixed(3)+' · seed stability ARI '+r.clusters.seed_stability_ari.toFixed(3)+'. These compare structure and repeatability; neither is predictive accuracy.'),link('Read the profiling case study →','/case-studies/clusters'));clusters.append(diagnostics);
  }
- async function page(){ready=false;$('#prediction button').disabled=true;tabs();for(const key of ['white_rating','black_rating','initial_seconds','increment_seconds'])if(state.route.params.has(key))$('#prediction').elements[key].value=state.route.params.get(key);
+ async function page(){ready=false;$('#prediction button').disabled=true;tabs();const form=$('#prediction'),before=new URLSearchParams(new FormData(form)).toString();for(const key of ['white_rating','black_rating','initial_seconds','increment_seconds'])if(state.route.params.has(key))form.elements[key].value=state.route.params.get(key);
+  if(before!==new URLSearchParams(new FormData(form)).toString()){++predictionToken;$('#prediction-result').replaceChildren(A.empty('Inputs changed','Explore this matchup to update the estimate.'));}
   return A.load(signal=>A.request('/api/models',{},signal),render);
  }
  function display(result){
@@ -39,7 +43,7 @@
   if(c.games<100)context.append(el('p',c.games?'This is a small comparison group. Avoid reading precise probabilities from a handful of observations.':'No archive games match this comparison rule. The estimate has no matching observational comparison here.','callout'));
   context.append(el('p',c.rule,'muted'),el('p',result.scope,'muted'),fold('Prediction provenance',el('p','Run: '+result.run_id,'muted'),el('p','Inputs: White '+number(result.input.white_rating)+', Black '+number(result.input.black_rating)+', '+number(result.input.initial_seconds)+' seconds + '+number(result.input.increment_seconds)+' per move. Clock: '+result.input.speed,'muted')));box.append(context);
  }
- A.pages.models=page;page.invalidate=()=>{publication=null;};
+ A.pages.models=page;page.invalidate=()=>{++predictionToken;$('#prediction-result').replaceChildren(A.empty('Ready to explore','Explore this matchup to calculate a fresh estimate.'));};
  window.addEventListener('DOMContentLoaded',()=>{
   const form=$('#prediction');
   form.addEventListener('input',()=>{$('#prediction-result').replaceChildren(A.empty('Inputs changed','Explore this matchup to update the estimate.'));++predictionToken;});

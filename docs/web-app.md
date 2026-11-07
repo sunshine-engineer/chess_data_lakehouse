@@ -118,8 +118,10 @@ same time class and both ratings within 200 points; it is labelled as descriptiv
 full-archive observations, not a confidence interval or the training sample.
 A second publication check inside that read snapshot rejects a source change
 during preparation. Missing/corrupt/stale models disable estimates while the
-methodology and historical evidence remain accessible. Editing inputs clears the
-previous estimate; cancelled or superseded responses cannot replace the active view.
+methodology and historical evidence remain accessible. Editing inputs or opening
+a different matchup link clears the previous estimate. Missing or stale model
+states clear prior estimates too; a returning verified publication restores the
+tool. Cancelled or superseded responses cannot replace the active view.
 
 CSV exports are explicitly capped and ordered by game ID. `X-Export-Rows`,
 `X-Export-Total`, `X-Export-Truncated` and `X-Content-SHA256` describe the file.
