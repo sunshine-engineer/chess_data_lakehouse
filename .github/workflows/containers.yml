@@ -59,6 +59,7 @@ jobs:
         run: |
           docker compose -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study up -d --wait web study-api
           docker compose -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study run --rm personal-browser-tests
+          docker compose -f compose.yaml -f compose.workspace-qa.yaml --profile web --profile study run --rm personal-browser-tests python /checks/practice_smoke.py
           docker compose run --rm backup-restore
       - name: Clean disposable CI containers and volumes
         if: always()

@@ -14,5 +14,13 @@ data/
 reports/python_*.json
 reports/spark_*.json
 reports/ci-synthetic/
+reports/scale/python_*.json
+reports/scale/python_mp_*.json
+reports/scale/spark_*.json
+reports/scale/workload-*.json
+reports/expanded-import/
+reports/practice-regression/*.png
+reports/practice-empty/*.png
+reports/product-expanded/*.png
 *.dump
 *.backup

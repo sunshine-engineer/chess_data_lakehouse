@@ -12,3 +12,4 @@ services:
       PYTHONPATH: /app/src
     volumes:
       - ./src:/app/src:ro
+      - ./docs:/app/docs:ro

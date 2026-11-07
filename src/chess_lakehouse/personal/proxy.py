@@ -11,7 +11,9 @@ ROUTES={'session':{'GET'},'signup':{'POST'},'login':{'POST'},'logout':{'POST'},'
     'libraries':{'GET'},'context':{'GET'},'imports':{'GET'},'imports/file':{'POST'},
     'imports/lichess':{'POST'},'imports/preview':{'POST'},'report':{'POST'},'games':{'POST'},
     'analysis':{'POST'},'positions':{'POST'},'review':{'POST'},'assistant':{'POST'},
-    'studies':{'GET','POST'},'export':{'GET'}}
+    'studies':{'GET','POST'},'export':{'GET'},'board/preferences':{'GET','POST'},
+    'board/position':{'POST'},'board/variations':{'POST'},'board/variations/remove':{'POST'},
+    'board/analysis':{'POST'},'learning/examples':{'POST'},'learning/progress':{'GET'},'learning/attempt':{'POST'}}
 
 
 def register(app):
@@ -32,6 +34,7 @@ def register(app):
         if re.fullmatch(r'libraries/[a-fA-F0-9-]{36}/versions',route):methods={'GET'}
         if re.fullmatch(r'imports/[a-fA-F0-9-]{36}',route):methods={'GET'}
         if re.fullmatch(r'imports/[a-fA-F0-9-]{36}/(?:cancel|retry)',route):methods={'POST'}
+        if re.fullmatch(r'board/analysis/[a-fA-F0-9-]{36}',route):methods={'GET'}
         if request.method not in methods:return jsonify(error='Unknown study operation'),404
         token=os.environ.get('STUDY_API_TOKEN','')
         if not token:return jsonify(error='Start the Personal Study service.'),503

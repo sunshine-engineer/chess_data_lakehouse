@@ -33,11 +33,12 @@ window.Atlas=(()=>{
   $('#game-sort').value=state.sort;$('#game-search input').value=state.filters.game_id;$('#clear-search').hidden=!state.filters.game_id;
   if(state.filters.eco||state.filters.from_date||state.filters.to_date||state.filters.min_rating!=='0'||state.filters.max_rating!=='4000')$('.filter-more').open=true;
   const publication=state.catalog?.publications.find(p=>p.engine===state.filters.engine&&p.month===state.filters.month);
-  $('#archive-scope-title').textContent='Lichess · '+state.filters.month+' archive';
-  $('#archive-scope-detail').textContent=publication?number(publication.games)+' published games · '+publication.first_date+' to '+publication.last_date+' game dates · separate from Personal Study':'No published games for this archive and processing path. Personal Study is separate.';
+  $('#archive-scope-title').textContent='Lichess · '+(state.filters.month==='all'?'all published months':state.filters.month)+' archive';
+  const all=state.catalog?.publications.filter(p=>p.engine===state.filters.engine)||[];
+  $('#archive-scope-detail').textContent=state.filters.month==='all'?number(all.reduce((n,p)=>n+p.games,0))+' published games across '+all.length+' months · separate from Personal Study':publication?number(publication.games)+' published games · '+publication.first_date+' to '+publication.last_date+' game dates · separate from Personal Study':'No published games for this archive and processing path. Personal Study is separate.';
  }
  async function catalog(signal){if(state.catalog)return state.catalog;const d=await request('/api/catalog',{},signal);state.catalog=d;
-  const selected=state.filters.month;const months=[...new Set([selected,...d.publications.map(p=>p.month)])].sort();$('#month').replaceChildren(...months.map(m=>{const n=el('option',m);n.value=m;return n;}));syncFilters();return d;}
+  const selected=state.filters.month;const months=[...new Set(['all',selected,...d.publications.map(p=>p.month)])].sort();$('#month').replaceChildren(...months.map(m=>{const n=el('option',m==='all'?'All published months':m);n.value=m;return n;}));syncFilters();return d;}
  async function load(fetcher,render){const epoch=state.epoch,token=++state.loadToken,view=state.view,root=$('#'+view);state.controller?.abort();const controller=new AbortController();state.controller=controller;
   notice('');root.dataset.state='loading';root.setAttribute('aria-busy','true');$('#page-loading').hidden=false;
   try{const d=await fetcher(controller.signal);if(epoch!==state.epoch||token!==state.loadToken)return;render(d);root.dataset.state='ready';}
@@ -45,6 +46,7 @@ window.Atlas=(()=>{
   finally{if(epoch===state.epoch&&token===state.loadToken){$('#page-loading').hidden=true;root.setAttribute('aria-busy','false');}}
  }
  const labels={personal:['Personal Study','Import your games. Find a focus. Practice the position.'],overview:['The archive, in perspective.','Follow a pattern into the games behind it.'],explorer:['Find the game behind the number.','Search, inspect and export the retained public archive.'],pipelines:['Understand the engineering trade-off.','Compare measured execution, resources and equivalent outputs.'],models:['Explore the estimate. Inspect the evidence.','Historical models, simple baselines and comparable games in one place.'],studies:['Practical questions. Inspectable answers.','Read the decisions, measured outcomes and limits behind this workspace.']};
+ labels.learn=['Learn & practice','Build good habits. Try a drill, then connect it to a real game.'];
  async function navigate(){
   const [path,search='']=location.hash.slice(1).split('?');const parts=(path||'personal').split('/'),view=labels[parts[0]]?parts[0]:'personal';
   state.controller?.abort();++state.epoch;state.view=view;state.route={path:view==='personal'?(path||'personal'):path,parts,params:new URLSearchParams(search)};
@@ -56,8 +58,8 @@ window.Atlas=(()=>{
   $('#refresh-page').hidden=view==='personal';$('#copy-view').hidden=view==='personal';
   $('#page-title').textContent=labels[view][0];$('#page-subtitle').textContent=labels[view][1];$('#breadcrumb').textContent=[...document.querySelector('[data-view="'+view+'"]').childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join('').trim();
   $('#page-eyebrow').textContent=view==='personal'?'YOUR CHESS WORKSPACE':view==='overview'||view==='explorer'?'PUBLIC ARCHIVE EXPLORATION':'METHODS & EVIDENCE';
-  $('#study-page-scope').textContent=view==='personal'?'Private game library':view==='models'?'Historical model publication':view==='pipelines'?'Recorded benchmark results':'Public archive · historical evidence';
-  $('#workspace-footer-scope').textContent=view==='personal'?'Your games · Evidence-linked review · Deliberate practice':'Lichess public archive · January 2013 · Personal libraries remain private';
+  $('#study-page-scope').textContent=view==='learn'?'Original lessons · Real game examples':view==='personal'?'Private game library':view==='models'?'Historical model publication':view==='pipelines'?'Recorded benchmark results':'Public archive · historical evidence';
+  $('#workspace-footer-scope').textContent=view==='personal'?'Your games · Evidence-linked review · Deliberate practice':'Lichess public archives · Personal libraries remain private';
   document.title=labels[view][0]+' · Chess Atlas';notice('');$('#page-loading').hidden=true;window.scrollTo(0,0);
   if(view==='personal')await window.Study.open();else await pages[view]?.();
  }

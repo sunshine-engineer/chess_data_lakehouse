@@ -4,8 +4,8 @@ Containerized Python and PySpark pipelines ingest verified Lichess archives into
 partitioned PostgreSQL star models and typed Parquet. Serial Python, bounded
 multiprocessing Python, and Spark use the same chess validation and natural keys.
 
-**Bulk archive execution is allowlisted to January 2013 and all-month archive
-scheduling remains disabled. Personal libraries accept any dates through manual
+**Default bulk execution permits January 2013; an opt-in configuration permits
+January–March 2013. All-month archive scheduling remains disabled. Personal libraries accept any dates through manual
 PGNs or user-requested Lichess API imports. Cluster checks use synthetic data.**
 
 ## Outline
@@ -15,7 +15,9 @@ PGNs or user-requested Lichess API imports. Cluster checks use synthetic data.**
 3. Verify recovery, backup/restore and comparable performance measurements.
 4. Review the data model, operational runbook and measured case studies.
 5. Explore Chess Atlas and its three documented ML case studies.
-6. Import one approved player-month and build a reproducible personal study.
+6. Import manual PGNs or a player's public history and save versioned personal studies.
+7. Configure an interactive study board, practice beginner lessons and expand
+   explicitly selected archives using the [board and learning guide](docs/board-learning-archives.md).
 
 ## Start
 

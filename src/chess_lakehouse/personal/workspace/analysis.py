@@ -20,7 +20,7 @@ def enqueue(owner,library_id,snapshot_id,game_id,config):
         if existing:
             if existing['status']=='failed':c.execute("UPDATE study.workspace_analysis SET status='queued',error=NULL,finished_at=NULL WHERE owner_id=%s AND id=%s",(owner,existing['id']))
             return {'id':str(existing['id']),'status':'queued' if existing['status']=='failed' else existing['status'],'cached':existing['status']=='complete'}
-        active=c.execute("SELECT count(*) AS n FROM study.workspace_analysis WHERE owner_id=%s AND status IN ('queued','running')",(owner,)).fetchone()['n']
+        active=c.execute("SELECT (SELECT count(*) FROM study.workspace_analysis WHERE owner_id=%s AND status IN ('queued','running'))+(SELECT count(*) FROM study.position_analysis WHERE owner_id=%s AND status IN ('queued','running')) AS n",(owner,owner)).fetchone()['n']
         if active>=config.engine_queue_limit:raise ValueError('Finish a queued review before adding more. Your game library has no analysis-history cap.')
         key=str(uuid4())
         c.execute("INSERT INTO study.workspace_analysis(id,owner_id,revision_id,settings_hash,player,status,evidence) VALUES(%s,%s,%s,%s,%s,'queued',%s)",

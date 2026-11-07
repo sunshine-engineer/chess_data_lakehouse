@@ -23,6 +23,15 @@ def test_catalog_scope_and_combined_filters(warehouse):
     assert all(row['result']=='1/2-1/2' and '2013-01-05'<=row['date']<='2013-01-08' for row in page['rows'])
     for invalid in ({'eco':'C20 OR true'},{'result':'win'},{'from_date':'yesterday'},{'from_date':'2013-02-01','to_date':'2013-01-01'},{'game_id':'../../secret'}):
         with pytest.raises(ValueError):data.games(invalid)
+    # The all-month predicate must not treat the first speed/rating param as a date.
+    all_selected={**selection,'month':'all','speed':'blitz'}
+    assert data.overview(all_selected)['summary']['games']==data.games(all_selected)['total']
+    assert data.detail(data.games({'month':'all','limit':1})['rows'][0]['game_id'],{'month':'all'})
+    client=create_app({'TESTING':True}).test_client()
+    assert client.get('/api/archive-plan?months=2013-01,2013-02,2013-03').json['input_games']==403928
+    assert client.get('/api/archive-plan?months=2013-04').status_code==400
+    assert client.get('/api/archive-plan?months=2013-01,2013-01').status_code==400
+    assert client.get('/api/benchmarks?workload=../../secret').status_code==400
 
 
 @pytest.mark.parametrize('sort',['id','newest','oldest'])

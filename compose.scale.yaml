@@ -1,0 +1,12 @@
+# Applied only by the opt-in archive workload script. Separate project/volumes.
+x-scale-runner: &scale
+  image: ${CHESS_SCALE_IMAGE:?Set the pinned scale image tag}
+  volumes:
+    - ./reports/scale:/reports
+services:
+  init-volume: *scale
+  migrate: *scale
+  python: *scale
+  python-mp: *scale
+  spark: *scale
+  compare: *scale

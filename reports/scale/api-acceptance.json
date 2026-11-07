@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "group": "scale-20261107T072550",
+  "summary": {
+    "python": {
+      "median_container_cpu_seconds": 1609.9106735,
+      "median_container_peak_memory_mib": 252.40234375,
+      "median_elapsed_seconds": 1740.5096782384994,
+      "median_input_games_per_second": 232.15673399702013,
+      "median_model_bytes": 238022656.0,
+      "median_parquet_bytes": 29840543.0,
+      "samples": 2
+    },
+    "python_mp": {
+      "median_container_cpu_seconds": 1502.1605185,
+      "median_container_peak_memory_mib": 276.712890625,
+      "median_elapsed_seconds": 1077.578411774499,
+      "median_input_games_per_second": 376.0090974552809,
+      "median_model_bytes": 238022656.0,
+      "median_parquet_bytes": 29840543.0,
+      "samples": 2
+    },
+    "spark": {
+      "median_container_cpu_seconds": 1792.261862,
+      "median_container_peak_memory_mib": 1111.50390625,
+      "median_elapsed_seconds": 1026.0278946969997,
+      "median_input_games_per_second": 405.86074062561886,
+      "median_model_bytes": 238022656.0,
+      "median_parquet_bytes": 15797874.0,
+      "samples": 2
+    }
+  }
+}

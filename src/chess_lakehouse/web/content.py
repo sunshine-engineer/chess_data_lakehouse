@@ -30,8 +30,10 @@ CASES={
     'action':'Inspect the profiles','href':'/#models?tab=profiles'}}
 
 GUIDES={'web-app','personal-study','optimized-pipeline','optimized-validation','web-ml-validation',
-    'personal-workspace-validation','product-workspace-validation','product-workspace-plan','case-studies'}
-EVIDENCE={'reports/comparison-v2.json':'/api/evidence/benchmarks','reports/ml-evaluation.json':'/api/evidence/models'}
+    'personal-workspace-validation','product-workspace-validation','product-workspace-plan','case-studies','board-learning-archives','board-learning-archives-validation'}
+EVIDENCE={'reports/comparison-v2.json':'/api/evidence/benchmarks',
+    'reports/scale/comparison-v2.json':'/api/evidence/benchmarks?workload=scale',
+    'reports/ml-evaluation.json':'/api/evidence/models'}
 REPOSITORY='https://github.com/sunshine-engineer/chess_data_lakehouse/blob/CXOED/product-workspace/'
 
 

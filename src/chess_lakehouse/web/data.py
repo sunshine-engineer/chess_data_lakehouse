@@ -40,9 +40,9 @@ def filters(args):
     if engine not in ENGINES:
         raise ValueError('unsupported engine')
     month = args.get('month', '2013-01')
-    if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', month):
-        raise ValueError('month must be YYYY-MM')
-    source_month = date.fromisoformat(month+'-01')
+    if month!='all' and not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', month):
+        raise ValueError('month must be YYYY-MM or all')
+    source_month = date.fromisoformat(month+'-01') if month!='all' else None
     speed = args.get('speed', '')
     if speed and speed not in SPEEDS:
         raise ValueError('unsupported speed')
@@ -50,8 +50,8 @@ def filters(args):
     high = integer(args.get('max_rating', 4000), 'maximum rating', 0, 4000)
     if low > high:
         raise ValueError('minimum rating exceeds maximum')
-    clauses = ['f.source_month=%s']
-    params = [source_month]
+    clauses = ['f.source_month=%s'] if source_month else ['TRUE']
+    params = [source_month] if source_month else []
     if speed:
         clauses.append('f.speed=%s'); params.append(speed)
     # Default range includes games without ratings; explicit limits exclude them.
@@ -105,7 +105,9 @@ def overview(args):
             FROM {}.fact_game f JOIN {}.dim_opening o ON o.opening_sk=f.opening_sk
             WHERE {} GROUP BY 1,2 ORDER BY count(*) DESC,1,2 LIMIT 10''').format(schema,schema,where),params).fetchall()
         bands=grouped("coalesce((floor(average_rating/200)*200)::int::text,'Unknown')")
-        rejects=conn.execute(sql.SQL('SELECT count(*) AS n FROM {}.rejected_game WHERE source_month=%s').format(schema),(params[0],)).fetchone()['n']
+        reject_where=sql.SQL('TRUE') if args.get('month')=='all' else sql.SQL('source_month=%s')
+        reject_params=[] if args.get('month')=='all' else [date.fromisoformat(args.get('month','2013-01')+'-01')]
+        rejects=conn.execute(sql.SQL('SELECT count(*) AS n FROM {}.rejected_game WHERE {}').format(schema,reject_where),reject_params).fetchone()['n']
         months=conn.execute(sql.SQL("SELECT DISTINCT to_char(source_month,'YYYY-MM') AS month FROM {}.fact_game ORDER BY 1").format(schema)).fetchall()
         return dict(summary=total,unknown_player_games=unknown,archive_rejects=rejects,speeds=grouped('speed'),
             results=grouped('result'),daily=grouped('date_key::text'),rating_bands=bands,openings=openings,

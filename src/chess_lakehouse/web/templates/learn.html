@@ -1,0 +1,34 @@
+<section id="learn" class="view" aria-label="Learn and practice" hidden>
+<div id="learn-focus" class="insight-row" hidden></div>
+<div class="learn-layout data-region"><nav id="lesson-menu" class="panel lesson-menu" aria-label="Beginner lessons"></nav>
+<article class="panel lesson-content"><p class="eyebrow">UNDERSTAND · TRY · REFLECT</p><div id="lesson-heading"></div>
+<div class="lesson-split">
+  <div>
+    <div id="lesson-board" class="chess-board"></div>
+    <p id="lesson-prompt"></p>
+    <div class="trial-actions">
+      <button id="lesson-reset" class="secondary" type="button">Reset drill</button>
+      <button id="lesson-flip" class="secondary" type="button">Flip board</button>
+    </div>
+    <div id="lesson-feedback" class="learn-feedback" role="status">Select a piece, then a destination.</div>
+    <p id="lesson-progress" class="learn-progress"></p>
+  </div>
+  <div>
+    <p class="eyebrow">FOUNDATION DRILL</p>
+    <p class="muted">An authored teaching position. Practice its goal, then explore an example from a game below.</p>
+    <div id="lesson-ideas"></div>
+    <p><a href="https://handbook.fide.com/chapter/E012023" target="_blank" rel="noopener">Official chess rules ↗</a> · <a href="https://lichess.org/practice" target="_blank" rel="noopener">More practice ↗</a></p>
+  </div>
+</div>
+<div class="learn-example-heading">
+  <p class="eyebrow">CONNECT IT TO A GAME</p><h3>Practice asking the right questions.</h3>
+  <div class="learn-source-controls">
+    <label>Example source<select id="learn-source"><option value="historical">Historical archive sample</option><option value="personal">My game library</option></select></label>
+    <label id="learn-library-label" hidden>Player library<select id="learn-library"></select></label>
+    <button id="learn-next" class="secondary" type="button">Next example →</button>
+  </div>
+  <p id="learn-source-note" class="learn-source-note"></p>
+  <details><summary>How examples are selected</summary><p id="learn-method"></p></details>
+  <div id="learn-example"></div>
+</div></article></div>
+</section>

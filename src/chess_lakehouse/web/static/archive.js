@@ -33,6 +33,7 @@
   }
   $('#quality').replaceChildren();for(const [label,value] of [['Games with unknown identities',number(d.unknown_player_games)],['Games with a missing rating',number(s.missing_ratings)],['Rejected records in whole archive',number(d.archive_rejects)],['Archive month',state.filters.month]]){const row=el('div',null,'quality-stat');row.append(el('span',label),el('strong',value));$('#quality').append(row);}
   $('#openings').replaceChildren(table(['Opening','Code','Games','Share','Explore'],d.openings.map(o=>[o.label,o.eco,number(o.count),pct(o.count/(s.games||1)),o.eco!=='Unknown'?link('Open games →',A.href('explorer',{}, {...state.filters,eco:o.eco})):el('span','No opening code','muted')])));
+  $('.publication-panel h2').textContent='Explore the retained publications.';
   const publications=$('#publication-list');publications.replaceChildren();
   for(const p of catalog.publications){const row=el('div',null,'publication-list-item');row.append(link(engineName[p.engine],A.href('overview',{}, {...state.filters,engine:p.engine,month:p.month})),el('span',p.month+' · '+number(p.games)+' games'));publications.append(row);}
   if(!catalog.publications.length)publications.append(A.empty('No archive has been published','Your private Personal Study library is separate and remains available.',link('Open Personal Study →','#personal')));

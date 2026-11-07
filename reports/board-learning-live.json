@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "archive_games": 403928,
+  "historical_sample_games": 1800,
+  "historical_phases": {
+    "opening": 1800,
+    "middlegame": 1721,
+    "endgame": 677
+  },
+  "private_libraries": [
+    {
+      "library_games": 12519,
+      "games_examined": 30,
+      "worked_positions": 64,
+      "recommendations": 2
+    },
+    {
+      "library_games": 12519,
+      "games_examined": 30,
+      "worked_positions": 64,
+      "recommendations": 1
+    }
+  ],
+  "existing_models_fresh": true,
+  "read_only": true,
+  "raw_private_games_exported": false
+}

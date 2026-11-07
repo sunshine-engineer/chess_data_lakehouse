@@ -1,0 +1,21 @@
+{
+  "benchmark_group": "scale-20261107T072550",
+  "purpose": "Exploratory local comparison of an explicit three-month workload",
+  "image_id": "sha256:da777adbc7152f46c7dae8b68e1f0394b6306a1e84c6cf39357582664d46f00a",
+  "workload_months": ["2013-01", "2013-02", "2013-03"],
+  "input_games_per_workload": 403928,
+  "target_workload_repeats_per_engine": 2,
+  "client_cpu_limit": 2,
+  "client_memory_limit_mib": 3072,
+  "database_resources_in_client_metrics": false,
+  "host_contention_controlled": false,
+  "operating_system_cache_controlled": false,
+  "concurrent_activity": "Other local Docker services, source tests, app imports and backup/restore were active during this experiment.",
+  "interruption": {
+    "cause": "Docker/environment restart",
+    "abandoned_unpublished_run": "spark_35c6ed8dbea04511ad83",
+    "fresh_replacement_run": "spark_65bf4485c31040c2aa15",
+    "completed_fresh_monthly_runs_retained": 6
+  },
+  "interpretation": "Inspect individual runs and variability. These measurements do not establish a stable engine ranking, controlled capacity or multi-year production throughput."
+}
