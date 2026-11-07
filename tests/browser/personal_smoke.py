@@ -15,6 +15,12 @@ fixture=Path('/fixtures/personal-demo.pgn').read_bytes()
 errors=[];checks=[]
 suffix=uuid4().hex[:6]
 
+
+def open_focus_after_import(page):
+    expect(page.locator('#study-games-section')).to_be_visible(timeout=60000)
+    assert '/games' in page.url
+    page.locator('[data-study-tab=overview]').click()
+
 with sync_playwright() as p:
     browser=p.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000});page=context.new_page()
     page.on('pageerror',lambda e:errors.append(str(e)))
@@ -34,6 +40,7 @@ with sync_playwright() as p:
     assert page.locator('#study-player').input_value()==''
     page.locator('#study-import-form input[name=file]').set_input_files('/fixtures/personal-demo.pgn')
     page.locator('#study-import-submit').click()
+    open_focus_after_import(page)
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('24',timeout=60000)
     assert re.search(r'#personal/[a-f0-9-]+/overview',page.url),page.url
     assert page.locator('#study-import-page').is_hidden()
@@ -111,14 +118,15 @@ with sync_playwright() as p:
     page.locator('#study-import-form input[name=file]').set_input_files({'name':'synthetic-september.pgn','mimeType':'application/x-chess-pgn',
         'buffer':fixture.replace(b'2026.10.',b'2026.09.').replace(b'lichess.org/demo',b'lichess.org/othr')})
     page.locator('#study-import-submit').click()
+    open_focus_after_import(page)
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('48',timeout=60000)
     library=page.url.split('#personal/')[1].split('/')[0]
     page.locator('#study-period').select_option('custom')
     page.locator('#study-filters input[name=from_date]').fill('2026-09-01')
     page.locator('#study-filters input[name=to_date]').fill('2026-09-30')
-    page.locator('#study-filters button').click()
+    page.locator('#study-filters button[type=submit]').click()
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('24')
-    page.locator('#study-period').select_option('all');page.locator('#study-filters button').click()
+    page.locator('#study-period').select_option('all');page.locator('#study-filters button[type=submit]').click()
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('48')
     checks.append('different month import and analytical date range')
     # Full browser/API flow uses the explicit QA server's synthetic HTTP transport.
@@ -127,6 +135,7 @@ with sync_playwright() as p:
     page.locator('#study-import-form input[name=url]').blur()
     expect(page.locator('#study-api-preview')).to_contain_text('all available')
     page.locator('#study-import-submit').click()
+    open_focus_after_import(page)
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('48',timeout=60000)
     # Identical source games reuse payloads and do not publish another snapshot.
     session=page.request.get(url+'/api/personal/session').json()
@@ -137,6 +146,7 @@ with sync_playwright() as p:
     page.get_by_role('link',name='Import games',exact=True).click();page.locator('#study-import-mode').select_option('replace')
     expect(page.locator('#study-mode-help')).to_contain_text('earlier saved versions')
     page.locator('#study-import-submit').click()
+    open_focus_after_import(page)
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('24',timeout=60000)
     page.locator('[data-study-tab=saved]').click()
     saved=page.request.get(url+'/api/personal/studies').json()['studies'][0]
@@ -202,6 +212,7 @@ with sync_playwright() as p:
         page.get_by_role('button',name='Sync new games',exact=True).click()
         expect(page.locator('#study-import-page')).to_be_visible()
         expect(page.locator('#study-analysis-page')).to_be_visible(timeout=60000)
+        open_focus_after_import(page)
         expect(page.locator('#study-metrics .metric strong').first).to_have_text('24',timeout=60000)
         latest=page.request.get(url+'/api/personal/imports').json()['jobs'][0]
         assert latest['status']=='complete' and latest['mode']=='append' and latest['new_games']==0,latest

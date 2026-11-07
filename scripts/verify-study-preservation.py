@@ -3,7 +3,8 @@
 Capture: python /checks/verify-study-preservation.py --baseline /private/before.json --capture
 Verify:  python /checks/verify-study-preservation.py --baseline /private/before.json
 New rows are allowed; every original row must retain its original contents.
-The additive review-progress column is excluded on both sides of migration 008.
+The additive progress and saved-cohort columns are excluded consistently when
+comparing records captured before migrations 008/009.
 """
 import argparse
 import json
@@ -19,7 +20,7 @@ current={}
 with db.connect() as c:
     c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
     for name,keys in TABLES.items():
-        query=sql.SQL("SELECT concat_ws(':',{}) AS key,md5((to_jsonb(t)-'progress')::text) AS digest FROM study.{} t").format(
+        query=sql.SQL("SELECT concat_ws(':',{}) AS key,md5((to_jsonb(t)-'progress'-'game_ids')::text) AS digest FROM study.{} t").format(
             sql.SQL(',').join(sql.Identifier(k) for k in keys),sql.Identifier(name))
         current[name]={r['key']:r['digest'] for r in c.execute(query)}
 if args.capture:

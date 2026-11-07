@@ -15,7 +15,7 @@ def bootstrap():
         migrate(conn)
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(hashtext('chess-study-schema'))")
-            for version,name in ((3,'003_personal.sql'),(4,'004_workspaces.sql'),(5,'005_workspace_positions.sql'),(6,'006_board_learning.sql'),(7,'007_position_context.sql'),(8,'008_incremental_review.sql')):
+            for version,name in ((3,'003_personal.sql'),(4,'004_workspaces.sql'),(5,'005_workspace_positions.sql'),(6,'006_board_learning.sql'),(7,'007_position_context.sql'),(8,'008_incremental_review.sql'),(9,'009_recent_workspace.sql')):
                 script=Path(__file__).parents[1]/'migrations'/name
                 checksum=hashlib.sha256(script.read_bytes()).hexdigest()
                 prior=conn.execute('SELECT checksum FROM control.schema_migrations WHERE version=%s',(version,)).fetchone()

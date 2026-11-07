@@ -88,9 +88,20 @@ def chess_board(payload,ply):
     return board
 
 
-def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,ply=None):
+def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,ply=None,moves=None,profile='balanced'):
     if not isinstance(question,str) or not question.strip() or len(question)>500:raise ValueError('Ask a question of up to 500 characters')
+    if moves is not None and (not isinstance(moves,list) or len(moves)>80):raise ValueError('A trial line can contain up to 80 moves')
+    if moves is None:moves=[]
     applied=insights.filters(selected or {})
+    from .questions import recent_count,WORDS
+    latest=recent_count(question)
+    if latest is not None:
+        applied['last_games']=str(latest)
+        count_prefix=r'\b(?:last|latest|recent|previous)\s+(?:a\s+)?(?:\d+|'+ '|'.join(WORDS)+r')\s+'
+        for noun,result in (('losses|lost games','loss'),('wins|won games','win'),('draws|drawn games','draw')):
+            if re.search(count_prefix+r'(?:'+noun+r')\b',question,re.I):applied['result']=result
+        if re.search(r'\b(?:rated|casual)\b',question,re.I):raise ValueError('Rated/casual filtering is not available in this study.')
+        if re.search(r'\b(?:against|vs)\b',question,re.I) and not re.search(r'\b(?:against|vs)\s+(?:white|black|stronger|weaker|similar)\b',question,re.I):raise ValueError('Use the opponent-name filter to select a player, then ask about your recent games.')
     question=re.sub(r'\blast (?:few|seven) days\b','last 7 days',question,flags=re.I)
     question=re.sub(r'\blast few months\b','last 3 months',question,flags=re.I)
     question=re.sub(r'\blast week\b','last 7 days',question,flags=re.I)
@@ -116,17 +127,27 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
     routed=re.sub(r'\blast\s+month\b','',routed,flags=re.I) if re.search(r'\blast\s+month\b',routed,re.I) else routed
     if re.search(r'\blast\s+month\b',question,re.I):
         end=date.today().replace(day=1)-timedelta(days=1);applied.update(from_date=end.replace(day=1).isoformat(),to_date=end.isoformat())
-    intent,explicit,refusal=template_route(routed+' my games' if re.search(r'improv|focus|work on|study next|what should i study',routed,re.I) else routed)
-    if not refusal and re.search(r'what should i study|study next|improv|focus|work on',routed,re.I):intent='plan'
+    history_request=latest is not None or relative is not None or months is not None or bool(re.search(r'\b(?:games|library|overall|history|collection)\b|\b(?:this|last) month\b',question,re.I))
+    scoped=bool(game_id and not history_request)
+    context=' this game' if scoped else ' my games' if re.search(r'improv|focus|work on|study next|what should i study|summari[sz]e|summary',routed,re.I) else ''
+    intent,explicit,refusal=template_route(routed+context)
+    if not refusal and re.search(r'summari[sz]e|summary|overview',routed,re.I) and not re.search(r'opening|compar|mistake',routed,re.I):intent='overview'
+    if not refusal and re.search(r'what should i study|study next|improv|focus|work on|practi[cs]e',routed,re.I):intent='plan'
+    if not refusal and re.search(r'why.*(?:lose|lost)|correction|mistakes?',routed,re.I):intent='review'
     if intent=='speed' and len(re.findall(r'\b(?:bullet|blitz|rapid|classical)\b',routed,re.I))>1:applied.pop('speed',None)
     if intent=='color' and re.search('white',routed,re.I) and re.search('black',routed,re.I):applied.pop('color',None)
     applied.update(explicit)
-    report=insights.report(owner,library_id,snapshot_id,applied,config)
+    report=insights.report(owner,library_id,snapshot_id,applied,config,[game_id] if scoped else None)
     common={'snapshot_id':report['snapshot_id'],'version':report['version'],'dataset_sha256':report['dataset_sha256'],
-        'filters':report['filters'],'intent':intent,'routing':'computed operations','references':[]}
+        'filters':report['filters'],'intent':intent,'routing':'computed operations','references':[],
+        'games':report['cohort_games'],'scope_label':('This game' if scoped else f'Latest {latest} matching games' if latest else 'Selected study filters'),
+        'chronology_note':'Some games have dates without start times; their same-day order is approximate.' if report['summary']['missing_time_games'] and (latest or scoped) else None}
     if refusal:return dict(common,answer=refusal,supported=False,metrics={})
     summary=report['summary']
     if not summary['games']:return dict(common,answer='No games match that period and those filters. Import more games or widen the analysis period.',supported=False,metrics=summary)
+    if scoped and re.search(r'why.*(?:lose|lost)',question,re.I) and not summary['losses']:
+        outcome='win' if summary['wins'] else 'draw'
+        return dict(common,answer=f'This game was a {outcome}, not a loss. You can still analyse it to find decisions worth improving.',supported=True,metrics=summary,references=[{'game_id':game_id,'ply':0}])
     refs=report['suggested_games'][:3]
     if intent=='review' and re.search(r'best move|this position|this move|\bhere\b',question,re.I):
         if not game_id:return dict(common,answer='Open a game and position first. A tactical answer needs an engine review of that exact game.',supported=False,metrics={})
@@ -134,6 +155,17 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
             snap=db.snapshot(c,owner,library_id,report['snapshot_id']);clause,params=insights.where(owner,snap,report['filters'])
             if not c.execute('SELECT 1 FROM study.workspace_game_facts f WHERE '+clause+' AND game_id=%s',params+[game_id]).fetchone():
                 raise ValueError('The selected game is outside these analysis filters')
+        if isinstance(ply,int) and not isinstance(ply,bool):
+            from . import board as editor
+            with db.connect() as c:
+                position,revision,base,trial,_=editor.resolve(c,owner,dict(library_id=library_id,snapshot_id=report['snapshot_id'],game_id=game_id,ply=ply,moves=moves))
+                _,_,key=editor.budget(config,profile)
+                context={'initial_fen':revision['payload']['initial_fen'],'moves':revision['payload']['moves'][:base]+trial}
+                row=c.execute("SELECT status,evidence FROM study.position_analysis WHERE owner_id=%s AND fen=%s AND settings_hash=%s",(owner,position.fen(),editor.search_key(key,context))).fetchone()
+            if row and row['status']=='complete':
+                e=row['evidence'];line=e['pv_san'];kind='trial' if moves else 'played'
+                return dict(common,answer=(f'For this {kind} position, Stockfish suggests '+line[0]+'. Follow '+ ' '.join(line)+'. This is a search estimate.') if line else 'This position has ended; there is no continuation.',supported=True,metrics=e,references=[{'game_id':game_id,'ply':base}],scope_label='Current trial position' if moves else 'Selected played position')
+            if moves:return dict(common,answer='Evaluate this trial position first. Its exact position needs engine evidence before I can suggest a continuation.',supported=False,metrics={})
         replay=game(owner,library_id,report['snapshot_id'],game_id)
         completed=next((j for j in replay['analysis_jobs'] if j['status']=='complete'),None)
         evaluations=completed['evidence'].get('positions',[]) if completed else []
@@ -143,7 +175,9 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
         return dict(common,answer=('The bounded Stockfish search prefers '+line[0]+'. Compare the line '+ ' '.join(line)+'. Check all forcing replies before choosing a move.') if line else
             'The game has ended here; the engine has no continuation.',supported=True,metrics=value,references=[{'game_id':game_id,'ply':ply}])
     if intent=='overview':
-        text=f"Across {summary['games']} matching games: {summary['wins']} wins, {summary['draws']} draws and {summary['losses']} losses. Your score was {100*summary['score_rate']:.1f}% of available points. Review a linked loss before drawing a conclusion about its cause."
+        prefix=f"In your latest {summary['games']} matching games" if latest else 'In this game' if scoped else f"Across {summary['games']} matching games"
+        text=f"{prefix}: {summary['wins']} wins, {summary['draws']} draws and {summary['losses']} losses. Your score was {100*summary['score_rate']:.1f}% of available points. Open a game below to review its decisions."
+        if latest and summary['games']<latest:text+=f' Only {summary["games"]} games match these filters; you requested {latest}.'
         metrics=summary
     elif intent in ('speed','color','opponents'):
         values=report[{'speed':'by_speed','color':'by_color','opponents':'by_opponent'}[intent]]
@@ -169,4 +203,5 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
         finding=next((f for f in report['findings'] if f['kind']=='engine'),None)
         text=(finding['detail']+' '+finding['action']) if finding else 'Choose one linked loss and request an engine review. A game result or opening score alone cannot establish a tactical mistake.'
         metrics=finding or {'engine_candidates':0};refs=finding['games'] if finding else refs
+    if common['chronology_note']:text+=' '+common['chronology_note']
     return dict(common,answer=text,supported=True,metrics=metrics,references=[{'game_id':r['game_id'],'ply':r.get('ply',0)} for r in refs])

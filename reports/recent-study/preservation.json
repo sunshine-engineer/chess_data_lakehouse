@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "tables": {
+    "game_revisions": {
+      "preserved": 25044,
+      "added": 0
+    },
+    "library_snapshots": {
+      "preserved": 7,
+      "added": 0
+    },
+    "snapshot_games": {
+      "preserved": 62772,
+      "added": 0
+    },
+    "saved_studies": {
+      "preserved": 1,
+      "added": 0
+    },
+    "workspace_reviews": {
+      "preserved": 0,
+      "added": 0
+    },
+    "workspace_analysis": {
+      "preserved": 5,
+      "added": 0
+    }
+  }
+}

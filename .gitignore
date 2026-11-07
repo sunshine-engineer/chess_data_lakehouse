@@ -24,5 +24,7 @@ reports/practice-empty/*.png
 reports/product-expanded/*.png
 reports/incremental-review/workspace-*.png
 reports/incremental-practice/*.png
+reports/recent-study-regression/*.png
+reports/recent-practice/*.png
 *.dump
 *.backup

@@ -61,7 +61,8 @@ recommends streaming and documents that omitting `max` downloads all games.
 
 The import runs as a background job. You can watch bytes received and games
 processed, cancel it, or return from **Recent imports**. When it completes, the
-app opens a separate analysis workspace. A malformed mainline or conflicting
+app opens the Recent games table with a clear added/up-to-date/pending message.
+A malformed mainline or conflicting
 copies of one game stops publication and leaves the current collection unchanged.
 Unsupported variants, empty/aborted or unfinished games, and games unrelated to the selected player
 are excluded with counts and bounded explanations, rather than breaking an otherwise
@@ -82,10 +83,17 @@ Your player workspace has separate sections:
   explains the evidence, a next action and a few example games.
 - **Openings**: at most five common openings with sample size, score and an action
   to open their games. A low raw score alone is not labelled a proven weakness.
-- **Games**: ten rows per page with opponent, date, clock, color, result and opening.
-  Every game opens its own stable review URL and displays its unique ID.
-- **Ask your study**: question prompts, computed answers and supporting game links.
+- **Recent games**: ten rows per page ordered by source start time, with opponent,
+  clock, color, result, opening and review status. Filter by date, result and
+  opponent or choose Latest 3/5/10. Open the editor and switch games without losing
+  the filters or page.
+- **Ask your study**: scoped computed answers and supporting game tables.
+  “Summarize my last 3 games” uses exactly that selection. Editor questions default
+  to the selected game; trial questions use exact-position engine evidence.
 - **Saved studies**: pin the exact collection version and filters, then export it.
+
+Read the [recent-game workflow and chronology guide](recent-game-study.md) for
+supported prompts, start-time enrichment and pinned recent-game selections.
 
 Use **Period**, color, clock and opponent-strength filters. **Last 7/30/90 days**
 uses current UTC calendar dates; **Choose dates** supports an explicit range.
@@ -169,6 +177,7 @@ and the prior single-player data remains intact for recovery.
 | `game_revisions` | One immutable semantic payload per account/game/checksum, shared across studied players |
 | `snapshot_games` | Small references from versions to shared revisions; composite ownership keys prevent cross-account membership |
 | `workspace_game_facts` | SQL view deriving player perspective, ratings, score and opponent-strength groups |
+| `game_times`, `workspace_game_details` | Auxiliary source UTC timestamps and a view for accurate recent-game order without changing immutable payloads |
 | `workspace_positions` | Indexed positions stored once per shared revision, used for recurring-position lookup |
 | `import_jobs`, `import_members` | Persistent job progress and chunked staging; active publication is atomic |
 | `library_sync_state`, `sync_pending_games`, `import_game_queue` | Successful sync cutoffs, late-finishing games and owner-scoped requested-ID staging |

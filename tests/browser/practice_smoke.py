@@ -15,6 +15,8 @@ with sync_playwright() as p:
     page.locator('#study-auth-form input[name=password]').fill('valid-board-demo-password');page.locator('#study-auth-submit').click()
     expect(page.locator('#study-home')).to_be_visible();page.get_by_role('link',name='Import my games').click()
     page.locator('#study-import-form input[name=file]').set_input_files('/fixtures/personal-demo.pgn');page.locator('#study-import-submit').click()
+    expect(page.locator('#study-games-section')).to_be_visible(timeout=60000)
+    page.locator('[data-study-tab=overview]').click()
     expect(page.locator('#study-metrics .metric strong').first).to_have_text('24',timeout=60000)
     page.locator('#study-findings a').first.click();expect(page.locator('#study-game-page')).to_be_visible()
     page.locator('#study-start').click();expect(page.locator('#study-board svg')).to_have_count(32)

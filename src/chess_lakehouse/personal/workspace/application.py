@@ -144,7 +144,9 @@ def create_app(config=None):
             rows=c.execute('SELECT * FROM study.import_jobs WHERE owner_id=%s ORDER BY created_at DESC LIMIT 10',(g.user['id'],)).fetchall()
         return result({'jobs':[public_job(r) for r in rows]})
 
-    def public_job(row):return {k:v for k,v in row.items() if k not in ('input_path','owner_id')}
+    def public_job(row):
+        from .import_status import describe
+        return dict({k:v for k,v in row.items() if k not in ('input_path','owner_id')},outcome=describe(row) if row['status']=='complete' else None)
 
     @app.get('/imports/<key>')
     def job(key):
@@ -173,7 +175,7 @@ def create_app(config=None):
 
     @app.post('/games')
     def games():
-        value=body();return result(insights.games(g.user['id'],*selection(value),value.get('filters',{}),value.get('offset',0),value.get('limit',10)))
+        value=body();return result(insights.games(g.user['id'],*selection(value),value.get('filters',{}),value.get('offset',0),value.get('limit',10),value.get('order','newest')))
 
     @app.get('/games/<game_id>')
     def game(game_id):return result(analysis.game(g.user['id'],request.args.get('library_id'),request.args.get('snapshot_id'),game_id))
@@ -219,7 +221,7 @@ def create_app(config=None):
 
     @app.post('/assistant')
     def question():
-        value=body();return result(analysis.answer(g.user['id'],*selection(value),value.get('question'),value.get('filters',{}),settings,value.get('game_id'),value.get('ply')))
+        value=body();return result(analysis.answer(g.user['id'],*selection(value),value.get('question'),value.get('filters',{}),settings,value.get('game_id'),value.get('ply'),value.get('moves'),value.get('profile','balanced')))
 
     @app.get('/studies')
     def saved():return result({'studies':exports.studies(g.user['id'])})
@@ -230,7 +232,7 @@ def create_app(config=None):
 
     @app.get('/export')
     def export():
-        selected={key:request.args[key] for key in ('color','speed','opponent_band','opening','from_date','to_date','period') if key in request.args}
+        selected={key:request.args[key] for key in ('color','speed','opponent_band','opening','from_date','to_date','period','last_games','result','opponent') if key in request.args}
         path,mime,name,sha=exports.prepare(g.user['id'],request.args.get('library_id'),request.args.get('snapshot_id'),request.args.get('study_id'),selected,request.args.get('format','parquet'),settings)
         response=send_file(path,mimetype=mime,as_attachment=True,download_name=name)
         # Werkzeug then closes the file wrapper and runs cleanup after streaming.
