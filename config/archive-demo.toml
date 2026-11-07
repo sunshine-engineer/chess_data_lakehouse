@@ -1,0 +1,33 @@
+# Explicit small expansion, verified against https://database.lichess.org/.
+# This file is opt-in; the default pipeline.toml remains January-only.
+test_month = "2013-01"
+all_months_enabled = false
+allowed_months = ["2013-01", "2013-02", "2013-03"]
+max_download_bytes = 250000000
+
+[archives.2013-01]
+sha256 = "aa40b3671fa3cf1072eb182892cd90b0e1e003a4a5943492f64b77e7f3fd1635"
+expected_games = 121332
+[archives.2013-02]
+sha256 = "c136acdf343293c45252906fee91e3b561fb26a936979f52dbe04bb649a2fd86"
+expected_games = 123961
+[archives.2013-03]
+sha256 = "89da64fc3c1fe3bfd571d7f626232189f3259aa728b46ea81e5cb8f3fdb34b9e"
+expected_games = 158635
+
+[optimized]
+frame_target_bytes = 67108864
+max_record_bytes = 8388608
+copy_batch_rows = 5000
+parse_batch_rows = 1024
+python_workers = 2
+spark_partitions = 2
+spark_master = "local[2]"
+spark_driver_memory = "1g"
+db_writers = 2
+max_reject_ratio = 0.01
+max_unknown_player_ratio = 0.01
+min_free_disk_bytes = 1073741824
+statement_timeout_seconds = 1800
+lock_timeout_seconds = 30
+missing_player_policy = "unknown"

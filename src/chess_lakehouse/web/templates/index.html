@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Study your chess games, explore public archives and inspect the evidence behind every estimate.">
-<title>Chess Atlas</title><link rel="stylesheet" href="{{ url_for('static',filename='app.css') }}"><link rel="stylesheet" href="{{ url_for('static',filename='personal.css') }}"><link rel="stylesheet" href="{{ url_for('static',filename='product.css') }}">
-<script defer src="{{ url_for('static',filename='personal.js') }}"></script><script defer src="{{ url_for('static',filename='app.js') }}"></script><script defer src="{{ url_for('static',filename='archive.js') }}"></script><script defer src="{{ url_for('static',filename='engineering.js') }}"></script><script defer src="{{ url_for('static',filename='models.js') }}"></script></head>
+<title>Chess Atlas</title><link rel="stylesheet" href="{{ url_for('static',filename='app.css') }}"><link rel="stylesheet" href="{{ url_for('static',filename='personal.css') }}"><link rel="stylesheet" href="{{ url_for('static',filename='product.css') }}"><link rel="stylesheet" href="{{ url_for('static',filename='board.css') }}">
+<script defer src="{{ url_for('static',filename='board.js') }}"></script>
+<script defer src="{{ url_for('static',filename='personal.js') }}"></script><script defer src="{{ url_for('static',filename='app.js') }}"></script><script defer src="{{ url_for('static',filename='archive.js') }}"></script><script defer src="{{ url_for('static',filename='engineering.js') }}"></script><script defer src="{{ url_for('static',filename='models.js') }}"></script><script defer src="{{ url_for('static',filename='learn.js') }}"></script></head>
 <body><a class="skip" href="#main">Skip to content</a>{% include 'sidebar.html' %}
 <main id="main"><header class="topbar"><span>CHESS ATLAS / <strong id="breadcrumb">Personal study</strong></span><span class="pill" id="study-page-scope">Private game library</span></header>
 <div class="workspace"><div class="heading"><div><p class="eyebrow" id="page-eyebrow">YOUR CHESS WORKSPACE</p><h1 id="page-title" tabindex="-1">Personal Study</h1><p id="page-subtitle">Import your games. Find a focus. Practice the position.</p></div><div class="page-actions"><button id="refresh-page" class="secondary" type="button">Refresh</button><button id="copy-view" class="secondary" type="button">Copy view link</button></div></div>
@@ -18,6 +19,7 @@
 <details class="filter-more"><summary>Ratings, dates &amp; opening</summary><div class="filter-options"><label>Average rating, from<input name="min_rating" type="number" min="0" max="4000" value="0"></label><label>to<input name="max_rating" type="number" min="0" max="4000" value="4000"></label><label>Game date, from<input name="from_date" type="date"></label><label>to<input name="to_date" type="date"></label><label>Opening code<input name="eco" maxlength="3" placeholder="e.g. B20" pattern="[A-E][0-9]{2}"></label></div></details>
 </form>
 {% include 'personal.html' %}
+{% include 'learn.html' %}
 <section id="overview" class="view" aria-label="Dataset overview" hidden>
 <div class="data-region"><div id="metrics" class="metrics" aria-live="polite"></div><div id="overview-insights" class="insight-row"></div>
 <div class="grid two"><article class="panel"><div class="panel-head"><div><p class="eyebrow">ACTIVITY</p><h2>The archive, day by day</h2></div><span class="muted">Actual game-start dates</span></div><div id="daily-chart" class="chart"></div></article><article class="panel"><p class="eyebrow">PACE OF PLAY</p><h2>Choose a clock to explore</h2><div id="speed-chart" class="bars"></div></article></div>

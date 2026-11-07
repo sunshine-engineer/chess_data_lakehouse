@@ -25,6 +25,20 @@ QUERIES = {
 }
 
 
+def workload_rounds(samples,months,repeats):
+    """Aggregate sequential monthly runs; peaks must never be added together."""
+    rounds=[]
+    for repeat in range(repeats):
+        batch=[[r for r in samples if r['source_month']==m][repeat] for m in months]
+        merged=dict(batch[-1])
+        for key in ('elapsed_seconds','input_games','container_cpu_seconds','parquet_bytes'):
+            merged[key]=sum(r[key] for r in batch) if all(r[key] is not None for r in batch) else None
+        merged['input_games_per_second']=merged['input_games']/merged['elapsed_seconds']
+        merged['container_peak_memory_mib']=max(r['container_peak_memory_mib'] for r in batch) if all(r['container_peak_memory_mib'] is not None for r in batch) else None
+        rounds.append(merged)
+    return rounds
+
+
 def compare(group, reports=Path('/reports'), required_engines=ENGINES):
     with connect() as conn:
         for engine in sorted(required_engines):
@@ -36,11 +50,21 @@ def compare(group, reports=Path('/reports'), required_engines=ENGINES):
         groups = {engine:[report for name,report in rows if name==engine] for engine in required_engines}
         if any(not values for values in groups.values()):
             raise ValueError('every required engine needs a fresh successful sample in this benchmark group')
-        signatures = {(r['source_sha256'],r['config_hash'],r['code_hash'],r['image_id'],
+        signatures = {(r['code_hash'],r['image_id'],
                        r['cpu_limit'],r['memory_limit_mib'],r['runtime']['architecture'],r['runtime']['kernel'])
                       for values in groups.values() for r in values}
         if len(signatures) != 1:
             raise ValueError('group mixes source, code, image, configuration or resource limits')
+        months = sorted({r['source_month'] for values in groups.values() for r in values})
+        for month in months:
+            selected = [[r for r in groups[e] if r['source_month']==month] for e in required_engines]
+            if len({(r['source_sha256'],r['config_hash']) for values in selected for r in values})!=1:
+                raise ValueError('group mixes source, code, image, configuration or resource limits within a month')
+            if not selected[0] or any(len(v)!=len(selected[0]) for v in selected):
+                raise ValueError('every engine needs the same repeats for every workload month')
+        repeats = len([r for r in groups[required_engines[0]] if r['source_month']==months[0]])
+        if any(len(groups[e])!=repeats*len(months) for e in required_engines):
+            raise ValueError('every workload month needs the same number of repeats')
         histories = []
         for engine in required_engines:
             histories.append(conn.execute('SELECT source_month,source_sha256 FROM control.month_publications WHERE engine=%s ORDER BY source_month', (engine,)).fetchall())
@@ -58,10 +82,13 @@ def compare(group, reports=Path('/reports'), required_engines=ENGINES):
                 equality[engine+'/'+table] = True
         summary = {}
         for engine, samples in groups.items():
-            summary[engine] = dict(samples=len(samples))
+            # A workload repeat runs each selected month sequentially in fresh
+            # containers. Sum time/CPU/bytes; use the maximum monthly client peak.
+            rounds = workload_rounds(samples,months,repeats)
+            summary[engine] = dict(samples=repeats)
             for metric in ('elapsed_seconds','input_games_per_second','container_cpu_seconds',
                            'container_peak_memory_mib','model_bytes','parquet_bytes'):
-                values = [s[metric] for s in samples if s[metric] is not None]
+                values = [s[metric] for s in rounds if s[metric] is not None]
                 summary[engine]['median_'+metric] = median(values) if values else None
         plans = {}
         for engine in required_engines:
@@ -69,7 +96,8 @@ def compare(group, reports=Path('/reports'), required_engines=ENGINES):
             plans[engine] = conn.execute(sql.SQL('EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON) SELECT speed,count(*) FROM {}.fact_game WHERE source_month=%s::date GROUP BY speed').format(sql.Identifier(schema_for(engine))), (month,)).fetchone()[0]
         result = dict(benchmark_group=group, summary=summary, equality=equality,
                       samples=groups, histories=histories[0], query_plans=plans,
-                      measurement='parse typed Parquet, COPY, model publication; shared source preparation excluded')
+                      workload_months=months,
+                      measurement='Sequential selected-month workload: parse typed Parquet, COPY, model publication; shared source preparation excluded. Time/CPU sum across months; peak memory is the largest monthly client peak. Each month includes engine startup.')
         # DATE values occur only in the small history manifest, not game data.
         result['histories'] = [(str(month),checksum) for month,checksum in result['histories']]
         reports = Path(reports)

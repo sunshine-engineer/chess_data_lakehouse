@@ -13,6 +13,7 @@ from . import data,downloads,predictions,content,evidence as measured
 from ..ml.artifacts import Artifacts, ArtifactError
 from ..ml.features import prediction_input, vector
 from ..personal.proxy import register as register_personal
+from .. import academy
 
 CASES=content.CASES
 
@@ -74,6 +75,54 @@ def create_app(config=None):
     @app.get('/api/catalog')
     def catalog():return jsonify(data.catalog())
 
+    @app.get('/api/archive-plan')
+    def archive_plan():
+        from ..optimized.settings import load
+        months=request.args.get('months','2013-02,2013-03').split(',')
+        if not 1<=len(months)<=6 or len(set(months))!=len(months):raise ValueError('Select one to six unique allowlisted months')
+        sources=[load('config/archive-demo.toml',m).source for m in months]
+        return jsonify(months=months,input_games=sum(s.expected_games for s in sources),
+            sources=[dict(month=s.month,sha256=s.sha256,url=s.url,expected_games=s.expected_games,max_download_bytes=s.max_download_bytes) for s in sources],
+            command='bash scripts/import-archives.sh '+','.join(months)+' python_mp',all_months_enabled=False,
+            explanation='Operator command runs in Docker. One selected month at a time, with checksum/count and free-disk checks. Re-importing replaces only those month publications. The web app does not execute this command.')
+
+    @app.get('/api/learn')
+    def lessons():return jsonify(lessons=academy.LESSONS,scope='Original foundation drills plus labelled personal and historical worked examples.')
+
+    @app.post('/api/learn/board')
+    def lesson_board():
+        import chess
+        from ..personal.workspace.board import describe
+        value=request.get_json()
+        if not isinstance(value,dict):raise ValueError('Send a lesson and moves')
+        board=chess.Board(academy.lesson(value.get('lesson_id'))['fen'])
+        moves=value.get('moves',[])
+        if not isinstance(moves,list) or len(moves)>80:raise ValueError('Use up to 80 half-moves')
+        for text in moves:
+            if not isinstance(text,str):raise ValueError('Invalid move')
+            move=chess.Move.from_uci(text)
+            if move not in board.legal_moves or board.is_game_over():raise ValueError('That move is not legal')
+            board.push(move)
+        return jsonify(describe(board))
+
+    @app.post('/api/learn/attempt')
+    def lesson_attempt():
+        value=request.get_json()
+        if not isinstance(value,dict):raise ValueError('Send a lesson and move')
+        return jsonify(**academy.grade(value.get('lesson_id'),value.get('move')),saved=False)
+
+    @app.get('/api/learn/examples')
+    def historical_examples():
+        with data.connect() as c:
+            c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
+            datasets=c.execute('''SELECT source_month::text AS source_month,source_sha256,input_games,
+                sample_games,method,created_at::text AS created_at FROM academy.datasets ORDER BY source_month''').fetchall()
+            examples=c.execute('SELECT source_month::text,game_id,payload FROM academy.examples ORDER BY source_month DESC,game_id LIMIT 1800').fetchall()
+        available=sum(d['sample_games'] for d in datasets)
+        return jsonify(datasets=datasets,examples=examples,published_sample_games=available,
+            returned_games=len(examples),truncated=len(examples)<available,
+            selection='At most 1800 teaching games, most recent source months then game ID.')
+
     @app.get('/api/games')
     def games():
         return jsonify(data.games(request.args))
@@ -94,14 +143,21 @@ def create_app(config=None):
 
     @app.get('/api/benchmarks')
     def benchmarks():
-        file=Path(app.config['EVIDENCE_ROOT'])/'comparison-v2.json'
+        root=benchmark_root()
+        file=root/'comparison-v2.json'
         if not file.exists():
             return jsonify(available=False,message='Run the pipeline benchmark to publish evidence.')
-        report=measured.benchmark(app.config['EVIDENCE_ROOT'])
+        report=measured.benchmark(root)
         return jsonify(available=True,benchmark_group=report['benchmark_group'],
             measurement=report['measurement'],summaries=report['summary'],equality=report['equality'],
             histories=report['histories'],samples={engine:[{k:sample.get(k) for k in ('run_id','elapsed_seconds','input_games','container_peak_memory_mib','container_cpu_seconds','phases','source_month','code_hash','cpu_limit','memory_limit_mib')}
                 for sample in samples] for engine,samples in report.get('samples',{}).items()})
+
+    def benchmark_root():
+        workload=request.args.get('workload','baseline')
+        if workload not in ('baseline','scale'):raise ValueError('Choose baseline or scale workload')
+        root=Path(app.config['EVIDENCE_ROOT'])
+        return root/'scale' if workload=='scale' else root
 
     def model_status():
         report=artifacts.report()
@@ -125,7 +181,7 @@ def create_app(config=None):
     @app.get('/api/evidence/<name>')
     def evidence(name):
         if name=='models':value=artifacts.report()
-        elif name=='benchmarks':value=measured.benchmark(app.config['EVIDENCE_ROOT'])
+        elif name=='benchmarks':value=measured.benchmark(benchmark_root())
         else:return jsonify(error='Evidence report not found'),404
         response=app.response_class(json.dumps(value,indent=2,allow_nan=False)+'\n',mimetype='application/json')
         response.headers['Content-Disposition']='attachment; filename="chess-atlas-'+name+'.json"';return response

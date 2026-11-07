@@ -286,7 +286,7 @@ services:
       <<: *admin-env
       STUDY_PASSWORD: ${STUDY_PASSWORD:-}
       STUDY_API_TOKEN: test-internal-token
-    entrypoint: [python, -m, pytest, -q, tests/test_personal.py, tests/test_workspace.py]
+    entrypoint: [python, -m, pytest, -q, tests/test_personal.py, tests/test_workspace.py, tests/test_board_learning.py, tests/test_teaching.py]
     depends_on:
       postgres:
         condition: service_healthy
