@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "source_games": 0,
+  "models_available": false,
+  "desktop_and_mobile": true,
+  "checks": [
+    "actual archive overview, publication scope and chart data",
+    "bounded checksummed CSV with explicit truncation",
+    "benchmark charts, equality checks, repeat-run details and evidence download",
+    "intentional unavailable-model state without fake estimates",
+    "five practical case studies with shared navigation and resolved methodology links",
+    "dependency error hides stale results and recovers through retry",
+    "superseded filter responses cannot overwrite the active selection",
+    "intentional empty selections and reloadable date filters",
+    "all five sections and case reader fit a 390px mobile viewport"
+  ],
+  "javascript_errors": [],
+  "unexpected_api_failures": []
+}

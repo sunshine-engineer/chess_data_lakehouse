@@ -28,6 +28,7 @@ SELECT pg_advisory_xact_lock(hashtext('chess-v2-python'));
 SELECT pg_advisory_xact_lock(hashtext('chess-v2-python_mp'));
 SELECT pg_advisory_xact_lock(hashtext('chess-v2-spark'));
 SELECT pg_advisory_xact_lock(hashtext('personal-study-publication'));
+SELECT pg_advisory_xact_lock(hashtext('academy-publication'));
 SELECT pg_export_snapshot();
 SELECT pg_sleep(3600);
 COMMIT;
@@ -42,7 +43,9 @@ for ((attempt=0; attempt<400; attempt++)); do
   sleep 0.1
 done
 if [[ -z "$snapshot" ]]; then echo 'Could not acquire a consistent backup snapshot' >&2; exit 1; fi
-pg_dump --format=custom --no-owner --snapshot="$snapshot" \
+academy_schema=()
+if [[ $(psql -XqAt -c "SELECT to_regnamespace('academy') IS NOT NULL") == t ]]; then academy_schema=(--schema=academy); fi
+pg_dump --format=custom --no-owner --snapshot="$snapshot" "${academy_schema[@]}" \
   --schema=control --schema=staging --schema=warehouse_python \
   --schema=warehouse_python_mp --schema=warehouse_spark --schema=study -f "$bundle/warehouse.dump"
 # The source volume is mounted read-only; immutable shard checksums are preserved.
@@ -67,7 +70,7 @@ SET LOCAL TIME ZONE 'UTC';
 SELECT format('SELECT %L || ''|'' || count(*) || ''|'' || coalesce(sum(hashtextextended(row_to_json(t)::text,0)::numeric),0) FROM %I.%I t',
               n.nspname||'.'||c.relname,n.nspname,c.relname)
 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-WHERE n.nspname IN ('control','staging','warehouse_python','warehouse_python_mp','warehouse_spark','study')
+WHERE n.nspname IN ('control','staging','warehouse_python','warehouse_python_mp','warehouse_spark','study','academy')
 AND c.relkind='r' ORDER BY n.nspname,c.relname
 \gexec
 COMMIT;
@@ -79,7 +82,7 @@ created=true
 pg_restore --exit-on-error --no-owner --dbname="$restore_db" "$bundle/warehouse.dump"
 fingerprint "$restore_db" false > "$bundle/restored-fingerprints.txt"
 cmp "$bundle/source-fingerprints.txt" "$bundle/restored-fingerprints.txt"
-invalid=$(psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE (n.nspname LIKE 'warehouse_%' OR n.nspname='study') AND NOT c.convalidated")
+invalid=$(psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace WHERE (n.nspname LIKE 'warehouse_%' OR n.nspname IN ('study','academy')) AND NOT c.convalidated")
 [[ "$invalid" == 0 ]]
 # ACLs are part of the backup: reader access survives and writes remain forbidden.
 PGUSER=chess_reader PGPASSWORD="$READER_PASSWORD" psql --dbname="$restore_db" -XqAt -v ON_ERROR_STOP=1 -c 'SELECT count(*) FROM warehouse_python.fact_game' >/dev/null

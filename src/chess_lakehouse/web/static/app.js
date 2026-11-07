@@ -1,94 +1,79 @@
 'use strict';
-const $ = s => document.querySelector(s);
-const number = v => v == null ? '—' : Number(v).toLocaleString(undefined,{maximumFractionDigits:1});
-const percent = v => `${(100*v).toFixed(1)}%`;
-const el = (tag, text, cls) => { const n=document.createElement(tag); if(text!=null)n.textContent=text; if(cls)n.className=cls; return n; };
-let current='overview',offset=0,hasMore=false,modelsReady=false,overviewSequence=0;
-const titles={personal:['Your next move, informed.','Review your games, follow the evidence, and build a repeatable study habit.'],overview:['From archive to insight.','Explore the games. Inspect the engineering. Understand the models.'],explorer:['Every game has a story.','Browse the retained facts behind the statistics.'],pipelines:['Engineering, measured.','Compare equivalent outputs and the resources needed to produce them.'],models:['Patterns. Predictions. Perspective.','Three reproducible machine learning studies with visible evaluation.'],studies:['The work behind the numbers.','Read the problem, approach, evidence and limitations for each model.']};
-function notice(message){ $('#notice').hidden=!message; $('#notice').textContent=message||''; }
-async function api(path,options){ const response=await fetch(path,options); const payload=await response.json(); if(!response.ok)throw new Error(payload.error||'Request failed'); return payload; }
-function params(){ return new URLSearchParams(new FormData($('#filters'))); }
-function table(headers,rows){
+window.Atlas=(()=>{
+ const $=s=>document.querySelector(s),number=v=>v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:1}),pct=v=>v==null?'—':(100*v).toFixed(1)+'%';
+ const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
+ const link=(text,href,cls='text-link')=>{const n=el('a',text,cls);n.href=href;return n;};
+ const button=(text,action,cls='secondary')=>{const n=el('button',text,cls);n.type='button';n.addEventListener('click',()=>Promise.resolve(action()).catch(e=>notice(e.message)));return n;};
+ const defaults={engine:'python',month:'2013-01',speed:'',result:'',min_rating:'0',max_rating:'4000',from_date:'',to_date:'',eco:'',game_id:''};
+ const state={view:'personal',route:null,filters:{...defaults},sort:'newest',catalog:null,epoch:0,controller:null,loadToken:0};
+ const pages={};
+ function table(headers,rows,empty='No observations match this selection.'){
   const wrap=el('div',null,'table-wrap'),t=el('table'),head=el('thead'),tr=el('tr');
-  headers.forEach(h=>{const th=el('th',h);th.scope='col';tr.append(th);});head.append(tr);t.append(head);
-  const body=el('tbody'); rows.forEach(row=>{const r=el('tr');row.forEach(v=>r.append(el('td',v??'—')));body.append(r);});
-  t.append(body);wrap.append(t);if(!rows.length)wrap.append(el('p','No games match these filters.','muted'));return wrap;
-}
-function bars(target,rows,labels={}){
-  const container=$(target);container.replaceChildren();const total=rows.reduce((sum,r)=>sum+r.count,0);
-  if(!total){container.append(el('p','No observations.','muted'));return;}
-  rows.forEach(row=>{const r=el('div',null,'bar-row'),track=el('div',null,'bar-track'),fill=el('div',null,'bar-fill');fill.style.width=`${row.count/total*100}%`;track.append(fill);r.append(el('span',labels[row.label]||row.label),track,el('span',`${percent(row.count/total)}`,'bar-count'));r.title=`${number(row.count)} games`;container.append(r);});
-  const details=el('details'),summary=el('summary','View counts');details.append(summary,table(['Category','Games'],rows.map(r=>[labels[r.label]||r.label,number(r.count)])));container.append(details);
-}
-function chart(target,rows,line=false){
-  const box=$(target);box.replaceChildren();if(!rows.length){box.append(el('p','No observations.','empty'));return;}
-  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 560 180');svg.setAttribute('role','img');svg.setAttribute('aria-label',line?'Daily game counts':'Game counts by average rating');
-  const draw=(tag,attrs,text)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(text!=null)n.textContent=text;svg.append(n);return n;};
-  const max=Math.max(1,...rows.map(r=>r.count));
-  [0,.5,1].forEach(f=>{const y=145-f*120;draw('line',{x1:35,y1:y,x2:550,y2:y,stroke:'#e8eeE7','stroke-dasharray':'3 4'});draw('text',{x:0,y:y+3},number(max*f));});
-  const x=i=>40+i*(500/Math.max(1,rows.length-1)); const y=v=>145-v/max*120;
-  if(line){const d=rows.map((r,i)=>`${i?'L':'M'}${x(i)} ${y(r.count)}`).join(' ');draw('path',{d:d+` L${x(rows.length-1)} 145 L40 145 Z`,fill:'#e1eee6'});draw('path',{d,fill:'none',stroke:'#24816d','stroke-width':2});}
-  else rows.forEach((r,i)=>draw('rect',{x:40+i*500/rows.length,y:y(r.count),width:Math.max(3,500/rows.length-6),height:145-y(r.count),fill:'#679c81',rx:2}));
-  const ticks=[...new Set([0,Math.floor(rows.length/2),rows.length-1])];ticks.forEach(i=>draw('text',{x:line?x(i):40+i*500/rows.length,y:168,'text-anchor':i===rows.length-1?'end':'start'},line?rows[i].label.slice(5):rows[i].label));
-  box.append(svg);const details=el('details');details.append(el('summary','View chart data'),table([line?'Date':'Rating band','Games'],rows.map(r=>[r.label,number(r.count)])));box.append(details);
-}
-async function overview(){
- const sequence=++overviewSequence;
- try{
-  const d=await api(`/api/overview?${params()}`);if(sequence!==overviewSequence)return;
-  const s=d.summary;$('#metrics').replaceChildren();
-  [['Games in view',number(s.games),'Retained, validated game facts'],['Average rating',number(s.average_rating),'Mean of available game averages'],['Average game length',number(s.average_moves),'Full moves, rounded up from plies'],['Game dates',number(s.days),`${s.first_date||'No start'} → ${s.last_date||'No end'}`]].forEach(([label,value,note])=>{const card=el('article',null,'metric');card.append(el('span',label,'label'),el('strong',value),el('small',note));$('#metrics').append(card);});
-  chart('#daily-chart',d.daily,true);bars('#speed-chart',d.speeds);bars('#result-chart',d.results,{'1-0':'White wins','0-1':'Black wins','1/2-1/2':'Draws'});
-  const bandOrder=r=>Number.isNaN(Number(r.label))?Infinity:Number(r.label);const bands=[...d.rating_bands].sort((a,b)=>bandOrder(a)-bandOrder(b));chart('#rating-chart',bands);
-  $('#quality').replaceChildren();[['Unknown player games',number(d.unknown_player_games)],['Missing rating games',number(s.missing_ratings)],['Rejected records (archive)',number(d.archive_rejects)],['Published source',params().get('month')]].forEach(([a,b])=>{const row=el('div',null,'quality-stat');row.append(el('span',a),el('strong',b));$('#quality').append(row);});
-  $('#openings').replaceChildren(table(['ECO','Opening family','Games','Share of view'],d.openings.map(o=>[o.eco,o.label,number(o.count),percent(o.count/(s.games||1))])));
-  const selected=params().get('month');const months=[...new Set([selected,...d.months])].sort();$('#month').replaceChildren(...months.map(m=>{const o=el('option',m);o.value=m;return o;}));$('#month').value=selected;
-  notice(s.games?'':'No games match the selected filters.');
- }catch(e){if(sequence===overviewSequence)notice(`Filters could not be applied: ${e.message}`);}
-}
-async function loadGames(){try{const p=params();p.set('offset',offset);const d=await api(`/api/games?${p}`);hasMore=d.has_more;$('#games').replaceChildren(table(['Game ID','Game date','White Elo','Black Elo','Result','Moves','Time class'],d.rows.map(r=>[r.game_id,r.date,number(r.white_rating),number(r.black_rating),r.result,r.move_count,r.speed])));$('#page-label').textContent=d.rows.length?`Rows ${offset+1}–${offset+d.rows.length}`:'No matching rows';$('#previous').disabled=offset===0;$('#next').disabled=!hasMore;}catch(e){notice(e.message);}}
-async function benchmarks(){try{const d=await api('/api/benchmarks');const box=$('#benchmark');box.replaceChildren();if(!d.available){box.append(el('p',d.message));return;}box.append(el('p',`Benchmark group: ${d.benchmark_group}`,'muted'));const rows=Object.entries(d.summaries).map(([name,r])=>[name,r.samples,r.median_elapsed_seconds.toFixed(2),number(r.median_input_games_per_second),number(r.median_container_peak_memory_mib),number(r.median_container_cpu_seconds),number(r.median_parquet_bytes)]);box.append(table(['Engine','Samples','Median seconds','Games / sec','Peak MiB','CPU seconds','Parquet bytes'],rows));const checks=Object.values(d.equality);box.append(el('p',`${checks.filter(Boolean).length}/${checks.length} semantic model checks passed. Historical source: ${d.histories.map(r=>r[0]).join(', ')}.`,'badge'));}catch(e){notice(e.message);}}
-function scoreCard(label,value,unit,baseline,detail){const card=el('article',null,'panel');card.append(el('p',label,'eyebrow'));const score=el('div',value,'model-score');score.append(el('small',` ${unit}`));card.append(score,el('p',baseline,'model-note'),el('p',detail));return card;}
-async function models(){try{const d=await api('/api/models'),box=$('#model-results');box.replaceChildren();modelsReady=d.available&&d.fresh;$('#prediction button').disabled=!modelsReady;
- if(!d.available){box.append(el('p',`${d.message} Run: docker compose --profile web run --rm ml-train`,'callout'));return;}
- const r=d.report;box.append(el('p',`${d.fresh?'Current publication':'STALE: warehouse changed — retrain before inference'} · ${r.sample_rows.toLocaleString()} sampled games · ${r.month} · ${r.engine} · Run ${r.run_id}`,'callout'));
- const grid=el('div',null,'grid three');grid.append(scoreCard('OUTCOME / LOGISTIC REGRESSION',r.outcome.test.log_loss.toFixed(3),'log loss',`Class-prior baseline: ${r.outcome.baseline.log_loss.toFixed(3)} · lower is better`,`Test accuracy ${percent(r.outcome.test.accuracy)}; balanced accuracy ${percent(r.outcome.test.balanced_accuracy)}. Accuracy alone can hide poor draw predictions.`),scoreCard('LENGTH / RANDOM FOREST',r.length.test.mae_moves.toFixed(2),'moves MAE',`Median baseline: ${r.length.baseline.mae_moves.toFixed(2)} · lower is better`,`Test RMSE ${r.length.test.rmse_moves.toFixed(2)} moves; R² ${r.length.test.r2.toFixed(3)}. Full game length is uncertain before play.`),scoreCard('PLAYER GROUPS / K-MEANS',r.clusters.silhouette.toFixed(3),'silhouette',`${r.clusters.selected_k} groups · ${number(r.clusters.players)} eligible players`,`Seed stability ARI ${r.clusters.seed_stability_ari.toFixed(3)}. Retrospective description; no predictive accuracy or skill labels.`));box.append(grid);
- if(r.outcome.ratings_baseline){
-   const reliability=el('article',null,'panel');
-   reliability.append(el('p','RATINGS-ONLY ABLATION & RELIABILITY','eyebrow'),el('h2','What do the clock features add?'));
-   const variants=[['Full features',r.outcome.test],['Ratings only',r.outcome.ratings_baseline],['Class prior',r.outcome.baseline]];
-   reliability.append(table(['Model','Accuracy','Log loss','Multiclass Brier','Mean classwise ECE'],variants.map(([name,m])=>[name,percent(m.accuracy),m.log_loss.toFixed(4),m.calibration.multiclass_brier.toFixed(4),m.calibration.mean_classwise_ece.toFixed(4)])));
-   const curves=[];
-   Object.entries(r.outcome.test.calibration.reliability_bins).forEach(([label,bins])=>bins.forEach(b=>curves.push([label,`${b.lower.toFixed(1)}–${b.upper.toFixed(1)}`,b.count,percent(b.mean_probability),percent(b.observed_frequency)])));
-   const details=el('details');details.append(el('summary','Inspect full-model probability reliability by class'),table(['Class','Probability bin','Games','Mean prediction','Observed frequency'],curves));
-   reliability.append(details,el('p','Both logistic variants use the same chronological splits and candidate selection procedure. Brier is the mean sum of squared errors across three classes (0–2). Empirical bin diagnostics do not prove calibrated probabilities on new data.','muted'));box.append(reliability);
+  headers.forEach(text=>{const n=el('th',text);n.scope='col';tr.append(n);});head.append(tr);t.append(head);
+  const body=el('tbody');for(const row of rows){const r=el('tr');for(const value of row){const cell=el('td');if(value instanceof Node)cell.append(value);else cell.textContent=value??'—';r.append(cell);}body.append(r);}t.append(body);wrap.append(t);
+  if(!rows.length)wrap.append(el('p',empty,'muted'));return wrap;
  }
- const splits=el('article',null,'panel');splits.append(el('p','CHRONOLOGICAL EVALUATION','eyebrow'),el('h2','Earlier days teach. Later days test.'),table(['Split','First game date','Last game date','Games'],['train','validation','test'].map(n=>[n,r.split[n].first_date,r.split[n].last_date,number(r.split[n].rows)])),el('p','Candidate selection uses validation days. Final models refit on train + validation, then evaluate once on untouched test days. Players can appear across splits.','muted'));box.append(splits);
- const diagnostics=el('article',null,'panel');diagnostics.append(el('p','CLASSIFICATION DIAGNOSTICS','eyebrow'),el('h2','Every class deserves a closer look.'),el('p','Confusion matrix: actual results in rows, predicted results in columns.','muted'),table(['Actual / predicted',...r.outcome.test.classes],r.outcome.test.confusion_matrix.map((counts,i)=>[r.outcome.test.classes[i],...counts.map(number)])),el('h3','Untouched test slices'),table(['Time class','Games','Outcome accuracy','Length MAE'],r.test_slices.map(s=>[s.speed,number(s.rows),percent(s.accuracy),s.mae_moves.toFixed(2)])));box.append(diagnostics);
- const clusters=el('article',null,'panel');clusters.append(el('p','OBSERVED PLAYER PROFILES','eyebrow'),el('h2','Groups describe this archive.'),table(['Group','Players','Mean Elo','Mean moves','Win share','Draw share','Bullet share','Blitz share','Rapid share'],r.clusters.groups.map(g=>[g.cluster,number(g.players),number(g.mean_rating),number(g.mean_moves),percent(g.win_rate),percent(g.draw_rate),percent(g.bullet_share),percent(g.blitz_share),percent(g.rapid_share)])),el('p','Players have at least 10 observed games and five rated observations. Clusters are fitted on aggregated historical behavior; group numbers have no rank.','muted'));box.append(clusters);
- const limits=el('article',null,'panel');limits.append(el('h2','Interpretation boundary'));const list=el('ul');r.limitations.forEach(v=>list.append(el('li',v)));limits.append(list);box.append(limits);
- }catch(e){modelsReady=false;$('#prediction button').disabled=true;notice(e.message);}}
-async function navigate(route){
- let view=route.startsWith('personal')?'personal':route;
- if(!titles[view]){view='personal';route='personal';}
- current=view;
- document.body.classList.toggle('personal-view',view==='personal');
- document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==view);
- document.querySelectorAll('.nav').forEach(n=>{const active=n.dataset.view===view;n.classList.toggle('active',active);if(active)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
- $('#filters').hidden=!['overview','explorer'].includes(view);
- $('#page-title').textContent=view==='personal'?'Personal Study':titles[view][0];
- $('#page-subtitle').textContent=view==='personal'?'Import your games. Find a focus. Practice the position.':titles[view][1];
- $('#breadcrumb').textContent=document.querySelector(`[data-view="${view}"]`).textContent.trim();
- history.replaceState(null,'',`#${route}`);notice('');window.scrollTo(0,0);
- const stamp=document.querySelector('.stamp strong');if(stamp)stamp.textContent=view==='personal'?'Your private game library':'Lichess · Jan 2013';
- const detail=document.querySelector('.stamp small');if(detail)detail.textContent=view==='personal'?'PGN files & Lichess API imports':'Standard rated games / CC0';
- $('#study-page-scope').textContent=view==='personal'?'● Personal analysis workspace':'● Historical research dataset';
- $('#workspace-footer-scope').textContent=view==='personal'?'Your games · Evidence-linked review · Deliberate practice':'January 2013 only · All-month processing disabled';
- if(view==='personal')await window.Study.open();if(view==='overview')await overview();if(view==='explorer')await loadGames();if(view==='pipelines')await benchmarks();if(view==='models')await models();
-}
-window.addEventListener('hashchange',()=>navigate(location.hash.slice(1)||'personal'));
-document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',()=>navigate(n.dataset.view)));
-$('#filters').addEventListener('submit',async event=>{event.preventDefault();offset=0;const b=$('#filters button');b.disabled=true;await (current==='explorer'?loadGames():overview());b.disabled=false;});
-$('#previous').addEventListener('click',()=>{offset=Math.max(0,offset-25);loadGames();});$('#next').addEventListener('click',()=>{if(hasMore){offset+=25;loadGames();}});
-$('#prediction').addEventListener('submit',async event=>{event.preventDefault();if(!modelsReady)return;const b=$('#prediction button');b.disabled=true;try{const payload=Object.fromEntries([...new FormData(event.target)].map(([k,v])=>[k,Number(v)]));const options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)};const [outcome,length]=await Promise.all([api('/api/predict/outcome',options),api('/api/predict/length',options)]);const box=el('div',null,'prediction-box'),prob=el('div',null,'probabilities');[['1-0','White win'],['1/2-1/2','Draw'],['0-1','Black win']].forEach(([key,label])=>{const v=el('div');v.append(el('strong',percent(outcome.probabilities[key])),el('span',label));prob.append(v);});box.append(prob,el('p',`Estimated game length: ${length.estimated_moves.toFixed(1)} full moves · ${outcome.speed}`),el('p',outcome.scope,'muted'));$('#prediction-result').replaceChildren(box);notice('');}catch(e){notice(e.message);}finally{b.disabled=!modelsReady;}});
-navigate(location.hash.slice(1)||'personal');
+ function metric(label,value,detail){const n=el('article',null,'metric');n.append(el('span',label,'label'),el('strong',value),el('small',detail));return n;}
+ function empty(title,message,action){const n=el('div',null,'empty-state');n.append(el('span','◈','empty-symbol'),el('h2',title),el('p',message));if(action)n.append(action);return n;}
+ function notice(message,retry=true){$('#notice').hidden=!message;$('#notice-message').textContent=message||'';$('#retry-page').hidden=!retry;}
+ async function request(path,options={},signal){
+  const controller=new AbortController(),cancel=()=>controller.abort();if(signal){if(signal.aborted)controller.abort();else signal.addEventListener('abort',cancel,{once:true});}
+  let timedOut=false;const timer=setTimeout(()=>{timedOut=true;controller.abort();},20000);
+  try{const response=await fetch(path,{...options,signal:controller.signal});let data;try{data=await response.json();}catch(e){throw new Error('The service returned an unreadable response. Please retry.');}
+   if(!response.ok){const error=new Error(data.error||'The request could not be completed.');error.status=response.status;throw error;}return data;
+  }catch(e){if(timedOut)throw new Error('The request took too long. Try again when the service is ready.');throw e;}
+  finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);}
+ }
+ function query(extra={}){const p=new URLSearchParams();for(const [k,v] of Object.entries({...state.filters,...extra}))if(v!==''&&v!=null)p.set(k,v);return p;}
+ function href(view,extra={},filters=state.filters){const p=new URLSearchParams();if(view.startsWith('overview')||view.startsWith('explorer')){for(const [k,v] of Object.entries(filters))if(v!==''&&v!=null&&String(v)!==defaults[k])p.set(k,v);if(state.sort!=='newest')p.set('sort',state.sort);}
+  for(const [k,v] of Object.entries(extra))if(v!==''&&v!=null)p.set(k,v);return '#'+view+(p.size?'?'+p:'');}
+ function go(view,extra={}){const hash=href(view,extra);if(location.hash===hash)navigate();else location.hash=hash;}
+ function setFilters(changes,view='explorer'){state.filters={...state.filters,...changes};go(view);}
+ function syncFilters(){for(const [key,value] of Object.entries(state.filters)){const field=$('#filters').elements[key];if(!field)continue;if(key==='month'&&![...field.options].some(o=>o.value===value)){const option=el('option',value);option.value=value;field.append(option);}field.value=value;}
+  $('#game-sort').value=state.sort;$('#game-search input').value=state.filters.game_id;$('#clear-search').hidden=!state.filters.game_id;
+  if(state.filters.eco||state.filters.from_date||state.filters.to_date||state.filters.min_rating!=='0'||state.filters.max_rating!=='4000')$('.filter-more').open=true;
+  const publication=state.catalog?.publications.find(p=>p.engine===state.filters.engine&&p.month===state.filters.month);
+  $('#archive-scope-title').textContent='Lichess · '+(state.filters.month==='all'?'all published months':state.filters.month)+' archive';
+  const all=state.catalog?.publications.filter(p=>p.engine===state.filters.engine)||[];
+  $('#archive-scope-detail').textContent=state.filters.month==='all'?number(all.reduce((n,p)=>n+p.games,0))+' published games across '+all.length+' months · separate from Personal Study':publication?number(publication.games)+' published games · '+publication.first_date+' to '+publication.last_date+' game dates · separate from Personal Study':'No published games for this archive and processing path. Personal Study is separate.';
+ }
+ async function catalog(signal){if(state.catalog)return state.catalog;const d=await request('/api/catalog',{},signal);state.catalog=d;
+  const selected=state.filters.month;const months=[...new Set(['all',selected,...d.publications.map(p=>p.month)])].sort();$('#month').replaceChildren(...months.map(m=>{const n=el('option',m==='all'?'All published months':m);n.value=m;return n;}));syncFilters();return d;}
+ async function load(fetcher,render){const epoch=state.epoch,token=++state.loadToken,view=state.view,root=$('#'+view);state.controller?.abort();const controller=new AbortController();state.controller=controller;
+  notice('');root.dataset.state='loading';root.setAttribute('aria-busy','true');$('#page-loading').hidden=false;
+  try{const d=await fetcher(controller.signal);if(epoch!==state.epoch||token!==state.loadToken)return;render(d);root.dataset.state='ready';}
+  catch(e){if(epoch!==state.epoch||token!==state.loadToken||e.name==='AbortError')return;root.dataset.state='error';notice(e.message);}
+  finally{if(epoch===state.epoch&&token===state.loadToken){$('#page-loading').hidden=true;root.setAttribute('aria-busy','false');}}
+ }
+ const labels={personal:['Personal Study','Import your games. Find a focus. Practice the position.'],overview:['The archive, in perspective.','Follow a pattern into the games behind it.'],explorer:['Find the game behind the number.','Search, inspect and export the retained public archive.'],pipelines:['Understand the engineering trade-off.','Compare measured execution, resources and equivalent outputs.'],models:['Explore the estimate. Inspect the evidence.','Historical models, simple baselines and comparable games in one place.'],studies:['Practical questions. Inspectable answers.','Read the decisions, measured outcomes and limits behind this workspace.']};
+ labels.learn=['Learn & practice','Build good habits. Try a drill, then connect it to a real game.'];
+ async function navigate(){
+  const [path,search='']=location.hash.slice(1).split('?');const parts=(path||'personal').split('/'),view=labels[parts[0]]?parts[0]:'personal';
+  state.controller?.abort();++state.epoch;state.view=view;state.route={path:view==='personal'?(path||'personal'):path,parts,params:new URLSearchParams(search)};
+  if(view!=='personal')window.Study?.close?.();
+  if(['overview','explorer'].includes(view)){state.filters={...defaults};for(const key of Object.keys(defaults))if(state.route.params.has(key))state.filters[key]=state.route.params.get(key);state.sort=state.route.params.get('sort')||'newest';syncFilters();}
+  document.body.classList.toggle('personal-view',view==='personal');document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==view);
+  document.querySelectorAll('.nav').forEach(n=>{const active=n.dataset.view===view;n.classList.toggle('active',active);if(active)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+  $('#filters').hidden=!['overview','explorer'].includes(view)||parts[1]==='game';$('#archive-context').hidden=!['overview','explorer'].includes(view);
+  $('#refresh-page').hidden=view==='personal';$('#copy-view').hidden=view==='personal';
+  $('#page-title').textContent=labels[view][0];$('#page-subtitle').textContent=labels[view][1];$('#breadcrumb').textContent=[...document.querySelector('[data-view="'+view+'"]').childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join('').trim();
+  $('#page-eyebrow').textContent=view==='personal'?'YOUR CHESS WORKSPACE':view==='overview'||view==='explorer'?'PUBLIC ARCHIVE EXPLORATION':'METHODS & EVIDENCE';
+  $('#study-page-scope').textContent=view==='learn'?'Original lessons · Real game examples':view==='personal'?'Private game library':view==='models'?'Historical model publication':view==='pipelines'?'Recorded benchmark results':'Public archive · historical evidence';
+  $('#workspace-footer-scope').textContent=view==='personal'?'Your games · Evidence-linked review · Deliberate practice':'Lichess public archives · Personal libraries remain private';
+  document.title=labels[view][0]+' · Chess Atlas';notice('');$('#page-loading').hidden=true;window.scrollTo(0,0);
+  if(view==='personal')await window.Study.open();else await pages[view]?.();
+ }
+ function start(){
+  $('.skip').addEventListener('click',event=>{event.preventDefault();$('#main').tabIndex=-1;$('#main').focus({preventScroll:true});window.scrollTo(0,0);});
+  window.addEventListener('hashchange',navigate);
+  document.querySelectorAll('.nav').forEach(n=>n.addEventListener('click',event=>{if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;event.preventDefault();go(n.dataset.view);}));
+  $('#filters').addEventListener('submit',event=>{event.preventDefault();const values=Object.fromEntries(new FormData(event.target));state.filters={...state.filters,...values};go(state.view);});
+  $('#clear-filters').addEventListener('click',()=>{state.filters={...defaults};go(state.view);});
+  $('#refresh-page').addEventListener('click',()=>{state.catalog=null;pages.models?.invalidate?.();navigate();});
+  $('#retry-page').addEventListener('click',()=>navigate());
+  $('#copy-view').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);notice('View link copied. It includes this page and its selected filters.',false);}catch(e){notice('Copy this view from your browser address bar.',false);}});
+  navigate();
+ }
+ window.addEventListener('DOMContentLoaded',start);
+ return {$,el,link,button,table,number,pct,metric,empty,notice,request,query,href,go,setFilters,syncFilters,catalog,load,state,pages};
+})();

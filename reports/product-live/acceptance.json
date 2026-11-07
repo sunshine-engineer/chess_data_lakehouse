@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "source_games": 121332,
+  "models_available": true,
+  "desktop_and_mobile": true,
+  "checks": [
+    "actual archive overview, publication scope and chart data",
+    "linked openings, shareable filters, two-way cursor pagination, ID search and game details",
+    "bounded checksummed CSV with explicit truncation",
+    "HTTP cursor continuation beyond the old 10000-row boundary",
+    "benchmark charts, equality checks, repeat-run details and evidence download",
+    "scenario, comparisons and baselines; typed and linked inputs clear prior estimates; evidence and profiles",
+    "missing and stale publications clear and block estimates; returning publications recover correctly",
+    "five practical case studies with shared navigation and resolved methodology links",
+    "dependency error hides stale results and recovers through retry",
+    "superseded filter responses cannot overwrite the active selection",
+    "intentional empty selections and reloadable date filters",
+    "all five sections and case reader fit a 390px mobile viewport"
+  ],
+  "javascript_errors": [],
+  "unexpected_api_failures": []
+}

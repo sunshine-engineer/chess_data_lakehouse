@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "workload_months": 3,
+  "complete_repeats_per_path": 2,
+  "monthly_samples": 18,
+  "equality_checks_passed": 12,
+  "download_verified": true,
+  "desktop_mobile": true,
+  "javascript_errors": []
+}

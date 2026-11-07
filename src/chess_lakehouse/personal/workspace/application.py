@@ -8,7 +8,7 @@ from uuid import uuid4
 from flask import Flask,jsonify,request,g,send_file
 from werkzeug.exceptions import HTTPException
 
-from . import storage as db,accounts,imports,insights,analysis,exports,worker
+from . import storage as db,accounts,imports,insights,analysis,exports,worker,board,learning
 from .config import load
 
 
@@ -178,6 +178,33 @@ def create_app(config=None):
     @app.post('/positions')
     def positions():
         value=body();return result(analysis.positions(g.user['id'],*selection(value),value.get('game_id'),value.get('ply'),value.get('filters',{})))
+
+    @app.route('/board/preferences',methods=['GET','POST'])
+    def board_preferences():return result(board.preferences(g.user['id'],body() if request.method=='POST' else None))
+
+    @app.post('/board/position')
+    def board_position():return result(board.position(g.user['id'],body()))
+
+    @app.post('/board/variations')
+    def board_variation():return result(board.save(g.user['id'],body()),201)
+
+    @app.post('/board/variations/remove')
+    def board_remove():return result(board.remove(g.user['id'],body()))
+
+    @app.post('/board/analysis')
+    def board_analysis():return result(board.enqueue(g.user['id'],body(),settings),202)
+
+    @app.get('/board/analysis/<key>')
+    def board_analysis_result(key):return result(board.result(g.user['id'],key))
+
+    @app.post('/learning/examples')
+    def learning_examples():return result(learning.personal(g.user['id'],body()))
+
+    @app.get('/learning/progress')
+    def learning_progress():return result(learning.progress(g.user['id']))
+
+    @app.post('/learning/attempt')
+    def learning_attempt():return result(learning.attempt(g.user['id'],body()))
 
     @app.post('/review')
     def review():

@@ -2,7 +2,8 @@
 
 window.Study = (() => {
   const state = {user:null, signup:false, source:'file', library:null, snapshot:null, versions:[], report:null,
-    selected:{}, offset:0, replay:null, ply:0, flipped:false, preview:null, job:null, timer:null, routeSequence:0};
+    selected:{}, offset:0, replay:null, ply:0, flipped:false, preview:null, job:null, timer:null, routeSequence:0,
+    preferences:{},trial:null,boardKey:null,boardSequence:0,positionTimer:null};
   const $ = selector => document.querySelector(selector);
   const num = value => value == null ? '—' : Number(value).toLocaleString(undefined,{maximumFractionDigits:1});
   const pct = value => value == null ? '—' : `${(100*value).toFixed(1)}%`;
@@ -138,32 +139,52 @@ window.Study = (() => {
       if(replay.analysis_jobs.some(j=>['queued','running'].includes(j.status)))state.timer=setTimeout(()=>loadGame(gameId,state.ply,sequence,true).catch(error),2500);
       return;
     }
-    state.replay=replay;state.ply=Math.max(0,Math.min(ply,replay.moves.length));state.preview=null;state.noteKey=null;state.flipped=replay.player_color==='black';
+    state.preferences=await api('board/preferences');if(sequence!==state.routeSequence)return;
+    for(const [key,value] of Object.entries(state.preferences)){const field=$('#board-preferences').elements[key];if(field){if(field.type==='checkbox')field.checked=value;else field.value=value;}}
+    state.replay=replay;state.ply=Math.max(0,Math.min(ply,replay.moves.length));state.preview=null;state.trial=null;state.boardKey=null;state.noteKey=null;state.flipped=state.preferences.orientation==='black'||state.preferences.orientation==='player'&&replay.player_color==='black';
     $('#study-game-back').href=href('games');$('#study-replay-title').textContent=`${replay.white} — ${replay.black}`;
     $('#study-game-meta').textContent=`${replay.game_date||'Date unavailable'} · ${replay.speed} · ${replay.outcome} · ${replay.opening}`;
     $('#study-game-id').textContent=`Game ID: ${replay.game_id} · collection v${replay.version}`;
     $('#study-ply').max=replay.moves.length;
-    $('#study-moves').replaceChildren(...replay.moves.map(move=>button(`${move.fullmove}${move.color==='white'?'.':'…'} ${move.san}`,()=>{state.preview=null;state.ply=move.ply;renderBoard();},'study-move')));
+    $('#study-moves').replaceChildren(...replay.moves.map(move=>button(`${move.fullmove}${move.color==='white'?'.':'…'} ${move.san}`,()=>{state.trial=null;state.preview=null;state.ply=move.ply;renderBoard();},'study-move')));
     renderBoard();renderEngine();
     if(replay.analysis_jobs.some(j=>['queued','running'].includes(j.status)))state.timer=setTimeout(()=>loadGame(gameId,state.ply,sequence,true).catch(error),2500);
   }
   function renderBoard() {
     if(!state.replay)return;
+    const key=state.replay.revision_id+':'+state.ply;
+    if(key!==state.boardKey||state.preview){state.trial=null;state.boardKey=key;}
+    if(state.preview||state.positionContext!==JSON.stringify(boardSelection())){clearTimeout(state.positionTimer);$('#study-position-engine').replaceChildren();state.positionContext=null;}
     $('#study-positions').replaceChildren();
-    const fen=state.preview?.fen||state.replay.positions[state.ply];
-    const ranks=fen.split(' ')[0].split('/').map(rank=>{const cells=[];for(const char of rank){if(/\d/.test(char))cells.push(...Array(Number(char)).fill(''));else cells.push(char);}return cells;});
-    const pieces={k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};const board=$('#study-board');board.replaceChildren();
+    const fen=state.trial?.fen||state.preview?.fen||state.replay.positions[state.ply];
+    const board=$('#study-board');
     const last=state.ply&&!state.preview?state.replay.moves[state.ply-1]:null;
-    for(let ri=0;ri<8;ri++)for(let fi=0;fi<8;fi++){const r=state.flipped?7-ri:ri,f=state.flipped?7-fi:fi,square='abcdefgh'[f]+(8-r),piece=ranks[r][f];const cell=node('div',null,`chess-square ${(r+f)%2?'dark':'light'}`);if(last&&[last.uci.slice(0,2),last.uci.slice(2,4)].includes(square))cell.classList.add('last-move');if(piece)cell.append(node('span',pieces[piece.toLowerCase()],piece===piece.toUpperCase()?'chess-white':'chess-black'));cell.append(node('small',square));cell.title=square;board.append(cell);}
-    board.setAttribute('aria-label',`${state.preview?'Engine variation':'Played game'}: ${fen}`);
+    const lastUci=state.trial?.moves.at(-1)||last?.uci;
+    const draw=position=>window.ChessBoard.render(board,position,{flipped:state.flipped,preferences:state.preferences,
+      last:lastUci?[lastUci.slice(0,2),lastUci.slice(2,4)]:[],onMove:state.preview?null:move=>tryMoves([...(state.trial?.moves||[]),move]).catch(error)});
+    const known=state.trial?.fen===fen?state.trial:state.boardPositionKey===key&&state.boardPosition?.fen===fen?state.boardPosition:null;
+    draw(known||{fen});
+    const sequence=++state.boardSequence,route=state.routeSequence;
+    if(!state.preview){if(known)renderVariations(state.replay.variations||known.variations);else api('board/position',boardSelection()).then(value=>{if(sequence!==state.boardSequence||route!==state.routeSequence)return;state.boardPosition=value;state.boardPositionKey=key;state.replay.variations=value.variations;draw(value);renderVariations(value.variations);}).catch(error);}
+    $('#study-trial').hidden=!state.trial?.moves.length;$('#study-trial-line').textContent=state.trial?'Trial: '+state.trial.san.join(' '):'';
     $('#study-ply').value=state.ply;
     const clock=last?.clock_seconds!=null?` · clock ${last.clock_seconds.toFixed(1)}s`:'';
     const evaluation=last?.uploaded_eval_cp!=null?` · uploaded evaluation ${(last.uploaded_eval_cp/100).toFixed(2)} (unverified)`:'';
-    $('#study-position-label').textContent=state.preview?`ENGINE VARIATION · ${state.preview.label} · not the played game`:`Position ${state.ply}/${state.replay.moves.length}${clock}${evaluation}`;
+    $('#study-position-label').textContent=state.trial?.moves.length?`TRIAL LINE · from played position ${state.ply} · ${state.trial.turn} to move${state.trial.result?' · '+state.trial.result:''}`:state.preview?`ENGINE VARIATION · ${state.preview.label} · not the played game`:`Position ${state.ply}/${state.replay.moves.length}${clock}${evaluation}`;
     [...$('#study-moves').children].forEach((b,i)=>b.classList.toggle('active',i+1===state.ply));
     const noteKey=`${state.replay.revision_id}:${state.ply}`;
     if(state.noteKey!==noteKey){const note=state.replay.notes.find(n=>n.ply===state.ply);$('#study-note textarea').value=note?.note||'';$('#study-note select').value=note?.status||'queued';state.noteKey=noteKey;}
   }
+  function boardSelection(){return {...selection(),game_id:state.replay.game_id,ply:state.ply,moves:state.trial?.moves||[]};}
+  async function tryMoves(moves){const key=state.boardKey,route=state.routeSequence,sequence=++state.boardSequence,value=await api('board/position',{...boardSelection(),moves});if(key!==state.boardKey||route!==state.routeSequence||sequence!==state.boardSequence)return;state.trial=value;state.replay.variations=value.variations;renderBoard();}
+  async function refreshVariations(){const selected=boardSelection(),context=JSON.stringify(selected),route=state.routeSequence,value=await api('board/position',selected);if(route!==state.routeSequence||context!==JSON.stringify(boardSelection()))return;state.replay.variations=value.variations;if(state.trial)state.trial=value;else {state.boardPosition=value;state.boardPositionKey=state.boardKey;}renderBoard();}
+  function renderVariations(variations){const box=$('#study-saved-variations');box.replaceChildren();if(variations.length)box.append(node('h4','Saved continuations'));for(const v of variations){const row=node('div',null,'saved-variation');row.append(button(`${v.label} · position ${v.ply}`,async()=>{state.preview=null;state.ply=v.ply;state.trial=null;state.boardKey=state.replay.revision_id+':'+v.ply;await tryMoves(v.moves);}),button('Remove',async()=>{await api('board/variations/remove',{id:v.id});await refreshVariations();},'text-link'));box.append(row);}}
+  $('#board-preferences').addEventListener('submit',async e=>{e.preventDefault();try{const value=Object.fromEntries(new FormData(e.target));for(const key of ['coordinates','highlights'])value[key]=e.target.elements[key].checked;state.preferences=await api('board/preferences',value);state.flipped=value.orientation==='black'||value.orientation==='player'&&state.replay.player_color==='black';renderBoard();$('#board-settings-status').textContent='Saved to your account.';}catch(err){error(err);}});
+  $('#study-trial-reset').addEventListener('click',()=>{state.trial=null;renderBoard();});
+  $('#study-trial-undo').addEventListener('click',()=>tryMoves((state.trial?.moves||[]).slice(0,-1)).catch(error));
+  $('#study-variation-save').addEventListener('submit',async e=>{e.preventDefault();try{await api('board/variations',{...boardSelection(),label:new FormData(e.target).get('label')});e.target.reset();await refreshVariations();alert('Continuation saved separately from the played game.',true);}catch(err){error(err);}});
+  async function pollPosition(id,context,route){const value=await api('board/analysis/'+id);if(route!==state.routeSequence||context!==JSON.stringify(boardSelection()))return;state.positionContext=context;const box=$('#study-position-engine');box.replaceChildren(node('p','Position search: '+value.status));if(value.error)box.append(node('p',value.error,'callout'));if(value.status==='complete'){const e=value.evidence;box.append(node('p',e.mate!=null?'Mate score for White: '+e.mate:'White evaluation: '+(e.cp/100).toFixed(2)+' pawns'),node('p',e.pv_san.join(' ')),node('p',`${e.engine} · ${num(e.nodes)} nodes · depth ${e.depth} · ${e.explanation}`,'muted'));}else if(['queued','running'].includes(value.status))state.positionTimer=setTimeout(()=>pollPosition(id,context,route).catch(error),1200);}
+  $('#study-position-analyze').addEventListener('click',async()=>{try{if(state.preview)throw new Error('Return to the played game or a trial line to evaluate a position.');const selected=boardSelection(),context=JSON.stringify(selected),route=state.routeSequence,value=await api('board/analysis',{...selected,profile:$('#study-position-profile').value});clearTimeout(state.positionTimer);await pollPosition(value.id,context,route);}catch(err){error(err);}});
   function renderEngine() {
     const box=$('#study-engine');box.replaceChildren();
     for(const job of state.replay.analysis_jobs){box.append(node('p',`Engine review: ${job.status}`,'study-pill'));if(job.error)box.append(node('p',job.error,'callout'));if(job.status!=='complete')continue;
@@ -176,7 +197,9 @@ window.Study = (() => {
   function source(value) {state.source=value;$('#study-file-fields').hidden=value!=='file';$('#study-api-fields').hidden=value!=='api';$('#study-source-file').classList.toggle('active',value==='file');$('#study-source-api').classList.toggle('active',value==='api');}
   async function previewLink() {const value=$('#study-import-form input[name=url]').value;if(!value)return;try{const data=await api('imports/preview',{url:value});$('#study-api-preview').textContent=data.explanation;}catch(e){$('#study-api-preview').textContent=e.message;}}
   async function pollJob(key,redirect=true) {
-    clearTimeout(state.timer);const value=await api('imports/'+encodeURIComponent(key));state.job=value;$('#study-import-progress').hidden=false;
+    clearTimeout(state.timer);const sequence=state.routeSequence,value=await api('imports/'+encodeURIComponent(key));
+    if(sequence!==state.routeSequence||$('#personal').hidden)return;
+    state.job=value;$('#study-import-progress').hidden=false;
     $('#study-job-phase').textContent=value.phase;$('#study-job-detail').textContent=`${num(value.games_processed)} games read · ${num(value.new_games)} new · ${num(value.changed_games)} updated · ${num(value.duplicate_games)} reused${value.rejected_games?' · '+num(value.rejected_games)+' not imported':''}${value.bytes_received?' · '+(value.bytes_received/1048576).toFixed(1)+' MiB received':''}`;
     const diagnostics=(value.diagnostics||[]).map(item=>`Game ${item.game_number}: ${item.reason}`).join('\n');
     $('#study-job-error').hidden=!(value.error||diagnostics);$('#study-job-error').textContent=[value.error,diagnostics].filter(Boolean).join('\n');
@@ -198,23 +221,23 @@ window.Study = (() => {
   $('#study-api-example').addEventListener('click',()=>{const player=$('#study-player').value.trim();if(!player){alert('Enter a Lichess player name below to create the link.');$('#study-player').focus();return;}$('#study-import-form input[name=url]').value='https://lichess.org/api/games/user/'+encodeURIComponent(player);previewLink();});
   $('#study-import-form input[name=url]').addEventListener('change',previewLink);
   $('#study-import-mode').addEventListener('change',()=>{$('#study-mode-help').textContent=$('#study-import-mode').value==='merge'?'Keep the games already in this library. Add new games, reuse identical games, and update changed information. This is the usual choice.':'Make this import the active collection for this player. Games outside this import disappear from the active view; earlier saved versions and studies remain available. Shared game data is reused.';});
-  $('#study-import-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('#study-import-submit');b.disabled=true;try{let result;if(state.source==='file'){const form=new FormData(e.target);if(!form.get('file')?.size)throw new Error('Choose a PGN file first.');form.delete('url');result=await upload(form);}else result=await api('imports/lichess',{url:e.target.elements.url.value,player:e.target.elements.player.value,mode:e.target.elements.mode.value});alert('Import started. You can leave this page and return from Recent imports.',true);state.job=null;history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(err){error(err);}finally{b.disabled=false;}});
+  $('#study-import-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('#study-import-submit'),sequence=state.routeSequence;b.disabled=true;try{let result;if(state.source==='file'){const form=new FormData(e.target);if(!form.get('file')?.size)throw new Error('Choose a PGN file first.');form.delete('url');result=await upload(form);}else result=await api('imports/lichess',{url:e.target.elements.url.value,player:e.target.elements.player.value,mode:e.target.elements.mode.value});if(sequence!==state.routeSequence||$('#personal').hidden)return;alert('Import started. You can leave this page and return from Recent imports.',true);state.job=null;history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(err){error(err);}finally{b.disabled=false;}});
   $('#study-job-cancel').addEventListener('click',async()=>{if(!state.job)return;try{await api(`imports/${state.job.id}/cancel`,{});await pollJob(state.job.id,false);}catch(e){error(e);}});
-  $('#study-job-retry').addEventListener('click',async()=>{try{const result=await api(`imports/${state.job.id}/retry`,{});history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(e){error(e);}});
+  $('#study-job-retry').addEventListener('click',async()=>{const sequence=state.routeSequence;try{const result=await api(`imports/${state.job.id}/retry`,{});if(sequence!==state.routeSequence||$('#personal').hidden)return;history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(e){error(e);}});
   $('#study-period').addEventListener('change',updatePeriod);
   $('#study-filters').addEventListener('submit',async e=>{e.preventDefault();state.selected=filterValues();state.offset=0;const r=route();if(r.parts[2]==='games')await loadGames();else await loadReport();});
   $('#study-version').addEventListener('change',()=>{state.snapshot=$('#study-version').value;state.offset=0;go(href(route().parts[2]||'overview'));});
   $('#study-previous').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-10);loadGames().catch(error);});$('#study-next').addEventListener('click',()=>{state.offset+=10;loadGames().catch(error);});
   $('#study-clear-opening').addEventListener('click',()=>{delete state.selected.opening;state.offset=0;loadGames().catch(error);});
   $('#study-question').addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{const answer=await api('assistant',{...selection(),question:new FormData(e.target).get('question')});renderAnswer(answer,'#study-answer');}catch(err){error(err);}finally{b.disabled=false;}});
-  $('#study-game-question').addEventListener('submit',async e=>{e.preventDefault();try{if(state.preview)throw new Error('Return to the played game before asking about its position.');const answer=await api('assistant',{...selection(),question:new FormData(e.target).get('question'),game_id:state.replay.game_id,ply:state.ply});renderAnswer(answer,'#study-game-answer');}catch(err){error(err);}});
+  $('#study-game-question').addEventListener('submit',async e=>{e.preventDefault();try{if(state.preview||state.trial?.moves.length)throw new Error('Return to the played game before asking about its position.');const answer=await api('assistant',{...selection(),question:new FormData(e.target).get('question'),game_id:state.replay.game_id,ply:state.ply});renderAnswer(answer,'#study-game-answer');}catch(err){error(err);}});
   $('#study-save').addEventListener('submit',async e=>{e.preventDefault();try{await api('studies',{...selection(),name:new FormData(e.target).get('name')});await loadSaved();alert('Saved with this exact collection version and filters.',true);}catch(err){error(err);}});
-  $('#study-ply').addEventListener('input',e=>{state.preview=null;state.ply=Number(e.target.value);renderBoard();});
-  for(const [id,value] of [['study-start',()=>0],['study-prev',()=>state.ply-1],['study-next-move',()=>state.ply+1],['study-end',()=>state.replay.moves.length]])$(`#${id}`).addEventListener('click',()=>{if(!state.replay)return;state.preview=null;state.ply=Math.max(0,Math.min(value(),state.replay.moves.length));renderBoard();});
+  $('#study-ply').addEventListener('input',e=>{state.trial=null;state.preview=null;state.ply=Number(e.target.value);renderBoard();});
+  for(const [id,value] of [['study-start',()=>0],['study-prev',()=>state.ply-1],['study-next-move',()=>state.ply+1],['study-end',()=>state.replay.moves.length]])$(`#${id}`).addEventListener('click',()=>{if(!state.replay)return;state.trial=null;state.preview=null;state.ply=Math.max(0,Math.min(value(),state.replay.moves.length));renderBoard();});
   $('#study-flip').addEventListener('click',()=>{state.flipped=!state.flipped;renderBoard();});
   $('#study-copy-link').addEventListener('click',async()=>{const url=location.origin+location.pathname+href('games',state.replay.game_id,state.ply);try{await navigator.clipboard.writeText(url);alert('Game link copied.',true);}catch(e){alert(url,true);}});
   $('#study-analyze').addEventListener('click',async()=>{try{await api('analysis',{...selection(),game_id:state.replay.game_id});await loadGame(state.replay.game_id,state.ply,state.routeSequence,true);alert('Engine review queued. Its findings will appear here.',true);}catch(e){error(e);}});
-  $('#study-note').addEventListener('submit',async e=>{e.preventDefault();try{if(state.preview)throw new Error('Return to the played game before saving a note on its position.');await api('review',{...selection(),game_id:state.replay.game_id,ply:state.ply,...Object.fromEntries(new FormData(e.target))});await loadGame(state.replay.game_id,state.ply);alert('Practice note saved.',true);}catch(err){error(err);}});
-  $('#study-position').addEventListener('click',async()=>{try{if(state.preview)throw new Error('Return to the played game before looking up its position.');const game=state.replay.game_id,ply=state.ply;const result=await api('positions',{...selection(),game_id:game,ply});if(!state.replay||state.replay.game_id!==game||state.ply!==ply||state.preview)return;$('#study-positions').replaceChildren(node('h4',`${result.games} games reached this position`),table(['Played move','Games','Your score','Example'],result.alternatives.map(a=>[a.move,a.games,pct(a.score_rate),gameLink(a.example,'Open example')])),node('p',result.explanation,'muted'));}catch(e){error(e);}});
-  return {open:()=>open().catch(error)};
+  $('#study-note').addEventListener('submit',async e=>{e.preventDefault();try{if(state.preview||state.trial?.moves.length)throw new Error('Return to the played game before saving a note on its position.');await api('review',{...selection(),game_id:state.replay.game_id,ply:state.ply,...Object.fromEntries(new FormData(e.target))});await loadGame(state.replay.game_id,state.ply);alert('Practice note saved.',true);}catch(err){error(err);}});
+  $('#study-position').addEventListener('click',async()=>{try{if(state.preview||state.trial?.moves.length)throw new Error('Return to the played game before looking up its position.');const game=state.replay.game_id,ply=state.ply;const result=await api('positions',{...selection(),game_id:game,ply});if(!state.replay||state.replay.game_id!==game||state.ply!==ply||state.preview||state.trial?.moves.length)return;$('#study-positions').replaceChildren(node('h4',`${result.games} games reached this position`),table(['Played move','Games','Your score','Example'],result.alternatives.map(a=>[a.move,a.games,pct(a.score_rate),gameLink(a.example,'Open example')])),node('p',result.explanation,'muted'));}catch(e){error(e);}});
+  return {open:()=>open().catch(error),close:()=>{clearTimeout(state.timer);clearTimeout(state.positionTimer);++state.boardSequence;++state.routeSequence;}};
 })();

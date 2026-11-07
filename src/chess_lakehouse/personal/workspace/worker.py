@@ -6,7 +6,7 @@ import time
 from psycopg.types.json import Jsonb
 
 from .. import engine
-from . import storage as db,imports
+from . import storage as db,imports,board
 
 
 def import_one(config,opener=None):
@@ -44,6 +44,13 @@ def index_one(config):
         return True
 
 
+def engine_one(config):
+    # One worker owns both queues; neither kind can create parallel Stockfish.
+    position=board.run_one(config)
+    game=analyze_one(config)
+    return position or game
+
+
 def start(config):
     def loop(kind,run):
         with (db.root()/('.'+kind+'-worker.lock')).open('w') as lock:
@@ -54,7 +61,9 @@ def start(config):
                 if kind=='import':
                     interrupted=c.execute("SELECT id,owner_id,input_path FROM study.import_jobs WHERE status='running'").fetchall()
                     c.execute("UPDATE study.import_jobs SET status='failed',phase='Interrupted',error='Service restarted. Retry this file or link.',finished_at=now(),input_path=NULL WHERE status='running'")
-                elif kind=='engine':c.execute("UPDATE study.workspace_analysis SET status='failed',error='Service restarted; request this review again.',finished_at=now() WHERE status='running'")
+                elif kind=='engine':
+                    c.execute("UPDATE study.workspace_analysis SET status='failed',error='Service restarted; request this review again.',finished_at=now() WHERE status='running'")
+                    c.execute("UPDATE study.position_analysis SET status='failed',error='Service restarted; request this position again.',finished_at=now() WHERE status='running'")
             for job in interrupted:
                 imports.cleanup_staging(job['owner_id'],job['id'])
                 if job['input_path']:
@@ -66,5 +75,5 @@ def start(config):
                     import logging
                     logging.exception('Workspace %s worker failed',kind);worked=False
                 if not worked:time.sleep(1)
-    for kind,run in (('import',import_one),('engine',analyze_one),('position-index',index_one)):
+    for kind,run in (('import',import_one),('engine',engine_one),('position-index',index_one)):
         threading.Thread(target=loop,args=(kind,run),name='study-'+kind,daemon=True).start()

@@ -1,0 +1,42 @@
+# Optional read-only preview against existing public archive/model volumes.
+# Start only the named preview services; the private study proxy is disabled.
+services:
+  product-preview:
+    image: chess-lakehouse-web:local
+    profiles: [product-qa]
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-chess}
+      PGUSER: chess_reader
+      PGPASSWORD: ${READER_PASSWORD:?Set READER_PASSWORD in .env}
+      PYTHONPATH: /app/src
+    volumes:
+      - ml-data:/models:ro
+      - ./reports:/evidence:ro
+      - ./src:/app/src:ro
+      - ./docs:/app/docs:ro
+    ports: ["127.0.0.1:18083:8080"]
+    cpus: 2
+    mem_limit: 1g
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  product-browser-tests:
+    build:
+      context: .
+      dockerfile: docker/browser.Dockerfile
+    profiles: [product-qa]
+    environment:
+      WEB_URL: http://product-preview:8080
+    volumes:
+      - ./tests/browser:/checks:ro
+      - ./reports/product:/artifacts
+    command: [python, /checks/smoke.py]
+    cpus: 2
+    mem_limit: 1g
