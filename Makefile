@@ -1,5 +1,6 @@
 DOCKER ?= docker
 .PHONY: setup build up fetch prepare python python-mp spark ingest compare test benchmark backup cluster-smoke down web ml web-test browser-test study study-test study-browser-test study-ai
+.PHONY: product-preview product-test
 setup build:
 	$(DOCKER) compose build python
 up:
@@ -34,6 +35,11 @@ web-test:
 	$(DOCKER) compose --profile web run --rm web-tests
 browser-test:
 	$(DOCKER) compose --profile web run --rm browser-tests
+product-preview:
+	$(DOCKER) compose --profile web build web
+	$(DOCKER) compose -f compose.yaml -f compose.product-qa.yaml --profile product-qa up -d --no-deps --wait product-preview
+product-test:
+	$(DOCKER) compose -f compose.yaml -f compose.product-qa.yaml --profile product-qa run --rm --no-deps product-browser-tests
 study:
 	$(DOCKER) compose --profile web --profile study build web
 	$(DOCKER) compose --profile web --profile study up -d --wait web study-api

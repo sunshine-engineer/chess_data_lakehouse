@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "source_games": 121332,
+  "first_keyset_row_after_legacy_boundary": 10026,
+  "returned_rows": 25,
+  "keyset_browsing_past_10000_verified": true,
+  "private_study_accessed": false
+}

@@ -173,7 +173,7 @@ services:
     image: chess-lakehouse-web:local
     profiles: [web]
     environment: *admin-env
-    entrypoint: [python, -m, pytest, -q, tests/test_web_ml.py]
+    entrypoint: [python, -m, pytest, -q, tests/test_web_ml.py, tests/test_product.py]
     volumes:
       - ./reports:/evidence:ro
     depends_on:

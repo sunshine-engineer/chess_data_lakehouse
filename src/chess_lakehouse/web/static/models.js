@@ -1,0 +1,54 @@
+'use strict';
+(()=>{
+ const A=window.Atlas,{$,el,link,table,number,pct,metric,state}=A;
+ let publication=null,ready=false,predictionToken=0;
+ const probabilityRows=value=>[['1-0','White win'],['1/2-1/2','Draw'],['0-1','Black win']].map(([key,label])=>[label,pct(value[key])]);
+ function card(label,value,detail){const n=el('article',null,'panel');n.append(el('p',label,'eyebrow'),el('div',value,'model-score'),el('p',detail,'model-note'));return n;}
+ function fold(title,...nodes){const n=el('details',null,'model-details');n.append(el('summary',title),...nodes);return n;}
+ function tabs(){const value=state.route.params.get('tab'),tab=['scenario','evidence','profiles'].includes(value)?value:'scenario';document.querySelectorAll('[data-model-tab]').forEach(n=>{n.href=A.href('models',{tab:n.dataset.modelTab});n.classList.toggle('active',n.dataset.modelTab===tab);if(n.dataset.modelTab===tab)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});for(const name of ['scenario','evidence','profiles'])$('#model-'+name).hidden=name!==tab;}
+ function render(d){
+  publication=d;ready=d.available&&d.fresh;$('#prediction button').disabled=!ready;const status=$('#model-status');status.replaceChildren();
+  if(!d.available){status.append(A.empty('No model publication available','You can still explore the archive and read how the estimates are evaluated.',link('Read the outcome case study →','/case-studies/outcome')));$('#model-results').replaceChildren();$('#model-clusters').replaceChildren();$('#prediction-result').replaceChildren(A.empty('Estimates are unavailable','A verified model publication is needed before this tool can run.'));return;}
+  const r=d.report,copy=el('p');copy.append(el('strong',d.fresh?'Current publication · '+r.month:'Archive changed · estimates paused','model-state-label'),el('span',number(r.sample_rows)+' sampled games · test dates '+r.split.test.first_date+' to '+r.split.test.last_date+'. Estimates describe this historical archive.'));
+  const actions=el('div',null,'model-status-actions');actions.append(link('Download evaluation','/api/evidence/models'),link('Method & limitations','/case-studies/outcome'));status.append(copy,actions);
+  const results=$('#model-results');results.replaceChildren();const scores=el('div',null,'grid three');
+  scores.append(card('OUTCOME MODEL',r.outcome.test.log_loss.toFixed(3)+' log loss','Class-prior baseline '+r.outcome.baseline.log_loss.toFixed(3)+'. Lower is better; probability quality and class performance need separate inspection.'),card('GAME-LENGTH MODEL',r.length.test.mae_moves.toFixed(2)+' moves MAE','Median baseline '+r.length.baseline.mae_moves.toFixed(2)+' moves. This is an average historical error, not a per-game interval.'),card('PLAYER PROFILES',r.clusters.selected_k+' observed groups',number(r.clusters.players)+' eligible player aggregates. Descriptive profiles, without a skill ranking.'));results.append(scores);
+  const comparison=el('article',null,'panel');comparison.append(el('p','DOES THE MODEL ADD VALUE?','eyebrow'),el('h2','Compare it with a simple explanation.'));
+  const variants=[['Ratings + clock',r.outcome.test],...(r.outcome.ratings_baseline?[['Ratings only',r.outcome.ratings_baseline]]:[]),['Historical prior',r.outcome.baseline]];
+  comparison.append(table(['Outcome estimate','Accuracy','Log loss','Balanced accuracy'],variants.map(([name,m])=>[name,pct(m.accuracy),m.log_loss.toFixed(4),pct(m.balanced_accuracy)])));
+  const classes=r.outcome.test.classes,drawIndex=classes.indexOf('1/2-1/2'),matrix=r.outcome.test.confusion_matrix,drawTotal=drawIndex>=0?matrix[drawIndex].reduce((a,b)=>a+b,0):0;
+  if(drawTotal)comparison.append(el('p','Draw-class recall: '+pct(matrix[drawIndex][drawIndex]/drawTotal)+' across '+number(drawTotal)+' actual draws. Overall accuracy can hide weak draw recognition.','callout'));
+  comparison.append(fold('Inspect the full confusion matrix',el('p','Actual results are rows; predicted results are columns.','muted'),table(['Actual / predicted',...classes],matrix.map((counts,i)=>[classes[i],...counts.map(number)]))));
+  if(r.outcome.test.calibration){const rows=variants.filter(([,m])=>m.calibration).map(([name,m])=>[name,m.calibration.multiclass_brier.toFixed(4),m.calibration.mean_classwise_ece.toFixed(4)]);comparison.append(fold('Probability reliability',table(['Model','Multiclass Brier','Mean classwise ECE'],rows),el('p','Brier sums probability error across three classes (0–2). ECE is an empirical bin diagnostic; small ECE alone does not establish useful discrimination.','muted')));}
+  results.append(comparison);
+  const evaluation=el('article',null,'panel');evaluation.append(el('p','SEPARATE DAYS, SEPARATE PURPOSES','eyebrow'),el('h2','Earlier games teach. Later games test.'),table(['Period','First date','Last date','Games'],['train','validation','test'].map(name=>[name,r.split[name].first_date,r.split[name].last_date,number(r.split[name].rows)])),el('p','Candidates use validation days. Final models refit on train plus validation before the later-day evaluation. Players may appear in multiple periods.','muted'));
+  evaluation.append(fold('Inspect results by time class',table(['Clock','Test games','Outcome accuracy','Length MAE'],r.test_slices.map(s=>[s.speed,number(s.rows),pct(s.accuracy),s.mae_moves.toFixed(2)]))));
+  const limits=el('ul');for(const value of r.limitations)limits.append(el('li',value));evaluation.append(fold('Limits and publication details',limits,el('p','Model run: '+r.run_id,'muted'),el('p','Source: '+r.engine+' · '+r.month,'muted')));results.append(evaluation);
+  const clusters=$('#model-clusters');clusters.replaceChildren();const intro=el('article',null,'panel');intro.append(el('p','RETROSPECTIVE PATTERNS','eyebrow'),el('h2','Profiles describe play, not people.'),el('p','These groups use observed game behavior from the historical archive. Group numbers are identifiers, not a ranking, personality assessment or cheating signal.'));clusters.append(intro);
+  const profiles=el('div',null,'profile-cards');for(const group of r.clusters.groups){const n=el('article',null,'panel profile-card');n.append(el('p','OBSERVED GROUP '+group.cluster,'eyebrow'),el('h3',number(group.players)+' players'),el('p','Mean rating '+number(group.mean_rating)+' · mean length '+number(group.mean_moves)+' moves'),el('p','Win share '+pct(group.win_rate)+' · draw share '+pct(group.draw_rate)),el('p','Bullet '+pct(group.bullet_share)+' · blitz '+pct(group.blitz_share)+' · rapid '+pct(group.rapid_share)));profiles.append(n);}clusters.append(profiles);
+  const diagnostics=el('article',null,'panel');diagnostics.append(el('h2','How stable is this grouping?'),el('p','Silhouette '+r.clusters.silhouette.toFixed(3)+' · seed stability ARI '+r.clusters.seed_stability_ari.toFixed(3)+'. These compare structure and repeatability; neither is predictive accuracy.'),link('Read the profiling case study →','/case-studies/clusters'));clusters.append(diagnostics);
+ }
+ async function page(){ready=false;$('#prediction button').disabled=true;tabs();for(const key of ['white_rating','black_rating','initial_seconds','increment_seconds'])if(state.route.params.has(key))$('#prediction').elements[key].value=state.route.params.get(key);
+  return A.load(signal=>A.request('/api/models',{},signal),render);
+ }
+ function display(result){
+  const box=$('#prediction-result');box.replaceChildren(el('h2','Outcome probabilities'));const probabilities=el('div',null,'probabilities');for(const [label,value] of probabilityRows(result.probabilities)){const n=el('div');n.append(el('strong',value),el('span',label));probabilities.append(n);}box.append(probabilities,el('p','Estimated game length: '+number(result.estimated_moves)+' full moves','prediction-length'));
+  if(result.baselines){const b=result.baselines;box.append(fold('Compare with simpler baselines',table(['Estimate','White win','Draw','Black win','Length'],[['Ratings + clock',...probabilityRows(result.probabilities).map(r=>r[1]),number(result.estimated_moves)],['Ratings only',...probabilityRows(b.ratings_only).map(r=>r[1]),'—'],['Historical prior',...probabilityRows(b.class_prior).map(r=>r[1]),number(b.median_moves)]])));}
+  const c=result.comparable,context=el('div',null,'prediction-support');context.append(el('h3',number(c.games)+' comparable archive games'));
+  if(c.games)context.append(el('p','Observed results: '+pct(c.white_win_rate)+' White wins, '+pct(c.draw_rate)+' draws, '+pct(c.black_win_rate)+' Black wins. Mean length '+number(c.average_moves)+' moves.'));
+  if(c.games<100)context.append(el('p',c.games?'This is a small comparison group. Avoid reading precise probabilities from a handful of observations.':'No archive games match this comparison rule. The estimate has no matching observational comparison here.','callout'));
+  context.append(el('p',c.rule,'muted'),el('p',result.scope,'muted'),fold('Prediction provenance',el('p','Run: '+result.run_id,'muted'),el('p','Inputs: White '+number(result.input.white_rating)+', Black '+number(result.input.black_rating)+', '+number(result.input.initial_seconds)+' seconds + '+number(result.input.increment_seconds)+' per move. Clock: '+result.input.speed,'muted')));box.append(context);
+ }
+ A.pages.models=page;page.invalidate=()=>{publication=null;};
+ window.addEventListener('DOMContentLoaded',()=>{
+  const form=$('#prediction');
+  form.addEventListener('input',()=>{$('#prediction-result').replaceChildren(A.empty('Inputs changed','Explore this matchup to update the estimate.'));++predictionToken;});
+  for(const n of document.querySelectorAll('[data-preset]'))n.addEventListener('click',()=>{const values={balanced:[1600,1600,300,0],favorite:[1800,1500,600,5],bullet:[1600,1600,60,0]}[n.dataset.preset];['white_rating','black_rating','initial_seconds','increment_seconds'].forEach((key,i)=>form.elements[key].value=values[i]);form.dispatchEvent(new Event('input'));});
+  form.addEventListener('submit',async event=>{event.preventDefault();if(!ready)return;const token=++predictionToken,epoch=state.epoch,b=form.querySelector('button');b.disabled=true;$('#prediction-result').replaceChildren(el('p','Computing the estimate and archive comparison…','muted'));
+   const payload=Object.fromEntries([...new FormData(form)].map(([k,v])=>[k,Number(v)]));history.replaceState(null,'',A.href('models',payload));
+   try{const result=await A.request('/api/predictions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)},state.controller?.signal);if(epoch===state.epoch&&token===predictionToken)display(result);}
+   catch(e){if(epoch!==state.epoch||token!==predictionToken||e.name==='AbortError')return;if(e.status===409||e.status===503)ready=false;$('#prediction-result').replaceChildren(A.empty('The estimate is unavailable',e.message));}
+   finally{if(epoch===state.epoch)b.disabled=!ready;}
+  });
+ });
+})();
