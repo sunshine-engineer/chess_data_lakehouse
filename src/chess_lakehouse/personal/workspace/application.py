@@ -96,6 +96,13 @@ def create_app(config=None):
     @app.get('/context')
     def context():return libraries()
 
+    @app.post('/libraries/<library_id>/sync')
+    def sync_library(library_id):
+        import re
+        with db.connect() as c:lib=db.library(c,g.user['id'],library_id)
+        if not re.fullmatch(r'[A-Za-z0-9_-]{2,30}',lib['player']):raise ValueError('This player name cannot be synced from Lichess. Import a PGN file instead.')
+        return result({'job_id':imports.create(g.user['id'],'lichess',lib['player'],'append',url='https://lichess.org/api/games/user/'+lib['player'])},202)
+
     @app.get('/libraries/<library_id>/versions')
     def versions(library_id):
         with db.connect() as c:
@@ -114,7 +121,7 @@ def create_app(config=None):
                 while block:=file.stream.read(65536):
                     imports.check_space(settings,len(block));out.write(block);size+=len(block)
             if not size:raise ValueError('The PGN file is empty')
-            key=imports.create(g.user['id'],'file',request.form.get('player',''),request.form.get('mode','merge'),path=path)
+            key=imports.create(g.user['id'],'file',request.form.get('player',''),request.form.get('mode','append'),path=path)
             imports.update(g.user['id'],key,bytes_received=size)
             return result({'job_id':key},202)
         except Exception:
@@ -122,7 +129,7 @@ def create_app(config=None):
 
     @app.post('/imports/lichess')
     def api_import():
-        value=body();key=imports.create(g.user['id'],'lichess',value.get('player',''),value.get('mode','merge'),url=value.get('url'))
+        value=body();key=imports.create(g.user['id'],'lichess',value.get('player',''),value.get('mode','append'),url=value.get('url'))
         return result({'job_id':key},202)
 
     @app.post('/imports/preview')

@@ -32,7 +32,7 @@ def game(owner,library_id,snapshot_id,game_id):
     with db.connect() as c:
         snap=db.snapshot(c,owner,library_id,snapshot_id);revision=db.game(c,owner,snap,game_id)
         row=db.perspective(revision['payload'],snap['player'])
-        jobs=c.execute('SELECT id,status,evidence,error FROM study.workspace_analysis WHERE owner_id=%s AND revision_id=%s AND player=%s ORDER BY created_at DESC',(owner,revision['id'],snap['player'])).fetchall()
+        jobs=c.execute('SELECT id,status,evidence,error,progress FROM study.workspace_analysis WHERE owner_id=%s AND revision_id=%s AND player=%s ORDER BY created_at DESC',(owner,revision['id'],snap['player'])).fetchall()
         notes=c.execute('SELECT ply,status,note FROM study.workspace_reviews WHERE owner_id=%s AND revision_id=%s ORDER BY ply',(owner,revision['id'])).fetchall()
         return dict(pgn.replay(row),library_id=str(snap['library_id']),snapshot_id=str(snap['id']),revision_id=str(revision['id']),
             version=snap['version'],game_date=row['game_date'],analysis_jobs=jobs,notes=notes,

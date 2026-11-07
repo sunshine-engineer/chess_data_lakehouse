@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "source": "Explicitly labelled synthetic DemoStudent PGNs; offline Lichess transport",
+  "checks": [
+    "manual PGN auto-detection and analysis redirect",
+    "deep game link, board, engine variations, evidence question, notes and pagination",
+    "grounded counts, practice plan and unsupported prediction refusal",
+    "version-pinned saved study and four checksummed export formats",
+    "different month import and analytical date range",
+    "Lichess link import with no max option and duplicate snapshot reuse (offline transport)",
+    "clear replacement semantics and preserved old saved collection",
+    "two-account browser isolation and protected deep links/exports",
+    "sidebar navigation survives delayed upload completion while the background import finishes",
+    "consistent toolbar typography, revised library copy and two metadata-only add-only syncs"
+  ],
+  "desktop_mobile": true,
+  "javascript_errors": [],
+  "live_lichess_verified": false
+}

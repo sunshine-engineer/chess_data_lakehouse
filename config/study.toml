@@ -11,5 +11,5 @@ max_cohorts = 50
 max_analyzed_games = 3
 engine_nodes = 20000
 engine_hash_mb = 32
-engine_game_seconds = 120
+engine_game_seconds = 300
 minimum_opening_games = 5

@@ -82,10 +82,15 @@ window.Study = (() => {
     const [data,jobs]=await Promise.all([api('libraries'),api('imports')]);if(sequence!==state.routeSequence)return;
     const box=$('#study-library-list');box.replaceChildren();
     if(!data.libraries.length) {const card=node('article',null,'panel study-empty');card.append(node('h3','Your first study starts with a game.'),node('p','Upload your PGN or paste a Lichess games API link. You can add more dates later.'),link('Import my games ↗','#personal/import','primary study-link-button'));box.append(card);}
-    for(const library of data.libraries) {const card=node('article',null,'panel study-library-card');card.append(node('p','PLAYER LIBRARY','eyebrow'),node('h3',library.player),node('strong',`${num(library.games)} games`),node('p',library.version?`Collection v${library.version} · all imported dates`:'Waiting for a successful import','muted'),link('Open analysis →',`#personal/${library.id}/overview`));box.append(card);}
+    for(const library of data.libraries) {
+      const card=node('article',null,'panel study-library-card'),actions=node('div',null,'study-actions');
+      if(library.active_snapshot)actions.append(link('Open analysis →',`#personal/${library.id}/overview`));
+      actions.append(button('Sync new games',async()=>{const route=state.routeSequence;const result=await api(`libraries/${library.id}/sync`,{});if(route===state.routeSequence)go(`#personal/import?job=${result.job_id}`);}));
+      card.append(node('p','PLAYER LIBRARY','eyebrow'),node('h3',library.player),node('strong',`${num(library.games)} games`),node('p',library.version?`Collection v${library.version} · all imported dates`:'No completed games imported yet','muted'),actions);box.append(card);
+    }
     const recent=$('#study-recent-imports');recent.replaceChildren();
     if(!jobs.jobs.length)recent.append(node('p','No imports yet.','muted'));
-    for(const job of jobs.jobs.slice(0,5)){const row=node('div',null,'study-import-row');row.append(node('strong',job.player||'Detecting player'),node('span',`${job.status} · ${num(job.games_processed)} games read`, 'muted'),link('Import details',`#personal/import?job=${job.id}`));if(job.status==='complete')row.append(link('Open study',`#personal/${job.library_id}/overview?snapshot=${job.snapshot_id}`));recent.append(row);}
+    for(const job of jobs.jobs.slice(0,5)){const row=node('div',null,'study-import-row');row.append(node('strong',job.player||'Detecting player'),node('span',`${job.status} · ${num(job.new_games)} new games`, 'muted'),link('Import details',`#personal/import?job=${job.id}`));if(job.status==='complete'&&job.snapshot_id)row.append(link('Open study',`#personal/${job.library_id}/overview?snapshot=${job.snapshot_id}`));recent.append(row);}
   }
   async function loadReport(sequence=state.routeSequence) {
     const report=await api('report',selection());if(sequence!==state.routeSequence)return;
@@ -187,12 +192,46 @@ window.Study = (() => {
   $('#study-position-analyze').addEventListener('click',async()=>{try{if(state.preview)throw new Error('Return to the played game or a trial line to evaluate a position.');const selected=boardSelection(),context=JSON.stringify(selected),route=state.routeSequence,value=await api('board/analysis',{...selected,profile:$('#study-position-profile').value});clearTimeout(state.positionTimer);await pollPosition(value.id,context,route);}catch(err){error(err);}});
   function renderEngine() {
     const box=$('#study-engine');box.replaceChildren();
-    for(const job of state.replay.analysis_jobs){box.append(node('p',`Engine review: ${job.status}`,'study-pill'));if(job.error)box.append(node('p',job.error,'callout'));if(job.status!=='complete')continue;
-      const e=job.evidence;box.append(node('p',`${e.engine} · ${e.analyzed_plies}/${e.total_plies} half-moves reviewed · ${e.complete_coverage?'full coverage':'partial coverage'}`,'muted'));
-      if(!e.candidates.length)box.append(node('p','No move crossed the review threshold in the analyzed portion. This does not establish error-free play.'));
-      for(const candidate of e.candidates.slice(0,3)){const card=node('div',null,'study-engine-item');card.append(node('h4',candidate.motif||'Move to review'),node('p',candidate.explanation||candidate.summary),button(`Before ${candidate.played_san}`,()=>{state.preview=null;state.ply=candidate.ply-1;renderBoard();},'text-link'),node('p',candidate.practice,'muted'));
-        const lines=node('div',null,'study-variation-buttons');for(const [label,positions,moves] of [['Preferred',candidate.preferred_positions||[],candidate.pv_san],['Opponent reply',candidate.reply_positions||[],candidate.reply_pv_san||[]]])moves.forEach((move,i)=>{if(positions[i+1])lines.append(button(`${label} ${i+1}: ${move}`,()=>{state.preview={fen:positions[i+1],label:`${label} after ${move}`};renderBoard();},'secondary'));});lines.append(button('Return to played game',()=>{state.preview=null;renderBoard();},'text-link'));card.append(lines);box.append(card);}
+    const jobs=state.replay.analysis_jobs,job=jobs[0];
+    const current=job&&(job.evidence.review_version===3||job.evidence.budget?.analysis_version===3);
+    $('#study-analyze').disabled=Boolean(current&&['queued','running','complete'].includes(job.status));
+    if(!job)return;
+    box.append(node('p',`Engine review: ${job.status}`,'study-pill'));
+    if(job.error)box.append(node('p',job.error,'callout'));
+    if(job.status!=='complete'){
+      const p=job.progress||{};
+      box.append(node('p',p.stage?`${p.stage} · ${num(p.positions_checked)}/${num(p.total_plies)} played moves checked · ${num(p.player_moves_reviewed)}/${num(p.player_moves_total)} of your decisions compared.`:'Waiting for the engine worker.'));
+      return;
     }
+    const e=job.evidence,summary=node('div',null,'study-review-summary');
+    summary.append(node('strong',current?(e.complete_coverage?'Complete game checked':'Review partially checked'):'Earlier review · request the updated full-game review'),node('p',`${e.engine} · ${num(e.analyzed_plies)} of ${num(e.total_plies)} played moves checked (White and Black).`));
+    if(current)summary.append(node('p',`${num(e.player_moves_reviewed)} of ${num(e.player_moves_total)} of your decisions compared · ${e.candidates.length} ${e.candidates.length===1?'decision':'decisions'} worth revisiting.`),node('p',e.coverage_explanation));
+    summary.append(node('p','Scores are from your side: +1.00 is roughly a pawn’s advantage; −1.00 favors your opponent. Mate scores count moves to checkmate. These are engine estimates.','muted'));box.append(summary);
+    if(!e.candidates.length)box.append(node('p','No move crossed the 1.50-pawn review threshold in the checked portion. This does not establish error-free play.'));
+    for(const [index,candidate] of e.candidates.entries()){
+      const card=node('details',null,'study-engine-item');card.open=index===0;
+      card.append(node('summary',`Move ${candidate.fullmove||Math.ceil(candidate.ply/2)} · ${candidate.played_san} · ${candidate.motif||'Decision to review'}`),node('p',candidate.explanation||candidate.summary),button(`Before ${candidate.played_san}`,()=>{state.trial=null;state.preview=null;state.ply=candidate.ply-1;renderBoard();},'text-link'));
+      const alternatives=candidate.alternatives||[{rank:1,pv_san:candidate.pv_san,positions:candidate.preferred_positions||[],explanation:'Earlier search evidence. Request the updated review to compare three lines.'}];
+      if(alternatives.length<3&&current)card.append(node('p',`This position returned ${alternatives.length} alternative ${alternatives.length===1?'line':'lines'}. Fewer than three other legal continuations may be available.`,'muted'));
+      for(const line of alternatives){
+        const item=node('section',null,'study-engine-line');item.append(node('h5',`Line ${line.rank}: ${line.pv_san[0]||'Game ended'}${line.score_label?' · '+line.score_label:''}`),node('p',line.explanation),node('p',line.pv_san.join(' '),'study-pv'));
+        item.append(lineControls(line.positions,line.pv_san,`Line ${line.rank}`,candidate.ply-1));card.append(item);
+      }
+      if(candidate.reply_pv_san?.length){const reply=node('details');reply.append(node('summary','Why the played move loses ground'),node('p',candidate.reply_pv_san.join(' '),'study-pv'),lineControls(candidate.reply_positions,candidate.reply_pv_san,'Played continuation',candidate.ply));card.append(reply);}
+      card.append(button('Return to played game',()=>{state.trial=null;state.preview=null;renderBoard();},'text-link'));box.append(card);
+    }
+    if(jobs.length>1){const history=node('details');history.append(node('summary','Earlier reviews'));
+      for(const old of jobs.slice(1)){history.append(node('p',`${old.evidence.engine||'Engine'} · ${old.status} · ${old.evidence.analyzed_plies||0}/${old.evidence.total_plies||0} played moves checked`,'muted'));
+        for(const finding of old.evidence.candidates||[])history.append(node('p',`${finding.played_san}: ${finding.explanation||finding.summary}`));
+      }box.append(history);
+    }
+  }
+  function lineControls(positions,moves,label,ply){
+    let step=0;const controls=node('div',null,'study-line-controls'),status=node('span','Line ready','muted');
+    const show=()=>{state.trial=null;state.ply=ply;state.preview={fen:positions[step],label:`${label} · ${step?moves[step-1]:'starting position'}`};renderBoard();status.textContent=`${step}/${moves.length} moves`;previous.disabled=step===0;next.disabled=step>=moves.length;};
+    const previous=button('← Back',()=>{step=Math.max(0,step-1);show();}),next=button('Next →',()=>{step=Math.min(moves.length,step+1);show();});
+    previous.disabled=true;next.disabled=!moves.length;
+    controls.append(button('Replay line',()=>{step=0;show();}),previous,next,status);return controls;
   }
   function source(value) {state.source=value;$('#study-file-fields').hidden=value!=='file';$('#study-api-fields').hidden=value!=='api';$('#study-source-file').classList.toggle('active',value==='file');$('#study-source-api').classList.toggle('active',value==='api');}
   async function previewLink() {const value=$('#study-import-form input[name=url]').value;if(!value)return;try{const data=await api('imports/preview',{url:value});$('#study-api-preview').textContent=data.explanation;}catch(e){$('#study-api-preview').textContent=e.message;}}
@@ -201,15 +240,26 @@ window.Study = (() => {
     if(sequence!==state.routeSequence||$('#personal').hidden)return;
     state.job=value;$('#study-import-progress').hidden=false;
     $('#study-job-phase').textContent=value.phase;$('#study-job-detail').textContent=`${num(value.games_processed)} games read · ${num(value.new_games)} new · ${num(value.changed_games)} updated · ${num(value.duplicate_games)} reused${value.rejected_games?' · '+num(value.rejected_games)+' not imported':''}${value.bytes_received?' · '+(value.bytes_received/1048576).toFixed(1)+' MiB received':''}`;
+    if(value.sync_mode)$('#study-job-detail').textContent+=` · ${num(value.metadata_games)} game IDs checked · ${num(value.skipped_old_games)} stored games skipped without downloading moves`;
     const diagnostics=(value.diagnostics||[]).map(item=>`Game ${item.game_number}: ${item.reason}`).join('\n');
     $('#study-job-error').hidden=!(value.error||diagnostics);$('#study-job-error').textContent=[value.error,diagnostics].filter(Boolean).join('\n');
     const active=['queued','running'].includes(value.status);$('#study-job-progress').hidden=!active;$('#study-job-cancel').hidden=!active;
-    $('#study-job-retry').hidden=!(value.source_kind==='lichess'&&['failed','cancelled'].includes(value.status));$('#study-job-open').hidden=value.status!=='complete';
+    $('#study-job-retry').hidden=!(value.source_kind==='lichess'&&['failed','cancelled'].includes(value.status));$('#study-job-open').hidden=value.status!=='complete'||!value.snapshot_id;
+    if(value.status==='complete'&&!value.snapshot_id){alert('Sync complete. No completed standard games are available yet. You can sync again later.',true);return;}
     if(value.status==='complete'){$('#study-job-open').href=`#personal/${value.library_id}/overview?snapshot=${value.snapshot_id}`;if(redirect){const skipped=value.rejected_games?` ${num(value.rejected_games)} unsupported, unfinished or unrelated games were excluded; open Recent imports for details.`:'';alert(`Import complete: ${num(value.new_games)} new games, ${num(value.changed_games)} updated, ${num(value.duplicate_games)} reused. Your collection is ready.${skipped}`,true);resetLibrary(value.library_id);state.snapshot=value.snapshot_id;go(href('overview'));return;}}
     if(active)state.timer=setTimeout(()=>{if(!$('#personal').hidden)pollJob(key,true).catch(error);},2000);
   }
   function upload(form) {
-    return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST','/api/personal/imports/file');xhr.setRequestHeader('X-Study-Action','1');xhr.setRequestHeader('X-CSRF-Token',state.user.csrf);xhr.upload.onprogress=e=>{if(e.lengthComputable)alert(`Uploading ${(e.loaded/1048576).toFixed(1)} of ${(e.total/1048576).toFixed(1)} MiB…`,true);};xhr.onload=()=>{try{const value=JSON.parse(xhr.responseText);if(xhr.status>=400)reject(new Error(value.error));else resolve(value);}catch(e){reject(e);}};xhr.onerror=()=>reject(new Error('The upload connection was interrupted. Choose the file again to retry.'));xhr.send(form);});
+    return new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();xhr.open('POST','/api/personal/imports/file');
+      xhr.setRequestHeader('X-Study-Action','1');xhr.setRequestHeader('X-CSRF-Token',state.user.csrf);
+      xhr.upload.onprogress=e=>{if(e.lengthComputable)alert(`Uploading ${(e.loaded/1048576).toFixed(1)} of ${(e.total/1048576).toFixed(1)} MiB…`,true);};
+      xhr.onload=()=>{
+        if($('#study-alert').textContent.startsWith('Uploading '))alert('');
+        try{const value=JSON.parse(xhr.responseText);if(xhr.status>=400)reject(new Error(value.error));else resolve(value);}catch(e){reject(e);}
+      };
+      xhr.onerror=()=>reject(new Error('The upload connection was interrupted. Choose the file again to retry.'));xhr.send(form);
+    });
   }
 
   $('#study-signin-tab').addEventListener('click',()=>{state.signup=false;$('#study-auth-title').textContent='Open your study library.';$('#study-auth-submit').textContent='Sign in';$('#study-signin-tab').classList.add('active');$('#study-signup-tab').classList.remove('active');});
@@ -220,7 +270,7 @@ window.Study = (() => {
   $('#study-source-file').addEventListener('click',()=>source('file'));$('#study-source-api').addEventListener('click',()=>source('api'));
   $('#study-api-example').addEventListener('click',()=>{const player=$('#study-player').value.trim();if(!player){alert('Enter a Lichess player name below to create the link.');$('#study-player').focus();return;}$('#study-import-form input[name=url]').value='https://lichess.org/api/games/user/'+encodeURIComponent(player);previewLink();});
   $('#study-import-form input[name=url]').addEventListener('change',previewLink);
-  $('#study-import-mode').addEventListener('change',()=>{$('#study-mode-help').textContent=$('#study-import-mode').value==='merge'?'Keep the games already in this library. Add new games, reuse identical games, and update changed information. This is the usual choice.':'Make this import the active collection for this player. Games outside this import disappear from the active view; earlier saved versions and studies remain available. Shared game data is reused.';});
+  $('#study-import-mode').addEventListener('change',()=>{$('#study-mode-help').textContent={append:'Add games you do not have yet. Stored games and notes stay unchanged. An unfiltered Lichess link syncs from the last successful check; the first sync checks game IDs without downloading old moves.',merge:'Refresh games in this import and add missing games. Changed information creates a new version; previous saved studies and notes remain available.',replace:'Make this import the active collection for this player. Games outside this import disappear from the active view; earlier saved versions and studies remain available. Shared game data is reused.'}[$('#study-import-mode').value];});
   $('#study-import-form').addEventListener('submit',async e=>{e.preventDefault();const b=$('#study-import-submit'),sequence=state.routeSequence;b.disabled=true;try{let result;if(state.source==='file'){const form=new FormData(e.target);if(!form.get('file')?.size)throw new Error('Choose a PGN file first.');form.delete('url');result=await upload(form);}else result=await api('imports/lichess',{url:e.target.elements.url.value,player:e.target.elements.player.value,mode:e.target.elements.mode.value});if(sequence!==state.routeSequence||$('#personal').hidden)return;alert('Import started. You can leave this page and return from Recent imports.',true);state.job=null;history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(err){error(err);}finally{b.disabled=false;}});
   $('#study-job-cancel').addEventListener('click',async()=>{if(!state.job)return;try{await api(`imports/${state.job.id}/cancel`,{});await pollJob(state.job.id,false);}catch(e){error(e);}});
   $('#study-job-retry').addEventListener('click',async()=>{const sequence=state.routeSequence;try{const result=await api(`imports/${state.job.id}/retry`,{});if(sequence!==state.routeSequence||$('#personal').hidden)return;history.replaceState(null,'',`#personal/import?job=${result.job_id}`);await pollJob(result.job_id,true);}catch(e){error(e);}});

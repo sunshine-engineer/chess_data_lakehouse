@@ -75,7 +75,7 @@ def job(c,owner,key):
 
 
 def create(owner,kind,player,mode,path=None,url=None):
-    if mode not in ('merge','replace'):raise ValueError('Choose Add to my library or Use only this import')
+    if mode not in ('append','merge','replace'):raise ValueError('Choose new games, refresh, or replacement')
     player=player_name(player)
     if kind=='lichess':
         url,inferred,_=lichess_url(url)
@@ -100,7 +100,8 @@ def cancelled(owner,key):
 
 
 def update(owner,key,**values):
-    allowed={'phase','bytes_received','games_processed','new_games','changed_games','duplicate_games','rejected_games','player','library_id','source_sha256'}
+    allowed={'phase','bytes_received','games_processed','new_games','changed_games','duplicate_games','rejected_games','player','library_id','source_sha256',
+        'sync_mode','sync_since_ms','sync_until_ms','metadata_games','skipped_old_games'}
     if set(values)-allowed:raise ValueError('invalid job update')
     with db.connect() as c:
         c.execute('UPDATE study.import_jobs SET '+','.join(k+'=%s' for k in values)+' WHERE owner_id=%s AND id=%s',list(values.values())+[owner,key])
@@ -113,8 +114,22 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def download(record,config,opener=None):
     normalized,_,_=lichess_url(record['source_url'])
     path=db.root()/('upload-'+str(record['id'])+'.pgn')
-    opener=opener or urllib.request.build_opener(NoRedirect())
     request=urllib.request.Request(normalized,headers={'Accept':'application/x-chess-pgn','User-Agent':'ChessAtlas-PersonalStudy/1.0'})
+    received=0
+    try:
+        with open_response(record,request,opener) as response,path.open('wb') as out:
+            while block:=response.read(65536):
+                if cancelled(record['owner_id'],record['id']):raise Cancelled()
+                check_space(config,len(block));out.write(block);received+=len(block)
+                update(record['owner_id'],record['id'],bytes_received=received,phase='Downloading games from Lichess')
+    except Exception:
+        path.unlink(missing_ok=True);raise
+    with db.connect() as c:c.execute('UPDATE study.import_jobs SET input_path=%s WHERE owner_id=%s AND id=%s',(str(path),record['owner_id'],record['id']))
+    return path
+
+
+def open_response(record,request,opener=None):
+    opener=opener or urllib.request.build_opener(NoRedirect())
     response=None
     for attempt in range(4):
         if cancelled(record['owner_id'],record['id']):raise Cancelled()
@@ -130,17 +145,7 @@ def download(record,config,opener=None):
             raise ValueError('Lichess could not export these games (HTTP '+str(e.code)+'). Check the username and link.') from None
         except (urllib.error.URLError,TimeoutError):raise ValueError('Lichess download was interrupted. Retry the import when the connection is available.') from None
     if response is None:raise ValueError('Lichess is still rate limiting this request; retry later')
-    received=0
-    try:
-        with response,path.open('wb') as out:
-            while block:=response.read(65536):
-                if cancelled(record['owner_id'],record['id']):raise Cancelled()
-                check_space(config,len(block));out.write(block);received+=len(block)
-                update(record['owner_id'],record['id'],bytes_received=received,phase='Downloading games from Lichess')
-    except Exception:
-        path.unlink(missing_ok=True);raise
-    with db.connect() as c:c.execute('UPDATE study.import_jobs SET input_path=%s WHERE owner_id=%s AND id=%s',(str(path),record['owner_id'],record['id']))
-    return path
+    return response
 
 
 class RecordReader:
@@ -169,7 +174,17 @@ def detect_player(path,config,cancel_check=None):
     return player_name(next(iter(common.values())))
 
 
-def iterate(path,player,config):
+def source_id(headers):
+    """Use the parser's URL/GameId rules, including /game/ID and player URLs.
+
+    Skipped or empty records still need their source ID for checkpoint safety.
+    A generic local-content hash is not a remote export identity.
+    """
+    identity,origin,_=pgn.game_identity(headers,{},None,'',[],set())
+    return identity if origin=='source' else None
+
+
+def iterate(path,player,config,known=None):
     context=ParseContext(player,config.max_record_bytes,config.max_game_plies,config.max_game_plies)
     builder=type('WorkspaceBuilder',(pgn.StrictBuilder,),{'max_plies':config.max_game_plies})
     with path.open(encoding='utf-8-sig') as stream:
@@ -177,21 +192,29 @@ def iterate(path,player,config):
         while True:
             number+=1
             try:
+                if known:
+                    position=stream.tell();headers=chess.pgn.read_headers(RecordReader(stream,config.max_record_bytes))
+                    if headers is None:break
+                    identity=source_id(headers)
+                    if identity and known(identity):
+                        yield number,{'_existing_id':identity};continue
+                    stream.seek(position)
                 game=chess.pgn.read_game(RecordReader(stream,config.max_record_bytes),Visitor=builder)
                 if game is None:break
+                game_id=source_id(game.headers)
                 variant=game.headers.get('Variant','Standard')
                 if not pgn.missing(variant) and variant not in ('Standard','Chess'):
-                    yield number,{'_skip_reason':'Unsupported variant: '+variant[:40]};continue
+                    yield number,{'_game_id':game_id,'_skip_reason':'Unsupported variant: '+variant[:40]};continue
                 names=[game.headers.get(k,'').strip() for k in ('White','Black')]
                 if all(not pgn.missing(name) for name in names) and all(name.casefold()!=player.casefold() for name in names):
-                    yield number,{'_skip_reason':'Game does not contain the selected player'};continue
+                    yield number,{'_game_id':game_id,'_skip_reason':'Game does not contain the selected player'};continue
                 if not any(game.mainline_moves()):
-                    yield number,{'_skip_reason':'Empty or aborted game with no moves'};continue
+                    yield number,{'_game_id':game_id,'_skip_reason':'Empty or aborted game with no moves'};continue
                 text=game.accept(chess.pgn.StringExporter(headers=True,variations=False,comments=True))
                 try:rows,_=pgn.parse(text.encode(),context)
                 except ValueError as error:
                     if 'game result is missing' in str(error):
-                        yield number,{'_skip_reason':'Unfinished game with no completed result'};continue
+                        yield number,{'_game_id':game_id,'_skip_reason':'Unfinished game with no completed result'};continue
                     raise
                 yield number,rows[0]
             except (ValueError,IndexError,UnicodeError) as e:
@@ -209,20 +232,30 @@ def publish(owner,key,config):
         lib=db.library(c,owner,record['library_id'])
         c.execute('SELECT pg_advisory_xact_lock(hashtext(%s))',('library:'+str(lib['id']),))
         current=db.snapshot(c,owner,lib['id']) if lib['active_snapshot'] else None
+        # The common no-new-games sync publishes only its checkpoint, without
+        # copying or rehashing an unchanged library's memberships.
+        staged=c.execute('SELECT 1 FROM study.import_members WHERE owner_id=%s AND job_id=%s LIMIT 1',(owner,key)).fetchone()
+        if current and record['mode']=='append' and not staged:
+            from . import sync
+            sync.publish(c,record)
+            c.execute("UPDATE study.import_jobs SET status='complete',phase='No new completed games',snapshot_id=%s,finished_at=now(),input_path=NULL WHERE owner_id=%s AND id=%s",(current['id'],owner,key))
+            return str(current['id'])
         c.execute('CREATE TEMP TABLE desired_games(game_id TEXT PRIMARY KEY,revision_id UUID NOT NULL) ON COMMIT DROP')
-        if current and record['mode']=='merge':
+        if current and record['mode'] in ('merge','append'):
             c.execute('INSERT INTO desired_games SELECT game_id,revision_id FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s',(owner,current['id']))
+        conflict='DO NOTHING' if record['mode']=='append' else 'DO UPDATE SET revision_id=EXCLUDED.revision_id'
         c.execute('''INSERT INTO desired_games SELECT game_id,revision_id FROM study.import_members WHERE owner_id=%s AND job_id=%s
-            ON CONFLICT(game_id) DO UPDATE SET revision_id=EXCLUDED.revision_id''',(owner,key))
+            ON CONFLICT(game_id) '''+conflict,(owner,key))
         count=c.execute('SELECT count(*) AS n FROM desired_games').fetchone()['n']
         if config.max_library_games and count>config.max_library_games:raise ValueError('This import exceeds the configured library game quota')
-        if not count:raise ValueError('No completed standard games were found in this import')
+        if not count and not record['sync_mode']:raise ValueError('No completed standard games were found in this import')
         digest=hashlib.sha256(lib['player_key'].encode())
         with c.cursor(name='snapshot_digest') as cursor:
             cursor.execute('SELECT d.game_id,r.payload_sha256 FROM desired_games d JOIN study.game_revisions r ON r.id=d.revision_id ORDER BY d.game_id')
             for entry in cursor:digest.update((entry['game_id']+':'+entry['payload_sha256']+'\n').encode())
         sha=digest.hexdigest()
-        if current and current['dataset_sha256']==sha:
+        if not count:snapshot_id=None
+        elif current and current['dataset_sha256']==sha:
             snapshot_id=current['id']
         else:
             snapshot_id=str(uuid4());version=current['version']+1 if current else 1
@@ -232,12 +265,18 @@ def publish(owner,key,config):
             c.execute('UPDATE study.libraries SET active_snapshot=%s WHERE owner_id=%s AND id=%s',(snapshot_id,owner,lib['id']))
         c.execute("UPDATE study.import_jobs SET status='complete',phase='Ready to study',snapshot_id=%s,finished_at=now(),input_path=NULL WHERE owner_id=%s AND id=%s",(snapshot_id,owner,key))
         c.execute('DELETE FROM study.import_members WHERE owner_id=%s AND job_id=%s',(owner,key))
-        return str(snapshot_id)
+        from . import sync
+        sync.publish(c,record)
+        if record['mode']=='replace':
+            c.execute('DELETE FROM study.sync_pending_games WHERE owner_id=%s AND library_id=%s',(owner,lib['id']))
+            c.execute('DELETE FROM study.library_sync_state WHERE owner_id=%s AND library_id=%s',(owner,lib['id']))
+        return str(snapshot_id) if snapshot_id else None
 
 
 def cleanup_staging(owner,key):
     with db.connect() as c:
         c.execute('DELETE FROM study.import_members WHERE owner_id=%s AND job_id=%s',(owner,key))
+        c.execute('DELETE FROM study.import_game_queue WHERE owner_id=%s AND job_id=%s',(owner,key))
         # No duplicate/orphan payload is retained after a failed or cancelled import.
         c.execute('''DELETE FROM study.game_revisions r WHERE r.owner_id=%s
             AND NOT EXISTS(SELECT 1 FROM study.snapshot_games m WHERE m.revision_id=r.id)
@@ -250,7 +289,9 @@ def process(record,config,opener=None):
     owner=record['owner_id'];key=record['id'];path=Path(record['input_path']) if record.get('input_path') else None
     try:
         if cancelled(owner,key):raise Cancelled()
-        path=download(record,config,opener) if record['source_kind']=='lichess' else Path(record['input_path'])
+        from . import sync
+        is_sync=sync.eligible(record)
+        path=sync.download(record,config,opener) if is_sync else download(record,config,opener) if record['source_kind']=='lichess' else Path(record['input_path'])
         player=record['player'] or detect_player(path,config,lambda:cancelled(owner,key))
         with db.connect() as c:lib=db.library(c,owner,player=player,create=True)
         sha=hashlib.sha256()
@@ -268,10 +309,11 @@ def process(record,config,opener=None):
             with db.connect() as c:
                 active=db.library(c,owner,lib['id'])['active_snapshot']
                 for row in batch:
+                    previous=c.execute('SELECT revision_id FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s AND game_id=%s',(owner,active,row['game_id'])).fetchone() if active else None
+                    if record['mode']=='append' and previous:duplicates+=1;continue
                     repeated=c.execute('SELECT revision_id FROM study.import_members WHERE owner_id=%s AND job_id=%s AND game_id=%s',(owner,key,row['game_id'])).fetchone()
                     revision=db.save_revision(c,owner,row)
                     if repeated and str(repeated['revision_id'])!=revision:raise ValueError('The file contains conflicting copies of game '+row['game_id'])
-                    previous=c.execute('SELECT revision_id FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s AND game_id=%s',(owner,active,row['game_id'])).fetchone() if active else None
                     if repeated or previous and str(previous['revision_id'])==revision:duplicates+=1
                     elif previous:changed+=1
                     else:new+=1
@@ -282,8 +324,22 @@ def process(record,config,opener=None):
                 c.execute('''UPDATE study.import_jobs SET games_processed=%s,new_games=%s,changed_games=%s,duplicate_games=%s
                     WHERE owner_id=%s AND id=%s''',(total,new,changed,duplicates,owner,key))
             batch=[];batch_bytes=0
-        for _,row in iterate(path,player,config):
+        def known(identity):
+            with db.connect() as c:
+                active=db.library(c,owner,lib['id'])['active_snapshot']
+                return bool(active and c.execute('SELECT 1 FROM study.snapshot_games WHERE owner_id=%s AND snapshot_id=%s AND game_id=%s',(owner,active,identity)).fetchone())
+        for _,row in iterate(path,player,config,known if record['mode']=='append' else None):
             total+=1
+            if is_sync:
+                if row.get('_skip_reason')=='Game does not contain the selected player':raise ValueError('Lichess returned a requested game for a different player; retry sync')
+                identity=row.get('game_id') or row.get('_game_id') or row.get('_existing_id')
+                with db.connect() as c:
+                    queued=c.execute('SELECT pending FROM study.import_game_queue WHERE owner_id=%s AND job_id=%s AND game_id=%s',(owner,key,identity)).fetchone()
+                    if not queued:raise ValueError('Lichess returned a game outside this sync request')
+                    unfinished=row.get('_skip_reason','').startswith('Unfinished') or queued['pending'] and row.get('_skip_reason','').startswith('Empty')
+                    c.execute('UPDATE study.import_game_queue SET resolved=%s,pending=%s WHERE owner_id=%s AND job_id=%s AND game_id=%s',
+                        (not unfinished,unfinished,owner,key,identity))
+            if '_existing_id' in row:duplicates+=1;continue
             if '_skip_reason' in row:
                 rejected+=1
                 if len(diagnostics)<10:diagnostics.append({'game_number':total,'reason':row['_skip_reason']})
@@ -293,8 +349,8 @@ def process(record,config,opener=None):
         flush()
         with db.connect() as c:
             from psycopg.types.json import Jsonb
-            c.execute('UPDATE study.import_jobs SET games_processed=%s,rejected_games=%s,diagnostics=%s WHERE owner_id=%s AND id=%s',
-                (total,rejected,Jsonb(diagnostics),owner,key))
+            c.execute('UPDATE study.import_jobs SET games_processed=%s,new_games=%s,changed_games=%s,duplicate_games=%s,rejected_games=%s,diagnostics=%s WHERE owner_id=%s AND id=%s',
+                (total,new,changed,duplicates,rejected,Jsonb(diagnostics),owner,key))
         publish(owner,key,config)
     except Cancelled:
         cleanup_staging(owner,key)

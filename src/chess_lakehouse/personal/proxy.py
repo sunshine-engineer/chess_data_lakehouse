@@ -32,6 +32,7 @@ def register(app):
         methods=ROUTES.get(route,set())
         if route.startswith('games/') and valid_game_id(route[6:]):methods={'GET'}
         if re.fullmatch(r'libraries/[a-fA-F0-9-]{36}/versions',route):methods={'GET'}
+        if re.fullmatch(r'libraries/[a-fA-F0-9-]{36}/sync',route):methods={'POST'}
         if re.fullmatch(r'imports/[a-fA-F0-9-]{36}',route):methods={'GET'}
         if re.fullmatch(r'imports/[a-fA-F0-9-]{36}/(?:cancel|retry)',route):methods={'POST'}
         if re.fullmatch(r'board/analysis/[a-fA-F0-9-]{36}',route):methods={'GET'}
