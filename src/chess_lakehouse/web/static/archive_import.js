@@ -1,6 +1,7 @@
 'use strict';
 window.ArchiveImports={mount:async function(panel){
  const A=window.Atlas,{el,button,link}=A,box=el('div'),status=el('p','Sign in to manage imports.','muted');panel.querySelector('#live-archive-controls')?.remove();box.id='live-archive-controls';panel.append(box);box.append(el('h3','Fetch a monthly archive'),el('p','Choose the latest standard archive, a published month, or an official PGN/torrent link. Each job publishes one complete month. Archives, frames, parsed data and database tables need working disk space.'),status);
+ async function openControls(){
  let session;try{session=await A.request('/api/personal/session');}catch(e){status.textContent=e.message;return;}if(!session.authenticated){box.append(link('Sign in →','#personal'));return;}
  const post=(path,value)=>A.request('/api/personal/archives/'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Study-Action':'1','X-CSRF-Token':session.user.csrf},body:JSON.stringify(value)});
  const form=el('form',null,'compact-form'),mode=el('select'),month=el('select'),url=el('input'),ceiling=el('input'),engine=el('select'),auto=el('input'),list=el('div'),detail=el('p',null,'muted');let timer,rows=[],subscriptionLoaded=false;
@@ -27,4 +28,6 @@ window.ArchiveImports={mount:async function(panel){
   timer=setTimeout(()=>{if(A.state.view==='pipelines'&&box.isConnected)jobs();},5000);
  }
  await load();await jobs();
+ }
+ const openButton=button('Open archive import controls',async()=>{openButton.disabled=true;try{await openControls();}finally{openButton.disabled=false;openButton.hidden=!!box.querySelector('form');}});box.append(openButton);
 }};

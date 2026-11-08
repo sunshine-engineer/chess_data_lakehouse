@@ -54,7 +54,7 @@ with sync_playwright() as p:
     page.locator('#repertoire-fallback').check();page.locator('#repertoire-start').click();page.locator('#repertoire-pause').click();expect(page.locator('#repertoire-status')).to_contain_text('paused')
     page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path=str(out/'repertoire-mobile.png'),full_page=True)
     page.route('**/api/personal/archives/catalog',lambda route:route.fulfill(json={'archives':[{'month':'2026-10','display_size':'31 GB','expected_games':95395628}]}))
-    page.goto(root+'/#pipelines');expect(page.locator('#archive-source-mode')).to_be_visible();expect(page.locator('#archive-month option').first).to_contain_text('2026-10',timeout=30000)
+    page.goto(root+'/#pipelines');page.get_by_role('button',name='Open archive import controls',exact=True).click();expect(page.locator('#archive-source-mode')).to_be_visible();expect(page.locator('#archive-month option').first).to_contain_text('2026-10',timeout=30000)
     page.locator('#archive-source-mode').select_option('url');page.locator('#archive-source-url').fill('https://evil.example/chess.pgn.zst')
     page.get_by_role('button',name='Import selected month',exact=True).click();expect(page.locator('#archive-import-plan')).to_contain_text('Use an HTTPS database.lichess.org')
     assert not page.locator('#archive-auto-latest').is_checked()

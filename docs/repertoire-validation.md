@@ -4,7 +4,8 @@ Validated in Docker on 2026-11-08. The private library build is intentionally le
 
 | Check | Result |
 | --- | --- |
-| Personal study regression suite | 68 passed before the final clock-evidence test was added |
+| Personal study regression suite | 69 passed |
+| Full runner regression suite | 61 passed, 9 optional web-module skips; includes PostgreSQL, multiprocessing and Spark |
 | Final repertoire / archive / narration integration tests | 7 passed |
 | Public app and model tests | 15 passed |
 | Archive subprocess, HTTP resume and framed storage tests | 10 passed |
@@ -12,6 +13,7 @@ Validated in Docker on 2026-11-08. The private library build is intentionally le
 | Repertoire browser | Passed with actual Stockfish on an explicitly synthetic missed-mate game; automatic loss review refresh, hidden solutions, grading, saved attempts, phase list, pause, and mobile layout |
 | Recent-game browser | 4 scenario groups passed, including retained answers and engine-line replay |
 | Existing board / learning browser | 3 scenario groups passed |
+| Public-only browser, private API stopped | 9 scenarios passed with no unexpected API failures; archive controls contact the optional private service only after an explicit click |
 | Real-library browser | Passed: personal and endgame exercises, Lakshan clock/ending explanation, and position-27 evaluation retained during replay; no JavaScript errors; temporary session revoked |
 | Live official catalog | 166 checksum-backed months; newest 2026-10, oldest 2013-01 |
 | Container source consistency | 103 Python / SQL / JS / CSS / template files match the built app image |
