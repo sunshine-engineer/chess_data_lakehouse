@@ -6,10 +6,10 @@ database was deployed or migrated. Live Compose images were left running.
 | Check | Result |
 |---|---|
 | Python/Spark pipeline suite | 71 passed, 21 skipped, 158.00 seconds |
-| Cross-instance PostgreSQL transfer suite | 13 passed, 143.45 seconds |
+| Cross-instance PostgreSQL restore + upsert suite | 34 passed, 137.43 seconds; includes original 13 restore checks and 21 upsert checks |
 | Web/study/configuration suite | 95 passed, 256.61 seconds; includes real mounted-password authentication and outage probes |
 | Separate foreground worker | Ready in Docker; SIGTERM with idle queues exited 0, no OOM kill |
-| Python API inventory | 309 public top-level functions documented; generated index current |
+| Python API inventory | 318 public top-level functions documented; generated index current |
 | Kubernetes | All eight Kustomize targets rendered; strict Kubernetes 1.36 schema validation passed |
 | Compose | Base, standalone-worker override and isolated QA configuration parsed successfully |
 | Packaged migration CLI | Help/argument entrypoint passed inside the built migration image |
@@ -29,6 +29,21 @@ SQL migrations/role ACLs. They exercise crashes before/after COPY and native DDL
 commits, **real SIGKILL before/after COPY commit**, idempotent rerun, corrupted
 tracker recovery, corrupted archive rejection, changed source/target rejection,
 and refusal to overwrite populated destinations (including function-only ones).
+
+The upsert extension additionally verifies source-wins updates (including NULLs),
+retained destination-only rows/tables, composite keys, generated columns,
+partition leaves, forward-only identity sequences, nullable FK cycles, actual
+study/warehouse models, CLI plan/run, tracker recovery, new snapshots/jobs,
+stage/baseline/target checks, and alternate-identity conflicts. Staging, merge and
+FK-patch commit boundaries are interrupted before/after commit; a real process
+is also SIGKILLed after an upsert commit and resumed. Existing published-history
+guards remain enabled and conflicting immutable rows are rejected. Custom
+triggers, incompatible/missing tables, keyless tables and unsupported FK cycles
+are rejected before destination application rows are changed.
+
+The pipeline/web counts above are the previous portability baseline. This upsert
+change reran the combined database suite and strict API/Kubernetes checks; it did
+not redeploy or rerun browser tests against the live application.
 
 Relevant reproducible commands, all execution in containers:
 

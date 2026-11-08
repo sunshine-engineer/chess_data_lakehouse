@@ -72,6 +72,9 @@ def build(root, source, options):
         conn.execute("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
         snapshot = conn.execute("SELECT pg_export_snapshot()").fetchone()[0]
         metadata = inventory.capture(conn)
+        if options.mode == 'upsert':
+            from .upsert import catalog
+            metadata['upsert_catalog'] = catalog(conn)
         text = schema_sql(source, options, snapshot)
         (root/"schema.sql").write_text(text)
         metadata["schema_sha256"] = schema_digest(text)

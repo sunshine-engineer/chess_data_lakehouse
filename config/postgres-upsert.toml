@@ -1,0 +1,14 @@
+# Data-only merge. Provision compatible schemas/tables/partitions first.
+# Source primary-key identities must have the same meaning in both databases.
+[source]
+env_prefix = "SOURCE"
+[target]
+env_prefix = "TARGET"
+[options]
+mode = "upsert"
+chunk_rows = 50000
+chunk_bytes = 16777216
+max_row_bytes = 67108864
+dump_jobs = 2
+verify_source_unchanged = true
+min_free_bytes = 1073741824

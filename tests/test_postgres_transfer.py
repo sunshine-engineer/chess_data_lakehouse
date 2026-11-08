@@ -143,6 +143,7 @@ def test_source_changes_and_target_changes_block_completion(databases, options, 
 
 
 def test_options_and_endpoint_secrets(monkeypatch,tmp_path):
+    with pytest.raises(ValueError):Options(mode='replace')
     assert Options().fingerprint()==replace(Options(), max_row_bytes=128*1024*1024, dump_jobs=1).fingerprint()
     assert Options().fingerprint()!=replace(Options(), chunk_rows=3).fingerprint()
     with pytest.raises(ValueError):Options(chunk_rows=0)

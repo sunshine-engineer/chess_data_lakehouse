@@ -25,6 +25,7 @@ class Options:
     min_free_bytes: int = 1024 * 1024 * 1024
     connect_timeout: int = 10
     lock_timeout_seconds: int = 30
+    mode: str = "restore"
 
     def __post_init__(self):
         """Reject unbounded buffering, unsupported policies and invalid limits."""
@@ -37,6 +38,8 @@ class Options:
             raise ValueError("min_free_bytes cannot be negative")
         if self.ownership not in ("preserve", "current-user") or self.privileges not in ("preserve", "omit"):
             raise ValueError("Unsupported ownership or privileges policy")
+        if self.mode not in ("restore", "upsert"):
+            raise ValueError("Migration mode must be restore or upsert")
         if type(self.create_missing_roles) is not bool or type(self.verify_source_unchanged) is not bool:
             raise ValueError("Migration switches must be TOML booleans")
 
@@ -44,6 +47,7 @@ class Options:
         """Bind a resume to semantic options, excluding passwords and file locations."""
         semantic = {k: v for k, v in asdict(self).items() if k not in
                     {"max_row_bytes", "dump_jobs", "min_free_bytes", "connect_timeout", "lock_timeout_seconds"}}
+        if self.mode == "restore": semantic.pop("mode")  # Preserve pre-upsert resume hashes.
         return hashlib.sha256(json.dumps(semantic, sort_keys=True).encode()).hexdigest()
 
 

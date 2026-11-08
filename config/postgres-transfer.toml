@@ -4,6 +4,8 @@ env_prefix = "SOURCE"
 [target]
 env_prefix = "TARGET"
 [options]
+# Use --mode upsert (or config/postgres-upsert.toml) for compatible existing tables.
+mode = "restore"
 chunk_rows = 50000
 chunk_bytes = 16777216
 max_row_bytes = 67108864

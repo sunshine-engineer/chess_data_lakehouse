@@ -52,6 +52,9 @@ Domain configuration stays with its owner:
   library-game and storage quotas.
 - `config/postgres-transfer.toml` controls the independent database transfer tool;
   its endpoint variables have `SOURCE_` / `TARGET_` prefixes.
+  `config/postgres-upsert.toml` selects a source-wins primary-key data merge into
+  compatible existing tables. `--mode restore|upsert` overrides the TOML mode.
+  Restore owner/ACL policy knobs do not rewrite destination permissions in upsert.
 
 Build the image after source/config changes. To inspect effective deployment
 settings without starting a service:

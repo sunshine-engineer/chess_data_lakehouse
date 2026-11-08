@@ -1,4 +1,4 @@
-"""Operator-facing plan/run/verify workflow; never overwrite an existing destination."""
+"""Plan fresh restores or source-wins upserts without dropping destination tables."""
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -25,15 +25,22 @@ def plan(source, target, options):
             raise ValueError("Source and destination are the same database")
         if any(a[k] != b[k] for k in ("encoding", "collation", "ctype")) or a["encoding"] != "UTF8":
             raise ValueError("Create the destination with the source's UTF8 encoding, collation and ctype")
-        required = inventory.roles(src) if options.ownership == "preserve" or options.privileges == "preserve" else []
+        required = inventory.roles(src) if options.mode=='restore' and (options.ownership == "preserve" or options.privileges == "preserve") else []
         existing = {row[0] for row in dst.execute("SELECT rolname FROM pg_roles")}
         missing = [r for r in required if r["name"] not in existing]
         if missing and (not options.create_missing_roles or any(r["privileged"] for r in missing)):
             raise ValueError("Pre-create required destination roles: " + ", ".join(r["name"] for r in missing) + ". Privileged attributes/passwords are never copied automatically.")
-        if not dst.execute("SELECT to_regnamespace(%s)", (state.SCHEMA,)).fetchone()[0]:
+        merge = None
+        if options.mode == 'upsert':
+            from . import upsert
+            merge = upsert.preflight(upsert.catalog(src), dst)
+            if src.execute('SELECT EXISTS(SELECT 1 FROM pg_largeobject_metadata)').fetchone()[0]:
+                raise ValueError('Upsert does not merge large-object OIDs; use a fresh-database restore')
+        elif not dst.execute("SELECT to_regnamespace(%s)", (state.SCHEMA,)).fetchone()[0]:
             if inventory.destination_has_objects(dst): raise ValueError("Destination is not empty. No objects were deleted.")
     return dict(source=source.public(), target=target.public(), source_identity=a, target_identity=b,
-                roles_to_create=missing, maintenance_window_required=True, options_hash=options.fingerprint())
+                roles_to_create=missing, maintenance_window_required=True, options_hash=options.fingerprint(),
+                mode=options.mode, upsert=merge)
 
 
 def prepare_roles(conn, roles):
@@ -133,6 +140,9 @@ def run(source, target, options, workdir, maintenance_window=False, recover_trac
                 archive.build(root, source, options)
             metadata = archive.verify(root)
             manifest_hash = state.digest(root/"manifest.json")
+            if options.mode == 'upsert':
+                from . import upsert
+                return upsert.run(source, target, options, root, metadata, manifest_hash, tracker, inject)
             with target.connect(autocommit=True) as conn:
                 state.bootstrap(conn, tracker["job_id"], options.fingerprint(), manifest_hash)
                 conn.execute("SELECT set_config('lock_timeout',%s,false)", (str(options.lock_timeout_seconds*1000),))

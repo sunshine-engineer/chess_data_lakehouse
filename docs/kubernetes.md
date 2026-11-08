@@ -176,6 +176,14 @@ of the chosen cluster. Kubernetes Secret objects alone are not a vault.
 
 ## Rollback boundary
 
+For an existing compatible destination use the transfer Job with `--mode upsert`
+and a **new workdir**, after schema/partition provisioning and while both sides'
+writers are paused. Upsert preserves destination-only rows; it does not replay
+schema objects. See [upsert requirements](postgres-transfer.md#upsert-into-an-existing-database).
+Keep the original fresh-restore ordering above for `restore` mode. Artifact files
+still need a separate reviewed merge/copy plan; a database upsert does not merge
+existing file volumes or reconcile colliding model/PGN filenames.
+
 Before destination writes begin, stop destination Pods and return traffic to the
 untouched source, then restart source writers. After new destination writes exist,
 switching back loses those writes unless you reconcile them: stop both sides and

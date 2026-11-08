@@ -512,11 +512,23 @@ Public entrypoints are listed by module. See each docstring for its contract.
 - `digest`: Hash an artifact in bounded blocks; reject symlinks rather than following them.
 - `atomic_json`: Replace a mode-0600 JSON file only after file and directory fsync.
 - `lock`: Allow only one local writer per work directory; keep lock state out of JSON.
-- `bootstrap`: Bind an empty destination to one archive before any restore operation.
+- `bootstrap`: Bind a restore or explicit populated-destination upsert to its commit ledger.
 - `completed`: Read committed units; the JSON tracker may legitimately lag this ledger.
 - `mark`: Insert a checkpoint inside the same transaction as the restored data.
 - `lookup`: Look up one committed unit through the ledger primary key in bounded memory.
 - `finish`: Record completion only after target and maintenance-window checks pass.
+
+## `src/chess_lakehouse/transfer/upsert.py`
+
+- `catalog`: Describe physical tables, ordered keys, ancestry and foreign-key dependencies.
+- `preflight`: Require compatible keyed tables and derive an enforceable FK insertion order.
+- `owned_sequences`: Find serial/identity generators owned by selected tables or partition ancestors.
+- `stage_chunk`: Commit source rows to durable staging together with their resume marker.
+- `merge_chunk`: Upsert one chunk or complete its postponed nullable foreign-key values.
+- `baseline`: Bind expected source-plus-destination-only contents before any target row changes.
+- `advance_sequences`: Move owned identity/serial sequences forward past both libraries' retained IDs.
+- `verify`: Check the entire merged table, including destination-only rows and source stages.
+- `run`: Stage, merge, patch and verify a resumable data-only source-wins migration.
 
 ## `src/chess_lakehouse/volumes.py`
 

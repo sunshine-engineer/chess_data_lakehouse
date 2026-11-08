@@ -56,14 +56,14 @@ def lock(root):
         yield
 
 
-def bootstrap(conn, job, config_hash, manifest_hash):
-    """Bind an empty destination to one archive before any restore operation."""
+def bootstrap(conn, job, config_hash, manifest_hash, allow_existing=False):
+    """Bind a restore or explicit populated-destination upsert to its commit ledger."""
     if not conn.execute("SELECT pg_try_advisory_lock(hashtext('chess-database-transfer'))").fetchone()[0]:
         raise ValueError("Another migration owns this destination")
     exists = conn.execute("SELECT to_regnamespace(%s)", (SCHEMA,)).fetchone()[0]
     if not exists:
         from .inventory import destination_has_objects
-        if destination_has_objects(conn):
+        if not allow_existing and destination_has_objects(conn):
             raise ValueError("Destination is not empty; use a new database. No objects were deleted.")
         with conn.transaction():
             conn.execute(f"CREATE SCHEMA {SCHEMA}")
@@ -75,6 +75,12 @@ def bootstrap(conn, job, config_hash, manifest_hash):
                 committed_at TIMESTAMPTZ NOT NULL DEFAULT now(),PRIMARY KEY(job_id,unit_id))""")
             conn.execute(f"INSERT INTO {SCHEMA}.jobs VALUES(%s,%s,%s,'running','{{}}')", (job, config_hash, manifest_hash))
     row = conn.execute(f"SELECT config_hash,manifest_hash FROM {SCHEMA}.jobs WHERE id=%s", (job,)).fetchone()
+    if row is None and allow_existing:
+        if conn.execute(f"SELECT 1 FROM {SCHEMA}.jobs WHERE status<>'complete' LIMIT 1").fetchone():
+            raise ValueError("Resume the unfinished destination migration before starting another upsert")
+        with conn.transaction():
+            conn.execute(f"INSERT INTO {SCHEMA}.jobs VALUES(%s,%s,%s,'running','{{}}')", (job, config_hash, manifest_hash))
+        row = (config_hash, manifest_hash)
     if not row or row != (config_hash, manifest_hash):
         raise ValueError("Destination ledger belongs to a different archive or configuration")
 

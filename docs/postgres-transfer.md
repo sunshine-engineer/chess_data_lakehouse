@@ -4,10 +4,16 @@ Outline: prerequisites, plan/run, checkpoint recovery, verification, limits.
 
 The Python entrypoint is `python -m chess_lakehouse.transfer`. It creates a native
 directory-format `pg_dump`, restores schema objects through `pg_restore`, and
-loads ordinary tables with bounded COPY chunks. **A fresh empty destination and a
-maintenance window with source and destination application writers stopped are
-required.** It never drops or truncates a populated destination to make it fit.
-This is a database transfer, not ongoing replication or a whole-cluster clone.
+loads ordinary tables with bounded COPY chunks. Choose the mode explicitly:
+
+| Mode | Existing tables/data | Result |
+|---|---|---|
+| `restore` (default) | Requires an empty destination | Restores native objects and data; refuses populated databases |
+| `upsert` | Requires pre-provisioned compatible tables | Inserts missing primary keys, updates matching rows from the source, preserves destination-only rows |
+
+**Both modes require a maintenance window with source and destination application
+writers stopped.** Neither mode drops or truncates a populated table. This is a
+database transfer, not ongoing replication or a whole-cluster clone.
 
 ## Prerequisites
 
@@ -103,6 +109,11 @@ migration processes. The tracker is compact; per-unit lookups use the ledger's
 primary key. An interrupted **dump restarts**; an interrupted **restore resumes**.
 Compressed table files must be rescanned up to the resume point.
 
+Upsert adds durable staging tables in `_chess_transfer` and a private
+`upsert-baseline.json` file. Staging, merge and postponed foreign-key updates each
+have their own transactional chunk markers. Keep the baseline and staging tables
+until acceptance; they are needed to verify and resume the original merge.
+
 If only the tracker is missing/corrupt, use the same command with
 `--recover-tracker`. Recovery still requires `job.json`, the original intact
 manifest/archive, the same semantic options, and the destination ledger. Do not
@@ -128,7 +139,76 @@ view), verification fails. Resolve that case explicitly and start a fresh transf
 do not bypass validation to cut over. Sequence SETVAL replay is idempotent but
 sequence changes themselves are not transactional in PostgreSQL. There is no
 logical-replication/zero-downtime promise, cluster-global clone, automatic role
-password transfer, distributed restore, or arbitrary destination merge.
+password transfer, distributed restore, or automatic schema reconciliation.
+
+## Upsert into an existing database
+
+The agreed conflict policy is **source wins** on the complete primary key,
+including composite keys. Source NULLs overwrite destination values too. Rows
+whose keys occur only in the destination remain exactly as they were. Identical
+rows avoid unnecessary updates. Tables, views, functions, permissions and database
+settings stay in place; this mode merges table data rather than replaying DDL.
+
+```bash
+# Plan only; inspect table compatibility before stopping writers.
+docker compose -f compose.transfer.yaml run --rm transfer \
+  --config /app/config/postgres-upsert.toml --workdir /migration/upsert-001
+
+# After pausing both source and destination writers:
+docker compose -f compose.transfer.yaml run --rm transfer \
+  --config /app/config/postgres-upsert.toml --workdir /migration/upsert-001 \
+  --run --maintenance-window
+```
+
+You can alternatively pass `--mode upsert` with the existing transfer config.
+Keep the **same mode, snapshot, workdir and chunk bounds** when resuming. A later
+source snapshot needs a new workdir/job; completed ledgers are retained. Another
+job cannot take over an unfinished migration on that destination.
+
+Before merging, apply your versioned destination schema migrations and create
+the required monthly partitions. Missing tables are reported; upsert does not
+guess their definitions or ALTER incompatible tables. A non-deferrable primary
+key and matching column types, generated expressions, keys, constraints and
+partition placement are required for every source physical table. Keyless tables
+are rejected rather than appended blindly. Destination-only tables are retained.
+
+The tool first stages the complete source snapshot in logged tables, verifies it,
+then records the expected union of source rows plus destination-only rows. It
+merges chunks in foreign-key order. Nullable FK links, including the workspace's
+active snapshot cycle, are filled after their referenced rows exist. Constraints
+remain enabled. Final validation hashes the **whole resulting tables**, including
+retained destination rows; whole-source/target equality would be incorrect here.
+Additional capacity is needed for the full staged dataset, indexes, archive, WAL
+and temporary chunks. Chunk commits are visible before overall completion: keep
+the destination application offline until the final report succeeds.
+Take a destination backup before the merge. The checksum baseline is not a backup
+of overwritten values: reverting committed updates requires restoring that backup
+or a separately reviewed reverse migration.
+
+Owned ascending identity/serial sequences advance past retained destination IDs
+and source sequence positions, never backwards. Standalone sequences and large
+objects are not merged; a source containing large objects is rejected. Source
+materialized views are not copied/refreshed in this mode; refresh destination
+materialized views after accepting the merge if your application uses them.
+
+Primary keys must identify the **same logical objects** in both databases. This
+tool does not remap independently generated warehouse dimension IDs and their
+foreign keys. A different primary key already holding the same alternate unique
+identity is rejected before application rows are changed. Resolve that mapping
+before merging independent lakehouses. Expression/partial unique indexes,
+domain/composite column types, unlogged tables and non-nullable FK cycles need
+an application-specific strategy and are rejected by this mode.
+
+Custom write triggers/rules are rejected. The repository's exact published-history
+guards are recognized and left enabled: new immutable records can be inserted,
+identical records retained, but a source row that would update immutable history
+is rejected before target-row changes. Immutable self-referencing history chains
+require fresh restore. Upsert does not override those existing data-model rules.
+These checks complement normal PostgreSQL constraint enforcement; they do not
+provide a general conflict-resolution engine for arbitrary schemas.
+
+The insert/update behavior uses PostgreSQL's documented
+[ON CONFLICT semantics](https://www.postgresql.org/docs/16/sql-insert.html).
 
 After success, run application checks and volume verification while the source
 remains offline. Retain the ledger and work directory for audit and rollback.

@@ -33,6 +33,8 @@ Changes made for portability:
 - Transfer concerns are split into typed options/endpoints, durable state,
   inventory/fingerprints, archive handling, transactional restore, and orchestration.
   The CLI plans by default and has no automatic destructive destination cleanup.
+  `transfer/upsert.py` adds a separate source-wins data merge path with logged
+  staging, FK ordering, preservation baselines and mode-specific verification.
 - Kubernetes and disposable QA configurations are separate from live Compose
   volumes and image tags. Separate jobs make maintenance ordering reviewable.
 

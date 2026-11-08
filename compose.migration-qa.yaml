@@ -42,7 +42,8 @@ services:
       TARGET_PGUSER: migration_admin
       TARGET_PGPASSWORD: synthetic-target-password
       TARGET_PGDATABASE: postgres
-    entrypoint: [python, -m, pytest, -q, -o, cache_dir=/tmp/transfer-pytest, tests/test_postgres_transfer.py]
+    entrypoint: [python, -m, pytest, -q, -o, cache_dir=/tmp/transfer-pytest]
+    command: [tests/test_postgres_transfer.py, tests/test_postgres_upsert.py]
     volumes:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro

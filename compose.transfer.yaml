@@ -9,6 +9,7 @@ services:
     command: [--config, /app/config/postgres-transfer.toml, --workdir, /migration/main]
     volumes:
       - ./config/postgres-transfer.toml:/app/config/postgres-transfer.toml:ro
+      - ./config/postgres-upsert.toml:/app/config/postgres-upsert.toml:ro
       - ${TRANSFER_STATE_DIR:-./data/transfers}:/migration
     read_only: true
     tmpfs: [/tmp]
