@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source": "Synthetic missed-mate PGN; actual Stockfish; deterministic catalog UI fixture (live catalog checked separately)",
+  "checks": [
+    "exercise discovery and hidden solution",
+    "legal move grading and saved attempt",
+    "pause and phase list",
+    "mobile layout",
+    "catalog UI and URL rejection"
+  ],
+  "javascript_errors": []
+}

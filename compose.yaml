@@ -44,6 +44,7 @@ services:
     cpus: 2
   init-volume:
     <<: *runner
+    profiles: [tools,study]
     user: "0:0"
     command: [init-volume]
     depends_on: {}
@@ -81,7 +82,9 @@ services:
     command: [compare]
   tests:
     <<: *runner
-    environment: *admin-env
+    environment:
+      <<: *admin-env
+      STUDY_PASSWORD: ${STUDY_PASSWORD:-}
     entrypoint: [python, -m, pytest]
     command: [-q]
   backup-restore:
@@ -287,12 +290,25 @@ services:
       <<: *admin-env
       STUDY_PASSWORD: ${STUDY_PASSWORD:-}
       STUDY_API_TOKEN: test-internal-token
-    entrypoint: [python, -m, pytest, -q, tests/test_personal.py, tests/test_workspace.py, tests/test_board_learning.py, tests/test_teaching.py, tests/test_incremental_review.py, tests/test_recent_workspace.py]
+    entrypoint: [python, -m, pytest, -q, tests/test_personal.py, tests/test_workspace.py, tests/test_board_learning.py, tests/test_teaching.py, tests/test_incremental_review.py, tests/test_recent_workspace.py, tests/test_repertoire_archives.py]
     depends_on:
       postgres:
         condition: service_healthy
     cpus: 2
     mem_limit: 2g
+  archive-worker:
+    <<: *runner
+    profiles: [study]
+    entrypoint: [python, -m, chess_lakehouse.optimized.archive_worker]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init-volume:
+        condition: service_completed_successfully
+      study-migrate:
+        condition: service_completed_successfully
   study-llm:
     image: ollama/ollama:0.13.5@sha256:2c9595c555fd70a28363489ac03bd5bf9e7c5bdf2890373c3a830ffd7252ce6d
     profiles: [study-ai]

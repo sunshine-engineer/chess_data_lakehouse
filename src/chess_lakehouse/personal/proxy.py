@@ -14,6 +14,8 @@ ROUTES={'session':{'GET'},'signup':{'POST'},'login':{'POST'},'logout':{'POST'},'
     'studies':{'GET','POST'},'export':{'GET'},'board/preferences':{'GET','POST'},
     'board/position':{'POST'},'board/variations':{'POST'},'board/variations/remove':{'POST'},
     'board/analysis':{'POST'},'learning/examples':{'POST'},'learning/progress':{'GET'},'learning/attempt':{'POST'}}
+ROUTES.update({f'repertoire/{name}':{'POST'} for name in ('start','status','control','list','exercise','reveal','attempt')})
+ROUTES.update({'archives/catalog':{'GET'},'archives/jobs':{'GET','POST'},'archives/control':{'POST'},'archives/subscription':{'POST'}})
 
 
 def register(app):

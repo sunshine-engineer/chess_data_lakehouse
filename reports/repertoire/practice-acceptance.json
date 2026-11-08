@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "source": "Synthetic DemoStudent library; original foundation drills",
+  "checks": [
+    "SVG pieces, account preferences, legal trials, undo, saved variation, flip and bounded real position search",
+    "seven lessons, computed drill grading, persisted progress, own-library evidence, promotion picker and mobile layout",
+    "guest practice without private-service authentication"
+  ],
+  "javascript_errors": []
+}

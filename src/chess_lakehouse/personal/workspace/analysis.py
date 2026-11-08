@@ -175,6 +175,13 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
         return dict(common,answer=('The bounded Stockfish search prefers '+line[0]+'. Compare the line '+ ' '.join(line)+'. Check all forcing replies before choosing a move.') if line else
             'The game has ended here; the engine has no continuation.',supported=True,metrics=value,references=[{'game_id':game_id,'ply':ply}])
     if intent=='overview':
+        if scoped:
+            from .narration import describe
+            with db.connect() as c:
+                snap=db.snapshot(c,owner,library_id,report['snapshot_id']);revision=db.game(c,owner,snap,game_id)
+                payload=db.perspective(revision['payload'],snap['player'])
+                reviewed=c.execute("SELECT evidence FROM study.workspace_analysis WHERE owner_id=%s AND revision_id=%s AND player=%s AND status='complete' ORDER BY finished_at DESC LIMIT 1",(owner,revision['id'],snap['player'])).fetchone()
+            return dict(common,answer=describe(payload,reviewed['evidence'] if reviewed else None,ply),supported=True,metrics=summary,references=[{'game_id':game_id,'ply':ply or 0}])
         prefix=f"In your latest {summary['games']} matching games" if latest else 'In this game' if scoped else f"Across {summary['games']} matching games"
         text=f"{prefix}: {summary['wins']} wins, {summary['draws']} draws and {summary['losses']} losses. Your score was {100*summary['score_rate']:.1f}% of available points. Open a game below to review its decisions."
         if latest and summary['games']<latest:text+=f' Only {summary["games"]} games match these filters; you requested {latest}.'
@@ -200,6 +207,15 @@ def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,pl
                 if ref['game_id'] not in seen:refs.append(ref);seen.add(ref['game_id'])
         refs=refs[:3]
     else:
+        if scoped:
+            from .narration import describe
+            replay=game(owner,library_id,report['snapshot_id'],game_id)
+            completed=next((j for j in replay['analysis_jobs'] if j['status']=='complete'),None)
+            with db.connect() as c:
+                snap=db.snapshot(c,owner,library_id,report['snapshot_id']);revision=db.game(c,owner,snap,game_id)
+                payload=db.perspective(revision['payload'],snap['player'])
+            job=None if completed else enqueue(owner,library_id,report['snapshot_id'],game_id,config)
+            return dict(common,answer=describe(payload,completed['evidence'] if completed else None,ply,loss=True),supported=True,metrics=completed['evidence'] if completed else summary,analysis_job=job,references=[{'game_id':game_id,'ply':ply or 0}])
         finding=next((f for f in report['findings'] if f['kind']=='engine'),None)
         text=(finding['detail']+' '+finding['action']) if finding else 'Choose one linked loss and request an engine review. A game result or opening score alone cannot establish a tactical mistake.'
         metrics=finding or {'engine_candidates':0};refs=finding['games'] if finding else refs

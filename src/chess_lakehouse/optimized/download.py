@@ -13,7 +13,7 @@ from ..pipeline import sha256_file
 from .storage import atomic_json, check_disk
 
 
-def download_source(settings):
+def download_source(settings,progress=None):
     source = settings.source
     filename = f'lichess_db_standard_rated_{source.month}.pgn.zst'
     target = settings.data_root/'bronze'/source.sha256/filename
@@ -77,6 +77,7 @@ def download_source(settings):
                             raise ValueError('archive exceeds configured size limit')
                         check_disk(target.parent,settings.min_free_disk_bytes,len(block))
                         stream.write(block)
+                        if progress:progress(received,total)
                     stream.flush(); os.fsync(stream.fileno())
                 if total is not None and received!=total:
                     raise OSError('incomplete archive transfer; partial retained for resume')
