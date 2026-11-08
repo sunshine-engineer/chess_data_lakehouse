@@ -28,6 +28,7 @@ DICTIONARY={
 
 
 def save(owner,library_id,snapshot_id,name,selected):
+    """Save a named owner-scoped study, pinning the exact recent-game cohort when applicable."""
     if not isinstance(name,str) or not name.strip() or len(name)>80:raise ValueError('Give this study a name of up to 80 characters')
     selected=insights.filters(selected or {})
     with db.connect() as c:
@@ -38,6 +39,7 @@ def save(owner,library_id,snapshot_id,name,selected):
 
 
 def studies(owner):
+    """List saved studies belonging exclusively to the authenticated account."""
     with db.connect() as c:
         return [dict(r) for r in c.execute('''SELECT t.id,t.name,t.filters,t.snapshot_id,s.version,s.library_id,l.player,t.created_at
             FROM study.saved_studies t JOIN study.library_snapshots s ON s.id=t.snapshot_id
@@ -45,6 +47,7 @@ def studies(owner):
 
 
 def prepare(owner,library_id=None,snapshot_id=None,study_id=None,selected=None,format='parquet',config=None):
+    """Build a temporary owner-checked export with format, provenance and cleanup metadata."""
     if format not in ('parquet','pgn','manifest','report'):raise ValueError('Choose Parquet, PGN, manifest or report')
     selected=insights.filters(selected or {})
     with db.connect() as c:

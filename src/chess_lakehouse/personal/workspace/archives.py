@@ -6,10 +6,13 @@ from ... import archive_catalog
 from . import storage as db
 
 
-def catalog():return {'archives':archive_catalog.catalog(),'source':archive_catalog.BASE,'torrent_method':'Official torrent links select their matching HTTPS PGN download.'}
+def catalog():
+    """Expose the official checksum-backed monthly catalog and torrent normalization policy."""
+    return {'archives':archive_catalog.catalog(),'source':archive_catalog.BASE,'torrent_method':'Official torrent links select their matching HTTPS PGN download.'}
 
 
 def create(owner,value):
+    """Queue one account-owned monthly archive after validating its source and download ceiling."""
     engine=value.get('engine','python_mp')
     if engine not in ('python','python_mp','spark'):raise ValueError('Choose Python, parallel Python or Spark')
     source=archive_catalog.select(value);key=str(uuid4())
@@ -21,6 +24,7 @@ def create(owner,value):
 
 
 def jobs(owner):
+    """Return the account's recent archive jobs and automatic-latest subscription settings."""
     with db.connect() as c:
         rows=c.execute('SELECT * FROM study.archive_jobs WHERE owner_id=%s ORDER BY created_at DESC LIMIT 20',(owner,)).fetchall()
         subscription=c.execute('SELECT * FROM study.archive_subscriptions WHERE owner_id=%s',(owner,)).fetchone()
@@ -28,6 +32,7 @@ def jobs(owner):
 
 
 def control(owner,value):
+    """Apply an owner-checked archive pause, retry or cancellation request."""
     action=value.get('action')
     if action not in ('pause','resume','cancel'):raise ValueError('Choose pause, resume or cancel')
     with db.connect() as c:
@@ -43,6 +48,7 @@ def control(owner,value):
 
 
 def subscribe(owner,value):
+    """Save explicit account preferences for bounded automatic latest-month imports."""
     if type(value.get('enabled')) is not bool:raise ValueError('Choose whether automatic latest imports are enabled')
     maximum=value.get('max_download_bytes');engine=value.get('engine','python_mp')
     if type(maximum) is not int or not 1<=maximum<=2*1024**4 or engine not in ('python','python_mp','spark'):raise ValueError('Choose a valid archive ceiling and engine')

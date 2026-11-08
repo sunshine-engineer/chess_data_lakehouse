@@ -10,6 +10,12 @@ PGNs or user-requested Lichess API imports. Cluster checks use synthetic data.**
 
 ## Outline
 
+Deployment and migration: [configuration](docs/configuration.md),
+[portable Kubernetes setup](docs/kubernetes.md),
+[resumable PostgreSQL transfer](docs/postgres-transfer.md),
+[code organization review](docs/code-organization-review.md), and
+[validation evidence](docs/portability-validation.md).
+
 See [personal repertoire and archive jobs](docs/repertoire-and-archive-imports.md) for game explanations, persistent analysis, exercises mined from your full library, pause/resume, and latest-month import controls.
 
 1. Build and test the non-root Docker runtime.

@@ -1,0 +1,27 @@
+# Environment variables override these portable container defaults.
+# Credentials must be provided separately through environment or *_FILE secrets.
+[paths]
+data = "/data"
+reports = "/reports"
+study = "/study"
+models = "/models"
+evidence = "/evidence"
+docs = "/app/docs"
+stockfish = "/usr/games/stockfish"
+[server]
+host = "0.0.0.0"
+web_port = 8080
+study_port = 8081
+worker_port = 8082
+web_threads = 4
+study_threads = 4
+study_url = "http://study-api:8081"
+proxy_timeout_seconds = 300
+max_upload_bytes = 1099511627776
+[workers]
+embedded = false
+poll_seconds = 1
+shutdown_seconds = 330
+repertoire_game_seconds = 30
+archive_poll_seconds = 3
+archive_check_seconds = 3600

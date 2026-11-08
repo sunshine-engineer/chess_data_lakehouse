@@ -9,6 +9,7 @@ from .workflow import event
 
 
 def cleanup(settings, retain_days=7, apply=False):
+    """Plan or apply bounded retention of eligible historical run artifacts."""
     if retain_days<1:
         raise ValueError('retain_days must be positive')
     with connect(settings) as conn:
@@ -36,6 +37,7 @@ def cleanup(settings, retain_days=7, apply=False):
 
 
 def abandon(run_id,settings):
+    """Mark a selected unfinished run abandoned under the maintenance policy."""
     stage_for(run_id)
     root=settings.data_root/'runs-v2'/run_id
     with file_lock(root/'.run.lock',blocking=False),connect(settings) as conn:

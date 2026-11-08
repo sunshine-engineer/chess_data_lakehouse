@@ -47,4 +47,5 @@ class Settings:
 
 
 def load(path='config/study.toml'):
+    """Load and validate the legacy bounded player-month approval from TOML."""
     return Settings(**tomllib.loads(Path(path).read_text()))

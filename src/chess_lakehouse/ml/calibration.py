@@ -3,6 +3,7 @@ import numpy as np
 
 
 def reliability(model,x,y,bins=10):
+    """Compute calibration-bin observations and a reliability error for predicted probabilities."""
     probabilities=model.predict_proba(x)
     labels=np.array(model.classes_)
     truth=(np.asarray(y)[:,None]==labels[None,:]).astype(float)

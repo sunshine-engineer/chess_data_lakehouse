@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from dataclasses import field
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import tomllib
+from ..runtime import load as runtime
 
 VERSION = "2"
 ENGINES = ("python", "python_mp", "spark")
@@ -25,7 +27,7 @@ class Source:
 @dataclass(frozen=True)
 class Settings:
     source: Source
-    data_root: Path = Path("/data")
+    data_root: Path = field(default_factory=lambda: runtime().paths.data)
     frame_target_bytes: int = 64 * 1024 * 1024
     max_record_bytes: int = 8 * 1024 * 1024
     copy_batch_rows: int = 5000
@@ -76,6 +78,7 @@ class Settings:
 
 
 def load(path="config/pipeline.toml", month=None, **overrides):
+    """Load one allowlisted source month and apply explicit runtime and CLI overrides."""
     with Path(path).open("rb") as stream:
         config = tomllib.load(stream)
     month = month or config["test_month"]
@@ -93,7 +96,7 @@ def load(path="config/pipeline.toml", month=None, **overrides):
                     archive.get("max_download_bytes", config["max_download_bytes"]),
                     archive.get("url", f"https://database.lichess.org/standard/lichess_db_standard_rated_{month}.pgn.zst"))
     options = dict(config.get("optimized", {}))
-    options["data_root"] = Path(os.environ.get("CHESS_DATA_ROOT", "/data"))
+    options["data_root"] = runtime().paths.data
     options["spark_master"] = os.environ.get("SPARK_MASTER", options.get("spark_master", "local[2]"))
     options.update({key: value for key, value in overrides.items() if value is not None})
     return Settings(source, **options)

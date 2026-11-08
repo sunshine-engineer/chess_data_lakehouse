@@ -24,6 +24,7 @@ from .warehouse import connect
 
 
 def build(settings,limit=600):
+    """Publish a deterministic bounded teaching sample from verified archive frames."""
     if not 1<=limit<=1000:raise ValueError('Choose 1–1000 teaching games per month')
     frames=prepare_source(settings);heap=[];oversized=0
     for shard in frames['shards']:

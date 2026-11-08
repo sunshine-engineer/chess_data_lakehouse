@@ -44,6 +44,7 @@ def validate_config(config: dict, month: str, chunk_size: int) -> None:
 
 
 def sha256_file(path: Path) -> str:
+    """Compute a file's SHA256 digest without buffering the complete file."""
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -86,6 +87,7 @@ def download(url: str, target: Path, expected_sha256: str, max_bytes: int) -> Pa
 
 
 def insert(conn: sqlite3.Connection, table: str, row: dict) -> None:
+    """Write typed row batches into the selected baseline data model."""
     columns = ",".join(row)
     values = ",".join("?" for _ in row)
     suffix = " ON CONFLICT DO NOTHING"
@@ -97,6 +99,7 @@ def insert(conn: sqlite3.Connection, table: str, row: dict) -> None:
 
 
 def load_chunk(conn: sqlite3.Connection, chunk: list, month: str, stamp: str) -> tuple[int, int, int]:
+    """Transform and load one bounded PGN chunk while retaining rejected records."""
     accepted = rejected = duplicates = 0
     with conn:
         for number, game in chunk:
@@ -212,6 +215,7 @@ def _flush(conn, chunk, month, stamp, stats):
 
 
 def main(argv=None):
+    """Parse baseline pipeline arguments and execute the explicitly selected operation."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=Path("config/pipeline.toml"))
     parser.add_argument("--month", help="One YYYY-MM; must match the configured test month")

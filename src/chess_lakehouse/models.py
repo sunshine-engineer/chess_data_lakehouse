@@ -10,14 +10,17 @@ import chess.pgn
 
 
 def key(value: str) -> str:
+    """Derive a stable natural-key digest from a normalized source value."""
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def optional(value: str | None) -> str | None:
+    """Normalize an absent PGN header to the model's optional-value representation."""
     return None if value in (None, "", "?", "-") else value
 
 
 def rating(value: str | None) -> int | None:
+    """Parse a bounded chess rating and reject unsupported source values."""
     value = optional(value)
     if value is None:
         return None
@@ -28,10 +31,12 @@ def rating(value: str | None) -> int | None:
 
 
 def band(value: int | None) -> str | None:
+    """Map an optional rating to its deterministic analytical rating band."""
     return f"{value // 200 * 200}-{value // 200 * 200 + 199}" if value is not None else None
 
 
 def time_control(value: str) -> dict:
+    """Parse a PGN time control into clock components and a speed category."""
     if value in ("-", "?", ""):
         return dict(time_control_key="unknown", initial_seconds=None,
                     increment_seconds=None, speed="unknown")
@@ -79,6 +84,7 @@ class RecordVisitor(chess.pgn.BaseVisitor):
 
 
 def transform(game: ParsedGame, source_month: str, ingested_at: str) -> dict:
+    """Convert one parsed game into shared typed dimensional and fact records."""
     h = game.headers
     if game.errors:
         raise ValueError("PGN parse error: " + ",".join(sorted(set(game.errors))))

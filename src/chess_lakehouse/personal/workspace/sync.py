@@ -18,11 +18,13 @@ SEMANTIC_FILTERS={'since','until','max','vs','rated','perfType','color','analyse
 
 
 def eligible(record):
+    """Determine whether an import request can use the incremental known-game checkpoint."""
     from .imports import lichess_url
     return record['source_kind']=='lichess' and record['mode']=='append' and not SEMANTIC_FILTERS.intersection(lichess_url(record['source_url'])[2])
 
 
 def download(record,config,opener=None):
+    """Stream incremental official metadata and exports while retaining cursor and pending-game semantics."""
     from . import imports
     owner,key=record['owner_id'],record['id']
     _,player,options=imports.lichess_url(record['source_url'])
@@ -95,6 +97,7 @@ def download(record,config,opener=None):
 
 
 def publish(c,record):
+    """Commit the incremental publication and its source cursor without changing old revisions."""
     if not record['sync_mode']:return
     owner,library,key=record['owner_id'],record['library_id'],record['id']
     # A missing PGN must not silently advance the checkpoint.

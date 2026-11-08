@@ -8,6 +8,7 @@ class EvidenceError(ValueError):pass
 
 
 def benchmark(root):
+    """Resolve measured benchmark evidence for the explicitly selected workload."""
     try:
         report=json.loads((Path(root)/'comparison-v2.json').read_text())
         if set(report['summary'])!=set(ENGINES) or not report['equality']:raise ValueError()

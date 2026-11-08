@@ -9,12 +9,14 @@ import psycopg
 from psycopg import sql
 
 from .settings import ENGINES
+from ..runtime import secret
 
 
 def admin_connect():
+    """Open the privileged schema-bootstrap connection using explicit administrator credentials."""
     return psycopg.connect(host=os.environ.get("PGHOST", "postgres"), port=os.environ.get("PGPORT", "5432"),
         dbname=os.environ.get("PGDATABASE", "chess"), user=os.environ.get("PGADMIN_USER", os.environ.get("PGUSER", "chess")),
-        password=os.environ.get("PGADMIN_PASSWORD", os.environ.get("PGPASSWORD")), connect_timeout=10)
+        password=secret("PGADMIN_PASSWORD", secret("PGPASSWORD")), connect_timeout=10)
 
 
 WAREHOUSE_DDL = """
@@ -72,13 +74,14 @@ CREATE VIEW {s}.semantic_fact AS
 
 
 def migrate(conn=None, loader="chess_loader", reader="chess_reader"):
+    """Apply immutable warehouse migrations and provision narrowly privileged loader and reader roles."""
     own = conn is None
     conn = conn or admin_connect()
     try:
         with conn.transaction():
             conn.execute("SELECT pg_advisory_xact_lock(hashtext('chess-schema-migration'))")
             for role, password_name in ((loader, "LOADER_PASSWORD"), (reader, "READER_PASSWORD")):
-                password = os.environ.get(password_name)
+                password = secret(password_name)
                 if not password:
                     raise ValueError(f"{password_name} is required for role bootstrap")
                 if not conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone():

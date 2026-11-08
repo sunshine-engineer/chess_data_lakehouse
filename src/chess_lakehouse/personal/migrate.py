@@ -5,10 +5,12 @@ from pathlib import Path
 import psycopg
 from psycopg import sql
 from ..optimized.migrate import admin_connect,migrate
+from ..runtime import secret
 
 
 def bootstrap():
-    password=os.environ.get('STUDY_PASSWORD')
+    """Apply additive study migrations and provision the study-only database role."""
+    password=secret('STUDY_PASSWORD')
     if not password:
         raise ValueError('STUDY_PASSWORD is required for the isolated study role')
     with admin_connect() as conn:

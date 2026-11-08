@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [../../base]
+# Copy this overlay for your cluster. Replace image tags with registry digests,
+# PGHOST with your database endpoint, and storageClassName with an RWX class.
+patches:
+  - target: {kind: PersistentVolumeClaim}
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: replace-with-rwx-storage-class

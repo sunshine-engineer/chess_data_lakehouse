@@ -1,0 +1,18 @@
+name: chess-transfer
+services:
+  transfer:
+    image: chess-lakehouse-migrator:local
+    build:
+      context: .
+      dockerfile: docker/migration.Dockerfile
+    env_file: ${TRANSFER_ENV_FILE:-.env.transfer}
+    command: [--config, /app/config/postgres-transfer.toml, --workdir, /migration/main]
+    volumes:
+      - ./config/postgres-transfer.toml:/app/config/postgres-transfer.toml:ro
+      - ${TRANSFER_STATE_DIR:-./data/transfers}:/migration
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 1g
+    cpus: 2

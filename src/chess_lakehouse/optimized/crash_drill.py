@@ -21,12 +21,14 @@ STATE=Path('/data/crash-drill-state.json')
 
 
 def loader(database):
+    """Open the crash-drill connection using the isolated loader role."""
     os.environ['PGDATABASE']=database
     os.environ['PGUSER']='chess_loader'
     os.environ['PGPASSWORD']=os.environ['LOADER_PASSWORD']
 
 
 def prepare_drill():
+    """Create synthetic durable run state for the controlled restart-recovery drill."""
     if STATE.exists():
         raise ValueError('a previous drill state exists; resume or explicitly clean it first')
     admin=admin_connect(); admin.autocommit=True
@@ -58,6 +60,7 @@ def prepare_drill():
 
 
 def resume_drill():
+    """Resume the interrupted synthetic run and verify its recovered publication."""
     state=json.loads(STATE.read_text())
     admin=admin_connect(); admin.autocommit=True
     database=state['database']; root=Path(state['root'])

@@ -18,6 +18,7 @@ SUSPICIOUS=re.compile(r'ignore.{0,30}instructions|system\s+prompt|\b(drop|delete
 
 
 def template_route(question):
+    """Map supported study questions to deterministic operations and explicit filter values."""
     text=question.casefold()
     if SUSPICIOUS.search(text):
         return 'refuse',{},'This assistant cannot execute commands, reveal secrets, prove cheating or guarantee improvement.'
@@ -92,6 +93,7 @@ def model_route(question,fallback):
 
 
 def answer(settings,identifier,question,filters=None,game_id=None,ply=None):
+    """Answer a legacy study question using computed reports and available engine evidence."""
     if not isinstance(question,str) or not question.strip() or len(question)>500:
         raise ValueError('question must contain 1–500 characters')
     selected=reports.validate_filters(filters or {},settings)

@@ -7,6 +7,7 @@ from ... import academy
 
 
 def personal(owner,value):
+    """Build labelled recommendations and a bounded worked-example sample from an owned collection."""
     with db.connect() as c:
         snap=db.snapshot(c,owner,value.get('library_id'),value.get('snapshot_id'))
         common=c.execute('''SELECT opening,count(*) AS games,min(game_id) AS game_id
@@ -44,12 +45,14 @@ def personal(owner,value):
 
 
 def progress(owner):
+    """Summarize saved foundation-lesson attempts for the authenticated account."""
     with db.connect() as c:rows=c.execute('''SELECT lesson_id,count(*) AS attempts,count(*) FILTER(WHERE correct) AS successes,max(created_at) AS last_practiced
         FROM study.lesson_attempts WHERE owner_id=%s GROUP BY lesson_id ORDER BY lesson_id''',(owner,)).fetchall()
     return {'lessons':rows}
 
 
 def attempt(owner,value):
+    """Grade a foundation drill and persist an owner-scoped, idempotent attempt."""
     identity=value.get('lesson_id');item=academy.lesson(identity);move=value.get('move')
     result=academy.grade(identity,move);key=db.identifier(value.get('attempt_id'))
     challenge=hashlib.sha256(json.dumps(item,sort_keys=True).encode()).hexdigest()

@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: chess-lakehouse
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - storage.yaml
+  - services.yaml
+  - web.yaml
+  - study-api.yaml
+  - study-worker.yaml
+  - archive-worker.yaml
+  - network-policy.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: chess-lakehouse
+    includeSelectors: false
+    includeTemplates: true

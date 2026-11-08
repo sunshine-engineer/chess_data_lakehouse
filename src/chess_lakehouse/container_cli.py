@@ -19,6 +19,7 @@ from . import warehouse
 
 
 def settings(path, month=None, chunk_size=None):
+    """Load the bounded baseline pipeline configuration from its TOML file."""
     with Path(path).open("rb") as stream:
         config = tomllib.load(stream)
     month = month if month is not None else config["test_month"]
@@ -28,6 +29,7 @@ def settings(path, month=None, chunk_size=None):
 
 
 def archive_path(config, month):
+    """Resolve the approved month's compressed archive under the data volume."""
     filename = f"lichess_db_standard_rated_{month}.pgn.zst"
     return Path("/data/bronze") / filename, f"{BASE_URL}/{filename}"
 
@@ -44,6 +46,7 @@ def cgroup_metrics():
 
 
 def run_engine(engine, config, month, chunk_size, partitions, reports):
+    """Execute one baseline engine and retain its publication and timing evidence."""
     started = time.perf_counter()
     metrics_before = cgroup_metrics()
     archive, _ = archive_path(config, month)
@@ -125,6 +128,7 @@ def run_engine(engine, config, month, chunk_size, partitions, reports):
 
 
 def main(argv=None):
+    """Dispatch the legacy single-month container command with explicit resource bounds."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["fetch", "run", "compare"])
     parser.add_argument("--engine", choices=["python", "spark"], default="python")

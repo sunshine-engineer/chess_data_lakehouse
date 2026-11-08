@@ -14,15 +14,17 @@ from ..ml.artifacts import Artifacts, ArtifactError
 from ..ml.features import prediction_input, vector
 from ..personal.proxy import register as register_personal
 from .. import academy
+from ..runtime import load as runtime
 
 CASES=content.CASES
 
 
 def create_app(config=None):
+    """Create the read-only analytics app and same-origin private-service proxy."""
     app=Flask(__name__)
+    paths=runtime().paths
     app.config.update(MAX_CONTENT_LENGTH=None,JSON_SORT_KEYS=False,
-        ML_ROOT=os.environ.get('ML_ROOT','/models'),EVIDENCE_ROOT=os.environ.get('EVIDENCE_ROOT','/evidence'),
-        DOCS_ROOT=os.environ.get('DOCS_ROOT','/app/docs'))
+        ML_ROOT=str(paths.models),EVIDENCE_ROOT=str(paths.evidence),DOCS_ROOT=str(paths.docs))
     app.config.update(config or {})
     artifacts=Artifacts(app.config['ML_ROOT'])
     register_personal(app)
@@ -63,10 +65,14 @@ def create_app(config=None):
         return render_template('index.html')
 
     @app.get('/healthz')
+    @app.get('/readyz')
     def health():
         with data.connect() as c:
             c.execute('SELECT 1')
         return jsonify(status='ok')
+
+    @app.get('/livez')
+    def live():return jsonify(status='ok')
 
     @app.get('/api/overview')
     def overview():

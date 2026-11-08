@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chess-db-transfer
+spec:
+  # Resume manually with the same migration-state claim and workdir.
+  backoffLimit: 0
+  template:
+    metadata:
+      labels: {component: database-transfer}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: transfer
+          image: chess-lakehouse-migrator:local
+          command: [python, -m, chess_lakehouse.transfer]
+          # Applying this Job explicitly acknowledges stopped application writers.
+          args: [--config, /transfer-config/transfer.toml, --workdir, /migration/main, --run, --maintenance-window]
+          env:
+            - {name: SOURCE_PGHOST, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGHOST}}}
+            - {name: SOURCE_PGPORT, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGPORT}}}
+            - {name: SOURCE_PGDATABASE, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGDATABASE}}}
+            - {name: SOURCE_PGUSER, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGUSER}}}
+            - {name: SOURCE_PGSSLMODE, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGSSLMODE}}}
+            - {name: SOURCE_PGSSLROOTCERT, valueFrom: {configMapKeyRef: {name: chess-transfer-config, key: SOURCE_PGSSLROOTCERT}}}
+            - {name: SOURCE_PGPASSWORD_FILE, value: /source-credentials/source-password}
+            - {name: TARGET_PGHOST, valueFrom: {configMapKeyRef: {name: chess-config, key: PGHOST}}}
+            - {name: TARGET_PGPORT, valueFrom: {configMapKeyRef: {name: chess-config, key: PGPORT}}}
+            - {name: TARGET_PGDATABASE, valueFrom: {configMapKeyRef: {name: chess-config, key: PGDATABASE}}}
+            - {name: TARGET_PGUSER, valueFrom: {configMapKeyRef: {name: chess-config, key: PGADMIN_USER}}}
+            - {name: TARGET_PGSSLMODE, valueFrom: {configMapKeyRef: {name: chess-config, key: PGSSLMODE}}}
+            - {name: TARGET_PGSSLROOTCERT, valueFrom: {configMapKeyRef: {name: chess-config, key: PGSSLROOTCERT}}}
+            - {name: TARGET_PGPASSWORD_FILE, value: /credentials/admin-password}
+          resources: {requests: {cpu: 250m, memory: 256Mi}, limits: {cpu: '2', memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: state, mountPath: /migration}
+            - {name: config, mountPath: /transfer-config, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: source-credentials, mountPath: /source-credentials, readOnly: true}
+            - {name: source-tls, mountPath: /source-tls, readOnly: true}
+            - {name: target-tls, mountPath: /database-tls, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: state, persistentVolumeClaim: {claimName: migration-state}}
+        - {name: config, configMap: {name: chess-transfer-config}}
+        - name: credentials
+          secret: {secretName: chess-credentials, defaultMode: 0440, items: [{key: admin-password, path: admin-password}]}
+        - name: source-credentials
+          secret: {secretName: chess-source-credentials, defaultMode: 0440, items: [{key: source-password, path: source-password}]}
+        - name: source-tls
+          secret: {secretName: chess-source-db-tls, optional: true, defaultMode: 0440}
+        - name: target-tls
+          secret: {secretName: chess-db-tls, optional: true, defaultMode: 0440}
+        - {name: tmp, emptyDir: {sizeLimit: 256Mi}}

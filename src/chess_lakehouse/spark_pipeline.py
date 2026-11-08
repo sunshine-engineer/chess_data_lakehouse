@@ -6,11 +6,13 @@ from .warehouse import copy_partition
 
 
 def parse_partition(rows, month, stamp):
+    """Transform records within one Spark partition using the shared chess model."""
     for row in rows:
         yield parse_frame(row.asDict(), month, stamp)
 
 
 def run(paths, schema, month, stamp, chunk_size, partitions):
+    """Execute the baseline Spark pipeline and retain its structured processing results."""
     from pyspark.sql import SparkSession
     from pyspark.sql.types import LongType, StringType, StructField, StructType
 

@@ -18,6 +18,7 @@ from .workflow import run,event
 
 
 def main():
+    """Exercise the supported two-worker Spark path using isolated synthetic records."""
     previous={name:os.environ.get(name) for name in ('PGDATABASE','PGUSER','PGPASSWORD')}
     database='chess_cluster_test_'+uuid4().hex[:12]
     root=Path('/data/cluster-smoke')/uuid4().hex

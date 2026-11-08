@@ -15,10 +15,12 @@ import chess.engine
 from psycopg.types.json import Jsonb
 
 from . import repository as db
+from ..runtime import load as runtime
 
 
 def settings(settings):
-    binary=Path(os.environ.get('STOCKFISH_PATH','/usr/games/stockfish'))
+    """Resolve Stockfish and fingerprint its binary, analysis implementation and resource budget."""
+    binary=runtime().paths.stockfish
     if not binary.is_file():
         raise ValueError('Stockfish is unavailable in this study-service image')
     values=dict(binary_sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
@@ -30,6 +32,7 @@ def settings(settings):
 
 
 def enqueue(config,identifier,game_id):
+    """Queue or reuse a bounded legacy game review within the selected study version."""
     _,options,fingerprint=settings(config)
     with db.connect() as c:
         v=db.version(c,config,identifier)
@@ -54,12 +57,14 @@ def enqueue(config,identifier,game_id):
 
 
 def analyze(row,config,progress=None):
+    """Invoke the shared legal-move reviewer with the configured Stockfish budget."""
     from .review import analyze as review
     binary,options,_=settings(config)
     return review(row,config,binary,options,progress)
 
 
 def run_one(config):
+    """Claim and process one queued legacy engine review, recording completion or failure."""
     with db.connect() as c:
         w=db.workspace(c,config)
         if not w:
@@ -87,6 +92,7 @@ def run_one(config):
 
 
 def start_worker(config):
+    """Start the compatible legacy engine polling worker for an explicitly enabled service."""
     def loop():
         # Shared-volume flock prevents duplicate workers, and releases on process death.
         with (db.root()/'.engine-worker.lock').open('w') as lock:

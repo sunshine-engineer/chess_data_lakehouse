@@ -14,6 +14,7 @@ COOKIE='chess_session'
 
 
 def credentials(username,password):
+    """Validate local account names and password length before authentication changes."""
     if not isinstance(username,str) or not re.fullmatch(r'[A-Za-z0-9_.-]{3,40}',username.strip()):
         raise ValueError('Account name must contain 3–40 letters, numbers, dots, underscores or hyphens')
     if not isinstance(password,str) or not 10<=len(password)<=128:
@@ -22,6 +23,7 @@ def credentials(username,password):
 
 
 def create(username,password):
+    """Create a local study account with a password hash rather than plaintext credentials."""
     name=credentials(username,password)
     with db.connect() as c:
         owner=str(uuid4())
@@ -32,6 +34,7 @@ def create(username,password):
 
 
 def login(username,password):
+    """Verify local account credentials and return the authenticated account record."""
     name=credentials(username,password)
     key=hashlib.sha256(name.casefold().encode()).hexdigest()
     with db.connect() as c:
@@ -52,6 +55,7 @@ def login(username,password):
 
 
 def new_session(owner):
+    """Create a private browser session and its separate CSRF value."""
     token=secrets.token_urlsafe(48);csrf=secrets.token_urlsafe(32)
     with db.connect() as c:
         c.execute('DELETE FROM study.sessions WHERE expires_at<now()')
@@ -61,6 +65,7 @@ def new_session(owner):
 
 
 def session(token):
+    """Resolve a valid browser session without exposing the stored password hash."""
     if not token or len(token)>200:return None
     with db.connect() as c:
         row=c.execute('''SELECT a.id,a.username,s.csrf FROM study.sessions s JOIN study.accounts a ON a.id=s.owner_id
@@ -69,8 +74,10 @@ def session(token):
 
 
 def logout(token):
+    """Revoke only the supplied local browser session token."""
     with db.connect() as c:c.execute('DELETE FROM study.sessions WHERE token_hash=%s',(hashlib.sha256(token.encode()).hexdigest(),))
 
 
 def csrf_matches(user,value):
+    """Compare the submitted CSRF value with the authenticated session's expected value."""
     return bool(user and isinstance(value,str) and hmac.compare_digest(user['csrf'],value))

@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector: {app: chess-web}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: study-api
+spec:
+  selector: {app: chess-study-api}
+  ports:
+    - name: study
+      port: 8081
+      targetPort: study

@@ -5,6 +5,7 @@ from ..review import material
 
 
 def describe(payload, evidence=None, ply=None, loss=False):
+    """Describe recorded moves, material, clock and engine evidence without inventing an ending cause."""
     color=payload['player_color']=='white'
     board=chess.Board(payload['initial_fen']);initial_turn=board.turn;events=[];trajectory=[]
     previous=material(board,color)

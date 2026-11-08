@@ -13,12 +13,16 @@ from psycopg.types.json import Jsonb
 
 from . import storage as db
 from .. import engine
+from ...runtime import load as runtime
 
 
-def settings(config):return replace(config,engine_game_seconds=min(config.engine_game_seconds,30),engine_nodes=min(config.engine_nodes,10000))
+def settings(config):
+    """Derive the configured per-game mining budget without increasing the global engine limits."""
+    return replace(config,engine_game_seconds=min(config.engine_game_seconds,runtime().workers.repertoire_game_seconds),engine_nodes=min(config.engine_nodes,10000))
 
 
 def start(owner,value):
+    """Create or resume an owner-scoped build covering every game in a pinned collection."""
     fallback=value.get('archive_fallback',True)
     if type(fallback) is not bool:raise ValueError('Archive fallback must be true or false')
     with db.connect() as c:
@@ -38,12 +42,14 @@ def start(owner,value):
 
 
 def owned(c,owner,key):
+    """Resolve a repertoire build by both account and resource identifier."""
     row=c.execute('SELECT * FROM study.repertoire_builds WHERE owner_id=%s AND id=%s',(owner,db.identifier(key))).fetchone()
     if not row:raise ValueError('Repertoire build not found in your account')
     return row
 
 
 def status(owner,value):
+    """Report full build coverage, source stages, failures, partial searches and phase counts."""
     with db.connect() as c:
         if value.get('build_id'):build=owned(c,owner,value['build_id'])
         else:
@@ -57,6 +63,7 @@ def status(owner,value):
 
 
 def control(owner,value):
+    """Pause or resume an owned repertoire build without deleting completed exercises."""
     if value.get('action') not in ('pause','resume'):raise ValueError('Choose pause or resume')
     with db.connect() as c:
         build=owned(c,owner,value.get('build_id'))
@@ -65,11 +72,13 @@ def control(owner,value):
 
 
 def phase(board,ply):
+    """Classify a position using the documented opening-ply and remaining-material heuristic."""
     pieces=sum(len(board.pieces(p,c))*v for p,v in ((chess.KNIGHT,3),(chess.BISHOP,3),(chess.ROOK,5),(chess.QUEEN,9)) for c in (True,False))
     return 'opening' if ply<20 else 'endgame' if pieces<=20 else 'middlegame'
 
 
 def extract(payload,evidence):
+    """Yield legal missed-advantage exercises supported by the selected player's searched evidence."""
     positions={};board=chess.Board(payload['initial_fen'])
     # These boards are used only for legal root moves and phase/FEN labels.
     # Keep one board per position, without copying an ever-growing move stack.
@@ -92,6 +101,7 @@ def extract(payload,evidence):
 
 
 def run_one(config):
+    """Process one queued repertoire game and atomically retain its exercises and coverage."""
     with db.connect() as c:
         task=c.execute('''SELECT t.*,b.owner_id,b.snapshot_id FROM study.repertoire_tasks t JOIN study.repertoire_builds b ON b.id=t.build_id
             WHERE b.status='running' AND t.status='queued' ORDER BY b.updated_at,
@@ -126,6 +136,7 @@ def run_one(config):
 
 
 def listing(owner,value):
+    """Return a bounded phase-filtered repertoire page and the owner's attempt statistics."""
     phase_filter=value.get('phase','')
     if phase_filter not in ('','opening','middlegame','endgame'):raise ValueError('Choose an exercise phase')
     offset=value.get('offset',0)
@@ -143,6 +154,7 @@ def listing(owner,value):
 
 
 def exercise(owner,value,reveal=False):
+    """Return an owner-checked playable position, revealing searched solutions only when requested."""
     from .board import describe
     with db.connect() as c:row=c.execute('''SELECT e.*,b.snapshot_id,s.library_id,t.source_month FROM study.repertoire_exercises e
         JOIN study.repertoire_builds b ON b.id=e.build_id AND b.owner_id=e.owner_id
@@ -158,6 +170,7 @@ def exercise(owner,value,reveal=False):
 
 
 def attempt(owner,value):
+    """Grade a legal move against searched solutions and save an idempotent private attempt."""
     row=exercise(owner,value,True);board=chess.Board(row['fen'])
     try:move=chess.Move.from_uci(value.get('move',''))
     except (ValueError,TypeError):raise ValueError('Choose a legal move') from None

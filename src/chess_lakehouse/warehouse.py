@@ -14,14 +14,18 @@ KEYS = dict(dim_date="date_key", dim_player="player_key", dim_opening="opening_k
 
 def connect():
     # libpq reads PGHOST/PGDATABASE/PGUSER/PGPASSWORD; never log credentials.
-    return psycopg.connect("")
+    """Open the legacy warehouse connection using libpq credentials without logging them."""
+    from .runtime import postgres_options
+    return psycopg.connect("", **postgres_options())
 
 
 def set_schema(conn, schema):
+    """Select a safely quoted schema for the legacy warehouse transaction."""
     conn.execute(sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema)))
 
 
 def initialize(conn, schema):
+    """Create the legacy staging schema and its baseline dimensional tables."""
     conn.execute("""CREATE TABLE IF NOT EXISTS public.pipeline_runs (
         run_id TEXT PRIMARY KEY, engine TEXT NOT NULL, schema_name TEXT NOT NULL,
         status TEXT NOT NULL, started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -92,6 +96,7 @@ def materialize(conn, month, stamp, expected):
 
 
 def publish(conn, engine, schema, run_id, report):
+    """Publish the validated legacy run into its engine's current warehouse schema."""
     current = f"{engine}_current"
     conn.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(current)))
     for table in TABLES:

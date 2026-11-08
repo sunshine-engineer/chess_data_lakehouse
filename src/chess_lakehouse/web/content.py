@@ -57,5 +57,6 @@ class ProductLinks(Extension):
 
 
 def render(source):
+    """Render trusted repository Markdown while resolving supported local documentation links."""
     source=re.sub(r'^# [^\n]+\n','',source,count=1)
     return markdown.markdown(source,extensions=['tables','fenced_code','toc',ProductLinks()])

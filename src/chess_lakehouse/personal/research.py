@@ -28,6 +28,7 @@ DICTIONARY={
 
 
 def save(settings,identifier,name,filters):
+    """Save an explicitly selected legacy cohort with its private provenance."""
     if not isinstance(name,str) or not name.strip() or len(name)>80:
         raise ValueError('cohort name must contain 1–80 characters')
     filters=validate_filters(filters,settings)
@@ -44,6 +45,7 @@ def save(settings,identifier,name,filters):
 
 
 def export(settings,identifier=None,cohort_id=None,format='parquet',filters=None):
+    """Export the approved legacy cohort in the requested supported artifact format."""
     filters=validate_filters(filters or {},settings)
     with db.connect() as c:
         if cohort_id:

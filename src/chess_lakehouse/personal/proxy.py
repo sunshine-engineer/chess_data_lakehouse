@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 from flask import request,Response,jsonify,stream_with_context
 from .pgn import valid_game_id
+from ..runtime import load as runtime, secret
 
 ROUTES={'session':{'GET'},'signup':{'POST'},'login':{'POST'},'logout':{'POST'},'password':{'POST'},
     'libraries':{'GET'},'context':{'GET'},'imports':{'GET'},'imports/file':{'POST'},
@@ -19,6 +20,7 @@ ROUTES.update({'archives/catalog':{'GET'},'archives/jobs':{'GET','POST'},'archiv
 
 
 def register(app):
+    """Register the same-origin authenticated streaming bridge to the private study service."""
     @app.before_request
     def protect_personal_writes():
         if not request.path.startswith('/api/personal/'):return None
@@ -39,11 +41,11 @@ def register(app):
         if re.fullmatch(r'imports/[a-fA-F0-9-]{36}/(?:cancel|retry)',route):methods={'POST'}
         if re.fullmatch(r'board/analysis/[a-fA-F0-9-]{36}',route):methods={'GET'}
         if request.method not in methods:return jsonify(error='Unknown study operation'),404
-        token=os.environ.get('STUDY_API_TOKEN','')
+        token=secret('STUDY_API_TOKEN','')
         if not token:return jsonify(error='Start the Personal Study service.'),503
-        base=urlsplit(os.environ.get('STUDY_SERVICE_URL','http://study-api:8081'))
+        settings=runtime();base=urlsplit(settings.server.study_url)
         if base.scheme not in ('http','https'):return jsonify(error='Invalid study service configuration'),503
-        connection=(http.client.HTTPSConnection if base.scheme=='https' else http.client.HTTPConnection)(base.hostname,base.port,timeout=300)
+        connection=(http.client.HTTPSConnection if base.scheme=='https' else http.client.HTTPConnection)(base.hostname,base.port,timeout=settings.server.proxy_timeout_seconds)
         headers={'Authorization':'Bearer '+token}
         for key in ('Cookie','X-CSRF-Token','Content-Type'):
             if request.headers.get(key):headers[key]=request.headers[key]

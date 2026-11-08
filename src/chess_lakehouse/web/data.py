@@ -9,6 +9,7 @@ import re
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
+from ..runtime import postgres_options
 
 ENGINES = ('python', 'python_mp', 'spark')
 SPEEDS = ('ultrabullet', 'bullet', 'blitz', 'rapid', 'classical', 'unknown')
@@ -18,12 +19,14 @@ class PublicationChanged(ValueError):pass
 
 @contextmanager
 def connect():
-    with psycopg.connect('', row_factory=dict_row, connect_timeout=5,
+    """Yield a read-only database connection with bounded analytical query timeouts."""
+    with psycopg.connect('', row_factory=dict_row, connect_timeout=5, **postgres_options(),
             options='-c default_transaction_read_only=on -c statement_timeout=8000 -c idle_in_transaction_session_timeout=10000') as conn:
         yield conn
 
 
 def integer(value, name, low, high):
+    """Parse an integer filter and enforce its named inclusive bounds."""
     try:
         if not re.fullmatch(r'\d+', str(value)):
             raise ValueError()
@@ -36,6 +39,7 @@ def integer(value, name, low, high):
 
 
 def filters(args):
+    """Validate supported public analytical filters without accepting arbitrary SQL."""
     engine = args.get('engine', 'python')
     if engine not in ENGINES:
         raise ValueError('unsupported engine')
@@ -79,11 +83,13 @@ def filters(args):
 
 
 def query(conn, engine, select, where, params, suffix=''):
+    """Build the parameterized public warehouse selection for validated filters."""
     return conn.execute(sql.SQL(select+' FROM {}.fact_game f '+suffix+' WHERE {}').format(
         sql.Identifier('warehouse_'+engine), where), params).fetchall()
 
 
 def overview(args):
+    """Compute public archive metrics and chart groups for the selected publication."""
     engine,where,params = filters(args)
     schema=sql.Identifier('warehouse_'+engine)
     with connect() as conn:
@@ -115,6 +121,7 @@ def overview(args):
 
 
 def game_id(value):
+    """Validate a public source-game identifier before looking up archive details."""
     if not isinstance(value,str) or not re.fullmatch(r'[A-Za-z0-9]{8}',value):raise ValueError('Enter the eight-character Lichess game ID')
     return value
 
@@ -134,6 +141,7 @@ def catalog():
 
 
 def games(args):
+    """Read an explicitly bounded page of matching public archive games."""
     engine,where,params=filters(args)
     limit=integer(args.get('limit',25),'limit',1,100)
     offset=integer(args.get('offset',0),'offset',0,10000)
@@ -176,6 +184,7 @@ DETAIL_SELECT='''SELECT f.game_id,f.date_key::text AS date,f.source_month::text 
 
 
 def detail(identity,args):
+    """Resolve one game's structured facts inside the selected public publication."""
     engine,where,params=filters({'engine':args.get('engine','python'),'month':args.get('month','2013-01'),'game_id':game_id(identity)})
     schema=sql.Identifier('warehouse_'+engine)
     with connect() as c:
@@ -200,6 +209,7 @@ def comparable(row,engine,month,expected=None):
 
 
 def source_signature(conn, engine, month):
+    """Describe the selected warehouse publication for model freshness and provenance checks."""
     if engine not in ENGINES:
         raise ValueError('unsupported engine')
     # Reader does not require broad control-schema privileges.

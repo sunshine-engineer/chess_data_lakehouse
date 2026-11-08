@@ -6,12 +6,14 @@ from . import storage as db
 
 
 def pgn_time(headers):
+    """Read an explicitly recorded PGN UTC start time without inventing missing clock precision."""
     try:
         return datetime.strptime(headers['UTCDate']+' '+headers['UTCTime'],'%Y.%m.%d %H:%M:%S').replace(tzinfo=timezone.utc)
     except (KeyError,TypeError,ValueError):return None
 
 
 def save(c,owner,identity,started,source):
+    """Store auxiliary game chronology without changing the immutable semantic game payload."""
     if not identity or not started:return
     c.execute('''INSERT INTO study.game_times(owner_id,game_id,started_at,source) VALUES(%s,%s,%s,%s)
         ON CONFLICT(owner_id,game_id) DO UPDATE SET started_at=EXCLUDED.started_at,source=EXCLUDED.source

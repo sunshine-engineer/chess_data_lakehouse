@@ -1,0 +1,30 @@
+# Temporary maintenance helper. Delete after verified copy; keep application replicas at 0.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: chess-volume-access
+  labels: {app.kubernetes.io/part-of: chess-lakehouse, component: volume-access}
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
+  containers:
+    - name: files
+      image: chess-lakehouse-runner:local
+      command: [python, -c, 'import time; time.sleep(28800)']
+      resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: '1', memory: 256Mi}}
+      securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+      volumeMounts:
+        - {name: study, mountPath: /study}
+        - {name: pipeline, mountPath: /data}
+        - {name: models, mountPath: /models}
+        - {name: reports, mountPath: /reports}
+        - {name: state, mountPath: /migration}
+        - {name: tmp, mountPath: /tmp}
+  volumes:
+    - {name: study, persistentVolumeClaim: {claimName: study-data}}
+    - {name: pipeline, persistentVolumeClaim: {claimName: pipeline-data}}
+    - {name: models, persistentVolumeClaim: {claimName: model-data}}
+    - {name: reports, persistentVolumeClaim: {claimName: report-data}}
+    - {name: state, persistentVolumeClaim: {claimName: migration-state}}
+    - {name: tmp, emptyDir: {sizeLimit: 64Mi}}

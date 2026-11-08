@@ -8,10 +8,12 @@ from .settings import Settings,Source
 from .download import download_source
 from .storage import file_lock
 from .workflow import run,event
+from ..runtime import load as runtime
 
 
 def execute(job):
-    source=job['source'];settings=Settings(Source(**{k:source[k] for k in Source.__dataclass_fields__}),data_root=Path(os.environ.get('CHESS_DATA_ROOT','/data')))
+    """Run one verified archive job in a subprocess with durable pipeline checkpoints."""
+    source=job['source'];settings=Settings(Source(**{k:source[k] for k in Source.__dataclass_fields__}),data_root=runtime().paths.data)
     lock=settings.data_root/'bronze'/source['sha256']/'.archive-job.lock'
     with file_lock(lock):
         def progress(received,total):event('download_progress',bytes_received=received,total_bytes=total)

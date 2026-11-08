@@ -2,6 +2,7 @@
 
 
 def describe(job):
+    """Explain completed import counts, duplicates, rejected records and still-pending games precisely."""
     new=job['new_games'];changed=job['changed_games'];pending=job.get('pending_games',0)
     if new:message=f'Added {new:,} new '+('game.' if new==1 else 'games.')
     elif changed:message=f'Refreshed {changed:,} '+('game.' if changed==1 else 'games.')

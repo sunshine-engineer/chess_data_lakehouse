@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archive-worker
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: chess-archive-worker}
+  template:
+    metadata:
+      labels: {app: chess-archive-worker, component: archive-worker}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: archive-worker
+          image: chess-lakehouse-runner:local
+          imagePullPolicy: IfNotPresent
+          command: [python, -m, chess_lakehouse.optimized.archive_worker]
+          envFrom: [{configMapRef: {name: chess-config}}]
+          env:
+            - {name: PGUSER, value: chess_loader}
+            - {name: PGPASSWORD_FILE, value: /credentials/loader-password}
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: '2', memory: 3Gi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          readinessProbe:
+            exec: {command: [python, -m, chess_lakehouse.health, archive]}
+            periodSeconds: 15
+            timeoutSeconds: 8
+          volumeMounts:
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: database-tls, mountPath: /database-tls, readOnly: true}
+            - {name: data, mountPath: /data}
+            - {name: reports, mountPath: /reports}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: credentials
+          secret: {secretName: chess-credentials, defaultMode: 0440, items: [{key: loader-password, path: loader-password}]}
+        - name: database-tls
+          secret: {secretName: chess-db-tls, optional: true, defaultMode: 0440}
+        - {name: data, persistentVolumeClaim: {claimName: pipeline-data}}
+        - {name: reports, persistentVolumeClaim: {claimName: report-data}}
+        - {name: tmp, emptyDir: {sizeLimit: 1Gi}}

@@ -1,0 +1,79 @@
+# Isolated synthetic regression environment. Never uses live Compose volumes/ports.
+name: chess-portability-qa
+x-admin: &admin
+  PGHOST: postgres
+  PGPORT: '5432'
+  PGDATABASE: chess
+  PGUSER: chess
+  PGPASSWORD: synthetic-admin-password
+  PGADMIN_USER: chess
+  PGADMIN_PASSWORD: synthetic-admin-password
+  LOADER_PASSWORD: synthetic-loader-password
+  READER_PASSWORD: synthetic-reader-password
+  STUDY_PASSWORD: synthetic-study-password
+  STUDY_API_TOKEN: synthetic-internal-token
+  STUDY_WORKER: '0'
+  PYTHONPATH: /app/src:/app/tests
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: synthetic-admin-password
+      POSTGRES_DB: chess
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U chess -d chess']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    mem_limit: 512m
+    cpus: 1
+  pipeline-tests:
+    image: chess-lakehouse-runner:portability
+    environment: *admin
+    entrypoint: [python, -m, pytest, -q]
+    volumes: [./src:/app/src:ro, ./tests:/app/tests:ro]
+    tmpfs: ['/data:uid=10001,gid=10001', '/reports:uid=10001,gid=10001']
+    depends_on:
+      postgres: {condition: service_healthy}
+    mem_limit: 3g
+    cpus: 2
+  web-tests:
+    image: chess-lakehouse-web:portability
+    environment: *admin
+    entrypoint: [python, -m, pytest, -q, tests/test_web_ml.py, tests/test_product.py, tests/test_personal.py, tests/test_workspace.py, tests/test_board_learning.py, tests/test_teaching.py, tests/test_incremental_review.py, tests/test_recent_workspace.py, tests/test_repertoire_archives.py, tests/test_runtime.py, tests/test_volumes.py, tests/test_deployment.py]
+    volumes: [./src:/app/src:ro, ./tests:/app/tests:ro]
+    depends_on:
+      postgres: {condition: service_healthy}
+    mem_limit: 2g
+    cpus: 2
+  bootstrap:
+    image: chess-lakehouse-web:portability
+    environment: *admin
+    entrypoint: [python, -m, chess_lakehouse.personal.migrate]
+    depends_on:
+      postgres: {condition: service_healthy}
+    mem_limit: 512m
+    cpus: 1
+  study-worker:
+    image: chess-lakehouse-web:portability
+    environment:
+      PGHOST: postgres
+      PGDATABASE: chess
+      PGUSER: chess_study
+      PGPASSWORD: synthetic-study-password
+      STUDY_WORKER: '0'
+      STUDY_SHUTDOWN_SECONDS: '10'
+    command: [python, -m, chess_lakehouse.personal.workspace.worker]
+    tmpfs: ['/study:uid=10001,gid=10001', /tmp]
+    read_only: true
+    stop_grace_period: 15s
+    healthcheck:
+      test: [CMD, python, -m, chess_lakehouse.health, worker]
+      interval: 3s
+      timeout: 6s
+      retries: 10
+    depends_on:
+      bootstrap: {condition: service_completed_successfully}
+    mem_limit: 512m
+    cpus: 1

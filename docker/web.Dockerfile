@@ -15,4 +15,4 @@ COPY docs ./docs
 COPY tests ./tests
 COPY config ./config
 USER 10001:10001
-CMD ["waitress-serve", "--listen=0.0.0.0:8080", "--threads=4", "--call", "chess_lakehouse.web.app:create_app"]
+CMD ["python", "-m", "chess_lakehouse.serve", "web"]

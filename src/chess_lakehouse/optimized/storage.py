@@ -21,6 +21,7 @@ FRAME_SCHEMA = pa.schema([("record_number", pa.int64()), ("pgn", pa.string())])
 
 
 def atomic_json(path, value):
+    """Write a JSON manifest atomically after flushing its file and containing directory."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
@@ -39,6 +40,7 @@ def atomic_json(path, value):
 
 @contextmanager
 def file_lock(path, blocking=True):
+    """Hold an advisory filesystem lock for one shared artifact operation."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as stream:
@@ -50,6 +52,7 @@ def file_lock(path, blocking=True):
 
 
 def check_disk(path, minimum, additional=0):
+    """Enforce the configured free-disk reserve before writing additional artifact bytes."""
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
     free = shutil.disk_usage(path).free
@@ -88,6 +91,7 @@ def iter_games(archive, max_record_bytes):
 
 
 def write_parquet(path, rows, schema):
+    """Write typed row batches into an atomically published checksummed Parquet shard."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
@@ -107,6 +111,7 @@ def write_parquet(path, rows, schema):
 
 
 def verify_file(entry, schema=None):
+    """Verify a committed shard's file hash, row count and optional Arrow schema."""
     path = Path(entry["path"])
     if not path.is_file() or sha256_file(path) != entry["sha256"]:
         raise ValueError(f"shard checksum mismatch: {path.name}")

@@ -8,11 +8,13 @@ from . import data
 
 
 def safe(value):
+    """Sanitize a value for the bounded public CSV export representation."""
     if isinstance(value,str) and value.startswith(('=','+','-','@','\t','\r','\n')):return "'"+value
     return value
 
 
 def archive(args):
+    """Stream the selected public archive export with its documented row and checksum limits."""
     limit=data.integer(args.get('export_limit',5000),'export limit',1,10000)
     engine,where,params=data.filters(args);schema=sql.Identifier('warehouse_'+engine)
     stream=tempfile.TemporaryFile();digest=hashlib.sha256();rows=0

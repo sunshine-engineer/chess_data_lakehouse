@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chess-transfer-config
+data:
+  SOURCE_PGHOST: replace-with-source-postgres-host
+  SOURCE_PGPORT: '5432'
+  SOURCE_PGDATABASE: chess
+  SOURCE_PGUSER: chess
+  SOURCE_PGSSLMODE: verify-full
+  SOURCE_PGSSLROOTCERT: /source-tls/ca.crt
+  transfer.toml: |
+    [source]
+    env_prefix = "SOURCE"
+    [target]
+    env_prefix = "TARGET"
+    [options]
+    chunk_rows = 50000
+    chunk_bytes = 16777216
+    max_row_bytes = 67108864
+    dump_jobs = 2
+    ownership = "preserve"
+    privileges = "preserve"
+    create_missing_roles = true
+    verify_source_unchanged = true
+    min_free_bytes = 1073741824

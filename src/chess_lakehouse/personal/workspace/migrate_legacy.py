@@ -49,6 +49,7 @@ def migrate(owner):
 
 
 def provision(username,credential_file):
+    """Provision the approved migration of legacy player-month publications into account libraries."""
     path=Path(credential_file)
     with db.connect() as c:user=c.execute('SELECT id,username FROM study.accounts WHERE username_key=%s',(username.casefold(),)).fetchone()
     if not user:

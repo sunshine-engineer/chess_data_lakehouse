@@ -15,6 +15,7 @@ PATTERN=r'/standard/lichess_db_standard_rated_(\d{4}-(?:0[1-9]|1[0-2]))\.pgn\.zs
 
 
 def source_url(value):
+    """Validate an official monthly link and normalize torrent links to HTTPS PGN downloads."""
     if not isinstance(value,str):raise ValueError('Provide an official standard archive link')
     parsed=urlsplit(value.strip())
     match=re.fullmatch(PATTERN+r'(?:\.torrent)?',parsed.path)
@@ -31,6 +32,7 @@ class OfficialRedirect(HTTPRedirectHandler):
 
 
 def read(url,maximum=4*1024*1024):
+    """Fetch size-bounded official metadata while restricting redirects to the trusted host."""
     with build_opener(OfficialRedirect()).open(Request(url,headers={'User-Agent':'chess-lakehouse/3'}),timeout=20) as response:
         content=response.read(maximum+1)
         if len(content)>maximum:raise ValueError('Official catalog exceeded metadata size limit')
@@ -55,6 +57,7 @@ class Rows(HTMLParser):
 
 
 def parse(html,checksums):
+    """Extract standard monthly exports with matching published checksums from catalog HTML."""
     hashes={name:sha for sha,name in re.findall(r'^([a-f0-9]{64})\s+\*?(\S+)\s*$',checksums,re.M)}
     parser=Rows();parser.feed(html);result=[]
     for cells,urls in parser.rows:
@@ -71,6 +74,7 @@ def parse(html,checksums):
 
 _lock=threading.Lock();_cache=(0,[])
 def catalog():
+    """Return a short-lived cached copy of the official checksum-backed archive catalog."""
     global _cache
     with _lock:
         if time.monotonic()-_cache[0]>900 or not _cache[1]:
@@ -79,6 +83,7 @@ def catalog():
 
 
 def select(value,rows=None):
+    """Resolve a requested month or link and enforce the user's compressed-download ceiling."""
     wanted=source_url(value['url'])[0] if value.get('url') else value.get('month')
     rows=rows if rows is not None else catalog()
     row=next((r for r in rows if r['month']==wanted),None) if wanted else rows[0]

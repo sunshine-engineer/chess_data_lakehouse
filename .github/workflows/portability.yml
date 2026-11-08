@@ -1,0 +1,44 @@
+name: Portability and database transfer
+on:
+  push:
+    branches: [main, 'CXOED/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: portability-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build containerized manifest checker
+        run: docker build -f docker/ops.Dockerfile -t chess-lakehouse-ops:local .
+      - name: Validate Python API index and Kubernetes schemas
+        run: docker run --rm -v "$PWD:/workspace:ro" chess-lakehouse-ops:local
+      - name: Build isolated application regression images
+        run: |
+          docker build -f docker/Dockerfile -t chess-lakehouse-runner:portability .
+          docker build -f docker/web.Dockerfile -t chess-lakehouse-web:portability .
+      - name: Check pipeline configuration and regression behavior
+        run: docker compose -f compose.portability-qa.yaml run --rm pipeline-tests
+      - name: Check web, study and configuration behavior
+        run: docker compose -f compose.portability-qa.yaml run --rm web-tests
+      - name: Check separate foreground worker readiness and shutdown
+        run: |
+          docker compose -f compose.portability-qa.yaml up -d --wait study-worker
+          docker compose -f compose.portability-qa.yaml exec -T study-worker python -m chess_lakehouse.health worker
+          docker compose -f compose.portability-qa.yaml stop study-worker
+          test "$(docker inspect --format '{{.State.ExitCode}}' chess-portability-qa-study-worker-1)" = 0
+      - name: Check cross-instance native objects, content and crash-resume
+        run: |
+          docker compose -f compose.migration-qa.yaml build tests
+          docker compose -f compose.migration-qa.yaml run --rm tests
+      - name: Clean isolated environments
+        if: always()
+        run: |
+          docker compose -f compose.portability-qa.yaml down --volumes --remove-orphans
+          docker compose -f compose.migration-qa.yaml down --volumes --remove-orphans

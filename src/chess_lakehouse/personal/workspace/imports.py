@@ -38,6 +38,7 @@ class Cancelled(Exception):pass
 
 
 def player_name(value):
+    """Validate an optional player name without guessing an ambiguous identity."""
     value=(value or '').strip()
     if value and (len(value)>50 or any(ord(char)<32 for char in value)):
         raise ValueError('Enter a player name of up to 50 visible characters')
@@ -69,12 +70,14 @@ def lichess_url(value):
 
 
 def job(c,owner,key):
+    """Resolve an import job only within its requesting account."""
     value=c.execute('SELECT * FROM study.import_jobs WHERE owner_id=%s AND id=%s',(owner,db.identifier(key))).fetchone()
     if not value:raise ValueError('Import not found in your account')
     return value
 
 
 def create(owner,kind,player,mode,path=None,url=None):
+    """Persist an owner-scoped file or official API import request in the durable queue."""
     if mode not in ('append','merge','replace'):raise ValueError('Choose new games, refresh, or replacement')
     player=player_name(player)
     if kind=='lichess':
@@ -91,15 +94,18 @@ def create(owner,kind,player,mode,path=None,url=None):
 
 
 def check_space(config,additional=0):
+    """Enforce private storage quotas and a free-disk reserve before additional writes."""
     if shutil.disk_usage(db.root()).free < config.min_free_disk_bytes+additional:
         raise ValueError('There is not enough free disk space to continue. Free space or configure storage before retrying.')
 
 
 def cancelled(owner,key):
+    """Read the owner's cancellation request for the selected durable import job."""
     with db.connect() as c:return job(c,owner,key)['cancel_requested']
 
 
 def update(owner,key,**values):
+    """Persist explicitly allowed progress fields on the owner's import job."""
     allowed={'phase','bytes_received','games_processed','new_games','changed_games','duplicate_games','rejected_games','player','library_id','source_sha256',
         'sync_mode','sync_since_ms','sync_until_ms','metadata_games','skipped_old_games'}
     if set(values)-allowed:raise ValueError('invalid job update')
@@ -112,6 +118,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def download(record,config,opener=None):
+    """Download the requested player's public export with bounded streaming and cancellation checks."""
     normalized,_,_=lichess_url(record['source_url'])
     path=db.root()/('upload-'+str(record['id'])+'.pgn')
     request=urllib.request.Request(normalized,headers={'Accept':'application/x-chess-pgn','User-Agent':'ChessAtlas-PersonalStudy/1.0'})
@@ -129,6 +136,7 @@ def download(record,config,opener=None):
 
 
 def open_response(record,request,opener=None):
+    """Open the supported import request with bounded retries and provider-rate-limit handling."""
     opener=opener or urllib.request.build_opener(NoRedirect())
     response=None
     for attempt in range(4):
@@ -159,6 +167,7 @@ class RecordReader:
 
 
 def detect_player(path,config,cancel_check=None):
+    """Infer a unique common player from PGN headers or require an explicit name."""
     common=None
     with path.open(encoding='utf-8-sig') as stream:
         number=0
@@ -185,6 +194,7 @@ def source_id(headers):
 
 
 def iterate(path,player,config,known=None):
+    """Yield bounded normalized games while retaining known-ID and rejection information."""
     context=ParseContext(player,config.max_record_bytes,config.max_game_plies,config.max_game_plies)
     builder=type('WorkspaceBuilder',(pgn.StrictBuilder,),{'max_plies':config.max_game_plies})
     with path.open(encoding='utf-8-sig') as stream:
@@ -276,6 +286,7 @@ def publish(owner,key,config):
 
 
 def cleanup_staging(owner,key):
+    """Remove temporary artifacts belonging to one owner-scoped unpublished import."""
     with db.connect() as c:
         c.execute('DELETE FROM study.import_members WHERE owner_id=%s AND job_id=%s',(owner,key))
         c.execute('DELETE FROM study.import_game_queue WHERE owner_id=%s AND job_id=%s',(owner,key))
@@ -288,6 +299,7 @@ def cleanup_staging(owner,key):
 
 
 def process(record,config,opener=None):
+    """Process a queued import in bounded batches before publishing its immutable collection version."""
     owner=record['owner_id'];key=record['id'];path=Path(record['input_path']) if record.get('input_path') else None
     try:
         if cancelled(owner,key):raise Cancelled()

@@ -1,0 +1,6 @@
+# Use together with compose.yaml and --profile study --profile workers.
+# Stop the old embedded API worker before enabling the standalone service.
+services:
+  study-api:
+    environment:
+      STUDY_WORKER: '0'

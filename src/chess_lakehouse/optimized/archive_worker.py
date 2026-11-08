@@ -24,18 +24,23 @@ import pyarrow.parquet as pq
 
 from .. import archive_catalog
 from .storage import file_lock,verify_file,FRAME_SCHEMA
+from ..runtime import load as runtime, postgres_options
 
 
-def connect():return psycopg.connect('',row_factory=dict_row,connect_timeout=5)
+def connect():
+    """Open a loader-role connection for archive control jobs and public frame feeding."""
+    return psycopg.connect('',row_factory=dict_row,connect_timeout=5,**postgres_options())
 
 
 def update(key,**values):
+    """Update explicitly named archive-job fields using quoted SQL identifiers."""
     from psycopg import sql
     with connect() as c:c.execute(sql.SQL('UPDATE study.archive_jobs SET {},updated_at=now() WHERE id=%s').format(sql.SQL(',').join(sql.SQL('{}=%s').format(sql.Identifier(k)) for k in values)),[*[Jsonb(v) if isinstance(v,dict) else v for v in values.values()],key])
 
 
 def scheduled():
-    with connect() as c:rows=c.execute("SELECT * FROM study.archive_subscriptions WHERE enabled AND (checked_at IS NULL OR checked_at<now()-interval '1 hour')").fetchall()
+    """Queue an opted-in latest month within its account's configured download ceiling."""
+    with connect() as c:rows=c.execute("SELECT * FROM study.archive_subscriptions WHERE enabled AND (checked_at IS NULL OR checked_at<now()-(%s*interval '1 second'))",(runtime().workers.archive_check_seconds,)).fetchall()
     for subscription in rows:
         try:
             source=archive_catalog.select(subscription)
@@ -49,11 +54,13 @@ def scheduled():
 
 stopping=False
 def stop(*args):
+    """Request supervisor shutdown so its active subprocess can be paused safely."""
     global stopping
     stopping=True
 
 
 def run_one():
+    """Supervise one queued archive subprocess, persisting progress, stop requests and publication state."""
     with connect() as c:
         job=c.execute("SELECT * FROM study.archive_jobs WHERE status='queued' AND action='run' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED").fetchone()
         if not job:return False
@@ -112,22 +119,26 @@ def run_one():
     return True
 
 
-def source_key(source):return str(source['source_month'])[:7]+':'+source['source_sha256']
+def source_key(source):
+    """Identify an immutable public source by its month and full archive checksum."""
+    return str(source['source_month'])[:7]+':'+source['source_sha256']
 
 
 def next_source(sources,cursor):
+    """Retain an unfinished source cursor before selecting another pending source month."""
     pending=[s for s in sources if source_key(s) not in cursor.get('done',[])]
     # Finish the current immutable source before choosing a newly arrived month.
     return next((s for s in pending if source_key(s)==cursor.get('source')),pending[0] if pending else None)
 
 
-def feed_one(root=Path('/data')):
+def feed_one(root=None):
     """Provide one game at a time from verified complete frames, without sampling.
 
     Cursor is a shard/row-group/row tuple. At most one row group is read in memory
     (frame byte cap 64MiB). Both players are reviewed before advancing. Imported
     source months discovered later are visited first when selecting a new month.
     """
+    root=Path(root) if root is not None else runtime().paths.data
     with connect() as c:
         build=c.execute("SELECT * FROM study.repertoire_builds b WHERE status='running' AND source_stage='archive' AND NOT EXISTS(SELECT 1 FROM study.repertoire_tasks t WHERE t.build_id=b.id AND t.status IN ('queued','running')) ORDER BY updated_at LIMIT 1 FOR UPDATE SKIP LOCKED").fetchone()
         if not build:return False
@@ -174,15 +185,16 @@ def feed_one(root=Path('/data')):
 
 
 def main():
+    """Run the single archive supervisor and lazy repertoire feeder inside the container."""
     if os.environ.get('CHESS_CONTAINER')!='1':raise ValueError('Run this worker inside Docker')
     signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
-    with file_lock(Path('/data/.archive-supervisor.lock'),blocking=False):
+    with file_lock(runtime().paths.data/'.archive-supervisor.lock',blocking=False):
         with connect() as c:c.execute("UPDATE study.archive_jobs SET status=CASE WHEN action='cancel' THEN 'cancelled' WHEN action='pause' THEN 'paused' ELSE 'queued' END,phase='Recovered after restart' WHERE status='running'")
         while not stopping:
             try:
                 scheduled()
                 if not run_one():
-                    if not feed_one():time.sleep(3)
+                    if not feed_one():time.sleep(runtime().workers.archive_poll_seconds)
             except Exception:logging.exception('Archive supervisor error');time.sleep(5)
 
 

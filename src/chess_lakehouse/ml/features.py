@@ -7,6 +7,7 @@ FEATURES=('white_rating','black_rating','rating_difference','average_rating','in
 
 
 def vector(row):
+    """Construct the stable pre-game numerical feature vector used by training and inference."""
     w,b=row.get('white_rating'),row.get('black_rating')
     return [np.nan if w is None else w,np.nan if b is None else b,
         np.nan if w is None or b is None else w-b,
@@ -16,6 +17,7 @@ def vector(row):
 
 
 def prediction_input(payload):
+    """Validate a requested pre-game scenario without using post-game outcome information."""
     if not isinstance(payload,dict) or set(payload)-{'white_rating','black_rating','initial_seconds','increment_seconds'}:
         raise ValueError('provide ratings, initial_seconds and increment_seconds only')
     limits={'white_rating':(0,4000),'black_rating':(0,4000),'initial_seconds':(0,86400),'increment_seconds':(0,3600)}

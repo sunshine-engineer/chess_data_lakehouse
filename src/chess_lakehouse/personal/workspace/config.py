@@ -25,6 +25,7 @@ class Config:
 
 
 def load():
+    """Load validated integer resource bounds from the supported STUDY_* environment variables."""
     values={}
     for name,field in Config.__dataclass_fields__.items():
         value=int(os.environ.get('STUDY_'+name.upper(),field.default))

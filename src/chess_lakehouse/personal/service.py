@@ -17,17 +17,20 @@ from .pgn import replay,position_key
 from .settings import load
 from .assistant import answer
 from .validation import validate
+from ..runtime import load as runtime, secret
 
 
 def clean(value):
+    """Convert supported response values into finite JSON-compatible private API data."""
     return json.loads(json.dumps(value,default=str,allow_nan=False))
 
 
 def create_app(config=None):
+    """Create the compatible legacy player-month API with its authentication and resource limits."""
     app=Flask(__name__)
-    app.config.update(MAX_CONTENT_LENGTH=11*1024*1024,WORKER=os.environ.get('STUDY_WORKER')=='1',
+    app.config.update(MAX_CONTENT_LENGTH=11*1024*1024,WORKER=runtime().workers.embedded,
         SETTINGS=load(os.environ.get('STUDY_CONFIG','config/study.toml')),
-        TOKEN=os.environ.get('STUDY_API_TOKEN',''))
+        TOKEN=secret('STUDY_API_TOKEN',''))
     app.config.update(config or {})
     settings=app.config['SETTINGS']
     if not app.config['TOKEN']:

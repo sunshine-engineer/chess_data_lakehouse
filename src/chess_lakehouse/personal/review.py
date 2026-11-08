@@ -12,10 +12,12 @@ VALUES={chess.PAWN:1,chess.KNIGHT:3,chess.BISHOP:3,chess.ROOK:5,chess.QUEEN:9}
 
 
 def material(board,color):
+    """Calculate the selected side's net material in conventional pawn-equivalent units."""
     return sum(v*(len(board.pieces(p,color))-len(board.pieces(p,not color))) for p,v in VALUES.items())
 
 
 def score_text(cp,mate,winning=None):
+    """Describe player-centric centipawn or mate scores without claiming a proven outcome."""
     if mate is not None:
         return ('A mating attack for you' if winning else 'A mating attack against you')+(' in '+str(abs(mate))+' moves' if mate else '')
     if cp is None:return 'No numerical score available'
@@ -23,6 +25,7 @@ def score_text(cp,mate,winning=None):
 
 
 def line_data(board,info,color):
+    """Convert a searched legal principal variation into scores, moves and replay positions."""
     position=board.copy();fens=[position.fen()];sans=[];ucis=[]
     for move in info.get('pv',[])[:12]:
         if move not in position.legal_moves:break
@@ -64,6 +67,7 @@ def explain(board,line,played,color):
 
 
 def analyze(row,config,binary,options,progress=None):
+    """Review played positions and player decisions within the fixed Stockfish time/node budget."""
     started=time.monotonic();deadline=started+config.engine_game_seconds
     color=row['player_color']=='white';initial=chess.Board(row['initial_fen'])
     count=len(row['moves']);own_total=sum((initial.turn if i%2==0 else not initial.turn)==color for i in range(count))

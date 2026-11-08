@@ -12,6 +12,7 @@ from ..ml.train import classification_metrics,regression_metrics
 
 
 def validate(settings,identifier):
+    """Check a legacy private import against its approval, payload and publication contract."""
     artifacts=Artifacts(os.environ.get('ML_ROOT','/models'))
     model_report=artifacts.report()
     if model_report['schema_version']!=2:

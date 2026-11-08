@@ -11,6 +11,7 @@ from . import storage as db,insights
 
 
 def enqueue(owner,library_id,snapshot_id,game_id,config):
+    """Queue or reuse a bounded engine review for an owned game in its pinned collection."""
     _,budget,fingerprint=engine.settings(config)
     with db.connect() as c:
         snap=db.snapshot(c,owner,library_id,snapshot_id);row=db.game(c,owner,snap,game_id)
@@ -29,6 +30,7 @@ def enqueue(owner,library_id,snapshot_id,game_id,config):
 
 
 def game(owner,library_id,snapshot_id,game_id):
+    """Return legal replay, private notes and review jobs for an owned game revision."""
     with db.connect() as c:
         snap=db.snapshot(c,owner,library_id,snapshot_id);revision=db.game(c,owner,snap,game_id)
         row=db.perspective(revision['payload'],snap['player'])
@@ -41,6 +43,7 @@ def game(owner,library_id,snapshot_id,game_id):
 
 
 def note(owner,library_id,snapshot_id,game_id,ply,status,text):
+    """Save an owner-scoped practice note at a validated played position."""
     if status not in ('queued','reviewed','practiced'):raise ValueError('Choose To review, Reviewed or Practiced')
     if not isinstance(text,str) or len(text)>2000:raise ValueError('A review note can contain up to 2000 characters')
     with db.connect() as c:
@@ -53,6 +56,7 @@ def note(owner,library_id,snapshot_id,game_id,ply,status,text):
 
 
 def positions(owner,library_id,snapshot_id,game_id,ply,selected):
+    """Find observed continuations sharing the selected legal position within the private cohort."""
     selected=insights.filters(selected or {})
     with db.connect() as c:
         snap=db.snapshot(c,owner,library_id,snapshot_id);row=db.game(c,owner,snap,game_id)
@@ -82,6 +86,7 @@ def positions(owner,library_id,snapshot_id,game_id,ply,selected):
 
 
 def chess_board(payload,ply):
+    """Reconstruct a played board from validated immutable moves through the requested ply."""
     import chess
     board=chess.Board(payload['initial_fen'])
     for uci in payload['moves'][:ply]:board.push_uci(uci)
@@ -89,6 +94,7 @@ def chess_board(payload,ply):
 
 
 def answer(owner,library_id,snapshot_id,question,selected,config,game_id=None,ply=None,moves=None,profile='balanced'):
+    """Route a supported question to computed cohort, game or exact-position evidence."""
     if not isinstance(question,str) or not question.strip() or len(question)>500:raise ValueError('Ask a question of up to 500 characters')
     if moves is not None and (not isinstance(moves,list) or len(moves)>80):raise ValueError('A trial line can contain up to 80 moves')
     if moves is None:moves=[]

@@ -14,6 +14,7 @@ from . import warehouse
 
 
 def compare(reports: Path):
+    """Compare retained baseline measurements and model outputs across processing engines."""
     with warehouse.connect() as conn:
         runs = conn.execute("""SELECT engine,schema_name,report FROM public.pipeline_runs
             WHERE status='complete' ORDER BY finished_at""").fetchall()

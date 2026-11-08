@@ -35,6 +35,7 @@ COLUMNS = SCHEMA.names
 
 
 def parse_base(frame, month, missing_player_policy="unknown"):
+    """Parse a framed PGN into the shared base record or a counted rejection."""
     row = dict.fromkeys(BASE_SCHEMA.names)
     row["record_number"] = int(frame["record_number"])
     try:
@@ -69,6 +70,7 @@ def parse_base(frame, month, missing_player_policy="unknown"):
 
 
 def enrich(row):
+    """Derive normalized warehouse dimensions and fact attributes from a base game record."""
     row = {**row, **dict.fromkeys(name for name, _ in DERIVED)}
     if row["reason"] is not None:
         return row
@@ -115,6 +117,7 @@ def spark_enrich(df):
 
 
 def spark_schema(arrow_schema=BASE_SCHEMA):
+    """Return the Spark schema matching the shared typed record contract."""
     from pyspark.sql import types as t
     types = {pa.int64(): t.LongType(), pa.string(): t.StringType(), pa.binary(): t.BinaryType(),
              pa.bool_(): t.BooleanType(), pa.date32(): t.DateType(), pa.float64(): t.DoubleType()}

@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-ingress
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    # Same-namespace application/job traffic; ingress-controller access is an
+    # explicit overlay decision. Port-forward works for local verification.
+    - from: [{podSelector: {}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-entry
+spec:
+  podSelector:
+    matchLabels: {app: chess-web}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{port: 8080, protocol: TCP}]

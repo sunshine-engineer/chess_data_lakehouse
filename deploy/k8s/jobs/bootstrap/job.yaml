@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chess-bootstrap
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: bootstrap
+          image: chess-lakehouse-web:local
+          command: [python, -m, chess_lakehouse.personal.migrate]
+          envFrom: [{configMapRef: {name: chess-config}}]
+          env:
+            - {name: PGUSER, valueFrom: {configMapKeyRef: {name: chess-config, key: PGADMIN_USER}}}
+            - {name: PGPASSWORD_FILE, value: /credentials/admin-password}
+            - {name: PGADMIN_PASSWORD_FILE, value: /credentials/admin-password}
+            - {name: LOADER_PASSWORD_FILE, value: /credentials/loader-password}
+            - {name: READER_PASSWORD_FILE, value: /credentials/reader-password}
+            - {name: STUDY_PASSWORD_FILE, value: /credentials/study-password}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: '1', memory: 512Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: database-tls, mountPath: /database-tls, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: credentials
+          secret: {secretName: chess-credentials, defaultMode: 0440, items: [{key: admin-password, path: admin-password}, {key: loader-password, path: loader-password}, {key: reader-password, path: reader-password}, {key: study-password, path: study-password}]}
+        - name: database-tls
+          secret: {secretName: chess-db-tls, optional: true, defaultMode: 0440}
+        - {name: tmp, emptyDir: {}}

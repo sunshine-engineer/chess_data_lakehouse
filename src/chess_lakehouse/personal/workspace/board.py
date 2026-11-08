@@ -19,6 +19,7 @@ PROFILES = {'quick':(10000,.3),'balanced':(50000,1.),'deeper':(150000,3.)}
 
 
 def preferences(owner,value=None):
+    """Read or validate and save the account's supported board appearance settings."""
     if value is not None:
         if not isinstance(value,dict) or set(value)-set(DEFAULTS):raise ValueError('Unknown board preference')
         value={**DEFAULTS,**value}
@@ -34,6 +35,7 @@ def preferences(owner,value=None):
 
 
 def resolve(c,owner,value):
+    """Rebuild an owner-checked played position and validate a bounded legal trial line."""
     snap=db.snapshot(c,owner,value.get('library_id'),value.get('snapshot_id'))
     row=db.game(c,owner,snap,value.get('game_id'));ply=value.get('ply',0)
     if type(ply) is not int or not 0<=ply<=row['ply_count']:raise ValueError('Select a played position')
@@ -51,12 +53,14 @@ def resolve(c,owner,value):
 
 
 def describe(board):
+    """Describe a board's FEN, side to move, legal choices and terminal result."""
     return dict(fen=board.fen(),turn='white' if board.turn else 'black',check=chess.square_name(board.king(board.turn)) if board.is_check() else None,
         legal_moves=[] if board.is_game_over() else [m.uci() for m in board.legal_moves],
         result=board.result() if board.is_game_over() else None)
 
 
 def position(owner,value):
+    """Return legal board state and saved variations for an owned game position."""
     with db.connect() as c:
         board,row,ply,moves,sans=resolve(c,owner,value)
         saved=c.execute('SELECT id,ply,moves,label FROM study.board_variations WHERE owner_id=%s AND revision_id=%s ORDER BY created_at DESC LIMIT 30',
@@ -65,6 +69,7 @@ def position(owner,value):
 
 
 def save(owner,value):
+    """Save a named legal trial variation separately from the immutable played game."""
     label=value.get('label','').strip() if isinstance(value.get('label',''),str) else ''
     if not 1<=len(label)<=80:raise ValueError('Name the variation using 1–80 characters')
     with db.connect() as c:
@@ -78,11 +83,13 @@ def save(owner,value):
 
 
 def remove(owner,value):
+    """Remove only a saved variation belonging to the authenticated account."""
     with db.connect() as c:c.execute('DELETE FROM study.board_variations WHERE owner_id=%s AND id=%s',(owner,db.identifier(value.get('id'))))
     return {'deleted':True}
 
 
 def budget(config,profile):
+    """Resolve an explicit search profile and fingerprint its implementation and bounded settings."""
     if profile not in PROFILES:raise ValueError('Choose quick, balanced or deeper analysis')
     binary,base,_=engine.settings(config)
     nodes,seconds=PROFILES[profile]
@@ -92,6 +99,7 @@ def budget(config,profile):
 
 
 def enqueue(owner,value,config):
+    """Queue or reuse a position search bound to its full legal game-history context."""
     profile=value.get('profile','balanced');_,options,fingerprint=budget(config,profile)
     with db.connect() as c:
         board,revision,ply,moves,_=resolve(c,owner,value)
@@ -110,16 +118,19 @@ def enqueue(owner,value,config):
 
 
 def result(owner,key):
+    """Read a position-search job exclusively within its requesting account."""
     with db.connect() as c:row=c.execute('SELECT * FROM study.position_analysis WHERE owner_id=%s AND id=%s',(owner,db.identifier(key))).fetchone()
     if not row:raise ValueError('Analysis not found in your account')
     return row
 
 
 def search_key(fingerprint,context):
+    """Bind a search fingerprint to the initial position and complete played/trial history."""
     return hashlib.sha256(json.dumps([fingerprint,context],sort_keys=True).encode()).hexdigest()
 
 
 def run_one(config):
+    """Process one queued legal position search and persist its bounded engine evidence."""
     with db.connect() as c:
         row=c.execute("SELECT * FROM study.position_analysis WHERE status='queued' ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED").fetchone()
         if not row:return False

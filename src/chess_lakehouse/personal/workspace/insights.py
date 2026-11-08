@@ -10,6 +10,7 @@ ORDER='sort_at DESC NULLS LAST,game_id'
 
 
 def filters(value):
+    """Normalize and validate the supported private analytical selection fields."""
     if not isinstance(value,dict) or set(value)-set(FILTER_COLUMNS)-{'from_date','to_date','period','last_games','opponent'}:raise ValueError('Unsupported analysis filter')
     result={}
     for key,v in value.items():
@@ -36,6 +37,7 @@ def filters(value):
 
 
 def where(owner,snap,selected,alias='f'):
+    """Build the owner/snapshot-scoped SQL predicate for validated study filters."""
     conditions=[alias+'.owner_id=%s',alias+'.snapshot_id=%s'];params=[owner,snap['id']]
     for key,v in selected.items():
         if key in FILTER_COLUMNS:conditions.append(alias+'.'+FILTER_COLUMNS[key]+'=%s')
@@ -71,23 +73,27 @@ SUMMARY="""count(*) AS games,count(*) FILTER(WHERE result='win') AS wins,
 
 
 def summarize(c,clause,params):
+    """Compute result counts and chronology coverage for an exact private game cohort."""
     row=dict(c.execute('SELECT '+SUMMARY+' FROM study.workspace_game_details f WHERE '+clause,params).fetchone())
     row['win_rate_interval_95']=wilson(row['wins'],row['games'])
     return row
 
 
 def groups(c,clause,params,column):
+    """Compute supported grouped result statistics within the pinned private selection."""
     rows=c.execute('SELECT '+column+' AS label,'+SUMMARY+' FROM study.workspace_game_details f WHERE '+clause+' GROUP BY '+column+' ORDER BY count(*) DESC,'+column,params).fetchall()
     return [dict(r,win_rate_interval_95=wilson(r['wins'],r['games'])) for r in rows]
 
 
 def examples(c,clause,params,extra=None,values=None,limit=3):
+    """Choose evidence-linked example games from the selected private cohort."""
     return [dict(r) for r in c.execute('''SELECT game_id,game_date,opponent,result,opening,player_color,speed,ply_count
         FROM study.workspace_game_details f WHERE '''+clause+(' AND '+extra if extra else '')+
         ' ORDER BY (result=\'loss\') DESC,game_date DESC NULLS LAST,game_id LIMIT %s',params+(values or [])+[limit]).fetchall()]
 
 
 def opening_report(c,owner,snap,selected,minimum):
+    """Summarize opening observations with sample-size context and exact source-game references."""
     clause,params=where(owner,snap,selected)
     base,base_params=where(owner,snap,{k:v for k,v in selected.items() if k!='opening'})
     rows=c.execute('SELECT opening,max(eco) AS eco,'+SUMMARY+' FROM study.workspace_game_details f WHERE '+clause+
@@ -120,6 +126,7 @@ def opening_report(c,owner,snap,selected,minimum):
 
 
 def report(owner,library_id,snapshot_id=None,selected=None,config=None,scope_ids=None):
+    """Compute a private study report using one pinned, consistently scoped cohort."""
     selected=filters(selected or {})
     with db.connect() as c:
         c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
@@ -170,6 +177,7 @@ def report(owner,library_id,snapshot_id=None,selected=None,config=None,scope_ids
 
 
 def games(owner,library_id,snapshot_id,selected,offset=0,limit=10,order='newest'):
+    """Return a bounded page of owner-checked games with stable chronology and review status."""
     if isinstance(offset,bool) or not isinstance(offset,int) or offset<0:raise ValueError('Invalid page offset')
     if isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=50:raise ValueError('Page size must be 1–50')
     if order not in ('newest','oldest'):raise ValueError('Choose newest or oldest first')

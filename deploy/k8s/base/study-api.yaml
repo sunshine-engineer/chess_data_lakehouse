@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: study-api
+spec:
+  replicas: 0
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: chess-study-api}
+  template:
+    metadata:
+      labels: {app: chess-study-api, component: study-api}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: study-api
+          image: chess-lakehouse-web:local
+          imagePullPolicy: IfNotPresent
+          command: [python, -m, chess_lakehouse.serve, study]
+          envFrom: [{configMapRef: {name: chess-config}}]
+          env:
+            - {name: PGUSER, value: chess_study}
+            - {name: PGPASSWORD_FILE, value: /credentials/study-password}
+            - {name: STUDY_API_TOKEN_FILE, value: /credentials/study-api-token}
+            - {name: TMPDIR, value: /study/workspace/tmp}
+          ports: [{name: study, containerPort: 8081}]
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: '2', memory: 1Gi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          startupProbe: {httpGet: {path: /livez, port: study}, failureThreshold: 30, periodSeconds: 3}
+          livenessProbe: {httpGet: {path: /livez, port: study}, periodSeconds: 15}
+          readinessProbe: {httpGet: {path: /readyz, port: study}, periodSeconds: 5, timeoutSeconds: 5}
+          volumeMounts:
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: database-tls, mountPath: /database-tls, readOnly: true}
+            - {name: study, mountPath: /study}
+            - {name: models, mountPath: /models, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: credentials
+          secret: {secretName: chess-credentials, defaultMode: 0440, items: [{key: study-password, path: study-password}, {key: study-api-token, path: study-api-token}]}
+        - name: database-tls
+          secret: {secretName: chess-db-tls, optional: true, defaultMode: 0440}
+        - {name: study, persistentVolumeClaim: {claimName: study-data}}
+        - {name: models, persistentVolumeClaim: {claimName: model-data}}
+        - {name: tmp, emptyDir: {medium: Memory, sizeLimit: 64Mi}}

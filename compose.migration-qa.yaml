@@ -1,0 +1,55 @@
+name: chess-migration-qa
+services:
+  source:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: migration_admin
+      POSTGRES_PASSWORD: synthetic-source-password
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U migration_admin"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    mem_limit: 512m
+    cpus: 1
+  target:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: migration_admin
+      POSTGRES_PASSWORD: synthetic-target-password
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U migration_admin"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    mem_limit: 512m
+    cpus: 1
+  tests:
+    image: chess-lakehouse-migrator:local
+    build:
+      context: .
+      dockerfile: docker/migration.Dockerfile
+    environment:
+      SOURCE_PGHOST: source
+      SOURCE_PGPORT: '5432'
+      SOURCE_PGUSER: migration_admin
+      SOURCE_PGPASSWORD: synthetic-source-password
+      SOURCE_PGDATABASE: postgres
+      TARGET_PGHOST: target
+      TARGET_PGPORT: '5432'
+      TARGET_PGUSER: migration_admin
+      TARGET_PGPASSWORD: synthetic-target-password
+      TARGET_PGDATABASE: postgres
+    entrypoint: [python, -m, pytest, -q, -o, cache_dir=/tmp/transfer-pytest, tests/test_postgres_transfer.py]
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+    depends_on:
+      source:
+        condition: service_healthy
+      target:
+        condition: service_healthy
+    mem_limit: 1g
+    cpus: 2

@@ -6,6 +6,7 @@ QUALIFIERS=r'(?:(?:white|black|blitz|rapid|bullet|classical|ultrabullet|lost|won
 
 
 def recent_count(question):
+    """Parse a supported recent-game count and reject unsupported or unbounded requests."""
     text=question.casefold()
     pattern=r'\b(?:last|latest|recent|previous)\s+(?:a\s+)?(?P<count>\d+|'+ '|'.join(WORDS)+r')\s+'+QUALIFIERS+r'games?\b'
     match=re.search(pattern,text) or re.search(r'\b(?P<count>\d+)\s+(?:most\s+)?recent\s+'+QUALIFIERS+r'games?\b',text)

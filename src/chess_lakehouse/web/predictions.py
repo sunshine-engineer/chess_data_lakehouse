@@ -5,6 +5,7 @@ from . import data
 
 
 def evaluate(artifacts,report,row):
+    """Validate a pre-game scenario and evaluate the compatible trusted model publication."""
     run=report['run_id'];x=np.array([vector(row)],dtype=float)
     def probabilities(name):
         model=artifacts.model(run,name)

@@ -10,11 +10,13 @@ from werkzeug.exceptions import HTTPException
 
 from . import storage as db,accounts,imports,insights,analysis,exports,worker,board,learning,repertoire,archives
 from .config import load
+from ...runtime import load as runtime, secret
 
 
 def create_app(config=None):
+    """Create the account-scoped private API with session, CSRF, resource and worker configuration."""
     app=Flask(__name__)
-    app.config.update(TOKEN=os.environ.get('STUDY_API_TOKEN',''),WORKER=os.environ.get('STUDY_WORKER')=='1',
+    app.config.update(TOKEN=secret('STUDY_API_TOKEN',''),WORKER=runtime().workers.embedded,
         SETTINGS=load(),MAX_CONTENT_LENGTH=None,MAX_FORM_MEMORY_SIZE=128*1024)
     app.config.update(config or {})
     if not app.config['TOKEN']:raise ValueError('STUDY_API_TOKEN is required')
@@ -29,7 +31,7 @@ def create_app(config=None):
 
     @app.before_request
     def authorize():
-        if request.path=='/healthz':return None
+        if request.path in ('/healthz','/livez','/readyz'):return None
         if not hmac.compare_digest(request.headers.get('Authorization',''),'Bearer '+app.config['TOKEN']):return result({'error':'Private service authentication required'},401)
         g.user=accounts.session(request.cookies.get(accounts.COOKIE))
         if request.path not in ('/session','/signup','/login'):
@@ -46,9 +48,13 @@ def create_app(config=None):
         return result({'error':'The study service could not complete this request. Check its container logs.'},503)
 
     @app.get('/healthz')
+    @app.get('/readyz')
     def health():
         with db.connect() as c:c.execute('SELECT 1 FROM study.accounts LIMIT 1')
         return result({'status':'ok'})
+
+    @app.get('/livez')
+    def live():return result({'status':'ok'})
 
     @app.get('/session')
     def session():

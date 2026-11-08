@@ -30,10 +30,12 @@ DEFAULT_FIELDS={'game_date','player_name','opponent_name','white_rating','black_
 
 
 def valid_game_id(value):
+    """Accept supported source IDs and deterministic namespaced local game identities."""
     return isinstance(value,str) and re.fullmatch(r'(?:[A-Za-z0-9]{8}|local_[a-f0-9]{64})',value) is not None
 
 
 def missing(value):
+    """Recognize PGN header values representing absent or unknown metadata."""
     return value is None or value.strip() in ('','?','-')
 
 
@@ -67,6 +69,7 @@ def game_identity(headers,names,game_date,initial_fen,moves,defaults):
 
 
 def game_date(headers,settings,defaults):
+    """Resolve a game date under the configured date policy and record defaults."""
     flexible=getattr(settings,'flexible_dates',False)
     for key in ('UTCDate','Date'):
         raw=headers.get(key,'').strip()
@@ -134,6 +137,7 @@ def position_key(board):
 
 
 def parse(content,settings):
+    """Validate PGN mainlines and produce bounded, normalized private game payloads."""
     if not content or len(content)>settings.max_upload_bytes:
         raise ValueError('PGN file is empty or exceeds the 10 MiB upload limit')
     try:
@@ -270,10 +274,12 @@ def parse(content,settings):
 
 
 def dataset_hash(rows):
+    """Hash normalized private payloads to identify an immutable dataset publication."""
     return hashlib.sha256(json.dumps(rows,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
 
 def replay(row):
+    """Rebuild legal played positions and annotated moves from a normalized payload."""
     board=chess.Board(row['initial_fen'])
     positions=[board.fen()]
     moves=[]

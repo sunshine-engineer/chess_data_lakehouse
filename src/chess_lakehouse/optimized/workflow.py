@@ -24,10 +24,12 @@ from . import warehouse
 
 
 def event(name, **values):
+    """Emit one structured timestamped pipeline event without serializing database credentials."""
     print(json.dumps(dict(event=name, timestamp=datetime.now(timezone.utc).isoformat(), **values), default=str), flush=True)
 
 
 def provenance():
+    """Describe the executing source image, implementation and relevant package versions."""
     package = Path(__file__).parents[1]
     digest = hashlib.sha256()
     for path in sorted(package.rglob("*")):
@@ -42,6 +44,7 @@ def provenance():
 
 
 def resources():
+    """Read available container CPU, memory and resource-limit measurements from cgroups."""
     root = Path("/sys/fs/cgroup")
     result = dict(container_cpu_seconds=None, container_peak_memory_mib=None, cpu_limit=None, memory_limit_mib=None)
     try:
@@ -58,6 +61,7 @@ def resources():
 
 
 def fetch(settings):
+    """Fetch or reuse the trusted monthly archive under an exclusive download lock."""
     path = settings.data_root / "bronze" / settings.source.sha256 / f"lichess_db_standard_rated_{settings.source.month}.pgn.zst"
     check_disk(path.parent, settings.min_free_disk_bytes)
     with file_lock(path.with_suffix(".download.lock")):
@@ -67,6 +71,7 @@ def fetch(settings):
 
 
 def prepare_source(settings, archive=None):
+    """Verify the source archive and build resumable bounded Parquet record frames."""
     archive = Path(archive) if archive is not None else fetch(settings)
     if archive.stat().st_size > settings.source.max_download_bytes:
         raise ValueError("archive exceeds declared size limit")
@@ -81,6 +86,7 @@ def prepare_source(settings, archive=None):
 
 def run(engine, settings, reports=Path("/reports"), group="manual", resume=None, archive=None,
         interrupt_after_transform=None, interrupt_after_load=None):
+    """Execute or resume one engine run, loading durable shards before atomic monthly publication."""
     if engine not in ENGINES:
         raise ValueError("unknown engine")
     runtime = provenance()

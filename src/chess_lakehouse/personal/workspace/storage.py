@@ -9,27 +9,32 @@ import os
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+from ...runtime import load as runtime, postgres_options
 
 
 @contextmanager
 def connect():
-    with psycopg.connect('',row_factory=dict_row,connect_timeout=5,
+    """Yield a study-role connection with bounded statement and transaction-idle timeouts."""
+    with psycopg.connect('',row_factory=dict_row,connect_timeout=5,**postgres_options(),
             options='-c statement_timeout=60000 -c idle_in_transaction_session_timeout=120000') as c:
         yield c
 
 
 def identifier(value):
+    """Validate and normalize a resource UUID before accessing account-owned state."""
     try:return str(UUID(str(value)))
     except (ValueError,TypeError,AttributeError):raise ValueError('Invalid resource identifier') from None
 
 
 def root():
-    path=Path(os.environ.get('STUDY_ROOT','/study'))/'workspace'
+    """Create and return the configured shared workspace directory for private artifacts."""
+    path=runtime().paths.study/'workspace'
     path.mkdir(parents=True,exist_ok=True)
     return path
 
 
 def library(c,owner,library_id=None,player=None,create=False):
+    """Resolve or explicitly create a player library within one account."""
     if not library_id and not player:raise ValueError('Choose a player library first')
     if library_id:
         row=c.execute('SELECT * FROM study.libraries WHERE owner_id=%s AND id=%s',(owner,identifier(library_id))).fetchone()
@@ -45,6 +50,7 @@ def library(c,owner,library_id=None,player=None,create=False):
 
 
 def snapshot(c,owner,library_id,snapshot_id=None):
+    """Resolve a pinned collection version after verifying account and library ownership."""
     lib=library(c,owner,library_id)
     key=snapshot_id or lib['active_snapshot']
     if not key:raise ValueError('Import games before opening this library')
@@ -55,6 +61,7 @@ def snapshot(c,owner,library_id,snapshot_id=None):
 
 
 def game(c,owner,snap,game_id):
+    """Fetch one immutable revision only through the owner's selected collection membership."""
     from ..pgn import valid_game_id
     if not valid_game_id(game_id):raise ValueError('Invalid game identifier')
     row=c.execute('''SELECT r.* FROM study.snapshot_games m JOIN study.game_revisions r ON r.id=m.revision_id
@@ -65,11 +72,13 @@ def game(c,owner,snap,game_id):
 
 def canonical(row):
     # Imported annotations can change; identical semantic payloads are stored once.
+    """Serialize shared semantic game content independently of the studying player's perspective."""
     shared={k:v for k,v in row.items() if k not in ('player_color','player_rating','opponent_rating','opponent_band','outcome','points')}
     return json.dumps(shared,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
 
 
 def perspective(payload,player):
+    """Derive the selected player's color, opponent, rating band and game result."""
     row=dict(payload)
     color='white' if row['white'].casefold()==player.casefold() else 'black'
     if row[color].casefold()!=player.casefold():raise ValueError('Game does not contain the selected player')
@@ -82,6 +91,7 @@ def perspective(payload,player):
 
 
 def save_revision(c,owner,row):
+    """Store or reuse a content-addressed private game revision and ensure its position index."""
     from uuid import uuid4
     text=canonical(row);sha=hashlib.sha256(text.encode()).hexdigest()
     existing=c.execute('SELECT id,positions_ready FROM study.game_revisions WHERE owner_id=%s AND game_id=%s AND payload_sha256=%s',
@@ -101,6 +111,7 @@ def save_revision(c,owner,row):
 
 
 def index_positions(c,owner,revision,row):
+    """Build the shared revision's legal position index under an idempotent row lock."""
     import chess
     from ..pgn import position_key
     # A row lock makes the build idempotent when an import and recovery worker meet.

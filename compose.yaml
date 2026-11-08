@@ -1,10 +1,26 @@
 name: chess-lakehouse
+x-runtime-env: &runtime-env
+  CHESS_RUNTIME_CONFIG: ${CHESS_RUNTIME_CONFIG:-config/runtime.toml}
+  CHESS_BIND_HOST: ${CHESS_BIND_HOST:-0.0.0.0}
+  CHESS_WEB_PORT: '8080'
+  CHESS_STUDY_PORT: '8081'
+  CHESS_WORKER_PORT: '8082'
+  CHESS_WEB_THREADS: ${CHESS_WEB_THREADS:-4}
+  CHESS_STUDY_THREADS: ${CHESS_STUDY_THREADS:-4}
+  STUDY_MAX_UPLOAD_BYTES: ${STUDY_MAX_UPLOAD_BYTES:-1099511627776}
+  STUDY_PROXY_TIMEOUT_SECONDS: ${STUDY_PROXY_TIMEOUT_SECONDS:-300}
+  STUDY_WORKER_POLL_SECONDS: ${STUDY_WORKER_POLL_SECONDS:-1}
+  STUDY_SHUTDOWN_SECONDS: ${STUDY_SHUTDOWN_SECONDS:-330}
+  STUDY_REPERTOIRE_GAME_SECONDS: ${STUDY_REPERTOIRE_GAME_SECONDS:-30}
+  CHESS_ARCHIVE_POLL_SECONDS: ${CHESS_ARCHIVE_POLL_SECONDS:-3}
+  CHESS_ARCHIVE_CHECK_SECONDS: ${CHESS_ARCHIVE_CHECK_SECONDS:-3600}
 x-runner: &runner
   image: chess-lakehouse-runner:local
   build:
     context: .
     dockerfile: docker/Dockerfile
   environment: &loader-env
+    <<: *runtime-env
     PGHOST: postgres
     PGPORT: "5432"
     PGDATABASE: ${POSTGRES_DB:-chess}
@@ -53,6 +69,7 @@ services:
     <<: *runner
     command: [migrate]
     environment: &admin-env
+      <<: *runtime-env
       PGHOST: postgres
       PGPORT: "5432"
       PGDATABASE: ${POSTGRES_DB:-chess}
@@ -127,6 +144,7 @@ services:
       dockerfile: docker/web.Dockerfile
     profiles: [web]
     environment: &reader-env
+      <<: *runtime-env
       PGHOST: postgres
       PGDATABASE: ${POSTGRES_DB:-chess}
       PGUSER: chess_reader
@@ -150,7 +168,7 @@ services:
     profiles: [web]
     environment:
       <<: *reader-env
-      STUDY_SERVICE_URL: http://study-api:8081
+      STUDY_SERVICE_URL: ${STUDY_SERVICE_URL:-http://study-api:8081}
       STUDY_API_TOKEN: ${STUDY_API_TOKEN:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-8080}:8080"
@@ -236,13 +254,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-  study-api:
+  study-api: &study-api
     image: chess-lakehouse-web:local
     build:
       context: .
       dockerfile: docker/web.Dockerfile
     profiles: [study]
-    environment:
+    environment: &study-env
+      <<: *runtime-env
       PGHOST: postgres
       PGDATABASE: ${POSTGRES_DB:-chess}
       PGUSER: chess_study
@@ -251,7 +270,7 @@ services:
       STUDY_ROOT: /study
       TMPDIR: /study/workspace/tmp
       STUDY_CONFIG: ${STUDY_CONFIG:-config/study.toml}
-      STUDY_WORKER: '1'
+      STUDY_WORKER: ${STUDY_WORKER:-1}
       ML_ROOT: /models
       STUDY_ROUTER: ${STUDY_ROUTER:-template}
       STUDY_LLM_URL: http://study-llm:11434
@@ -261,7 +280,7 @@ services:
       STUDY_BATCH_GAMES: ${STUDY_BATCH_GAMES:-100}
       STUDY_MIN_FREE_DISK_BYTES: ${STUDY_MIN_FREE_DISK_BYTES:-268435456}
       STUDY_SECURE_COOKIES: ${STUDY_SECURE_COOKIES:-0}
-    command: [waitress-serve, --listen=0.0.0.0:8081, --threads=4, --max-request-body-size=1099511627776, --call, chess_lakehouse.personal.workspace.application:create_app]
+    command: [python, -m, chess_lakehouse.serve, study]
     volumes:
       - study-data:/study
       - ml-data:/models:ro
@@ -283,6 +302,19 @@ services:
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
+  study-worker:
+    <<: *study-api
+    profiles: [workers]
+    environment:
+      <<: *study-env
+      STUDY_WORKER: '0'
+    command: [python, -m, chess_lakehouse.personal.workspace.worker]
+    stop_grace_period: 360s
+    healthcheck:
+      test: [CMD, python, -m, chess_lakehouse.health, worker]
+      interval: 10s
+      timeout: 6s
+      retries: 12
   study-tests:
     image: chess-lakehouse-web:local
     profiles: [study]

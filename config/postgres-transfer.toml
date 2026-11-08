@@ -1,0 +1,17 @@
+# Credentials are supplied through SOURCE_PG* / TARGET_PG* variables or secret files.
+[source]
+env_prefix = "SOURCE"
+[target]
+env_prefix = "TARGET"
+[options]
+chunk_rows = 50000
+chunk_bytes = 16777216
+max_row_bytes = 67108864
+dump_jobs = 2
+ownership = "preserve"
+privileges = "preserve"
+create_missing_roles = false
+verify_source_unchanged = true
+min_free_bytes = 1073741824
+connect_timeout = 10
+lock_timeout_seconds = 30

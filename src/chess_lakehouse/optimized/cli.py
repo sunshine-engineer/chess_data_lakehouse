@@ -10,20 +10,23 @@ import signal
 from .settings import ENGINES, load
 from .storage import atomic_json
 from .workflow import event, fetch, prepare_source, run
+from ..runtime import load as runtime
 
 
 def interrupted(signum, frame):
+    """Convert a termination signal into an interruption that preserves resumable run state."""
     raise InterruptedError(f"received signal {signum}; resume with the recorded run ID")
 
 
 def main(argv=None):
+    """Validate container arguments and dispatch bounded historical pipeline operations."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["fetch", "prepare", "run", "compare", "migrate", "init-volume", "status", "backfill", "cleanup", "abandon"])
     parser.add_argument("--engine", choices=ENGINES, default="python")
     parser.add_argument("--config", default="config/pipeline.toml")
     parser.add_argument("--month")
     parser.add_argument("--months", help="Explicit comma-separated allowlisted months, at most six")
-    parser.add_argument("--reports", type=Path, default=Path("/reports"))
+    parser.add_argument("--reports", type=Path, default=runtime().paths.reports)
     parser.add_argument("--benchmark-group", default="manual")
     parser.add_argument("--resume", help="Failed/interrupted run ID; settings/code must match")
     parser.add_argument("--copy-batch-rows", type=int)
@@ -41,7 +44,7 @@ def main(argv=None):
     if args.command == "init-volume":
         if os.geteuid() != 0:
             parser.error("init-volume is an administrative one-shot container")
-        for root in (Path("/data"), Path("/reports")):
+        for root in (runtime().paths.data, runtime().paths.reports):
             root.mkdir(parents=True, exist_ok=True)
             os.chown(root, 10001, 10001)
             for path in root.rglob("*"):

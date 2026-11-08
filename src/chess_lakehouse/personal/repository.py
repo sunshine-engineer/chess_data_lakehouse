@@ -16,16 +16,19 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from .pgn import PAYLOAD_SCHEMA,dataset_hash,parse,position_key,valid_game_id
+from ..runtime import load as runtime, postgres_options
 
 
 @contextmanager
 def connect():
-    with psycopg.connect('',row_factory=dict_row,connect_timeout=5,
+    """Yield a study-role connection with bounded statement and transaction-idle timeouts."""
+    with psycopg.connect('',row_factory=dict_row,connect_timeout=5,**postgres_options(),
             options='-c statement_timeout=20000 -c idle_in_transaction_session_timeout=60000') as conn:
         yield conn
 
 
 def uuid(value):
+    """Normalize a resource UUID or raise ValueError before querying private state."""
     try:
         return str(UUID(str(value)))
     except (ValueError,TypeError,AttributeError):
@@ -33,12 +36,14 @@ def uuid(value):
 
 
 def root():
-    path=Path(os.environ.get('STUDY_ROOT','/study'))
+    """Create and return the configured private study artifact directory."""
+    path=runtime().paths.study
     path.mkdir(parents=True,exist_ok=True)
     return path
 
 
 def workspace(conn,settings,create=False):
+    """Find or explicitly create the approved legacy player-month workspace."""
     row=conn.execute('SELECT * FROM study.workspaces WHERE player_normalized=%s AND month=%s',
         (settings.normalized_player,settings.month_date)).fetchone()
     if not row and create:
@@ -48,6 +53,7 @@ def workspace(conn,settings,create=False):
 
 
 def version(conn,settings,identifier=None):
+    """Resolve a legacy publication version inside its approved workspace."""
     w=workspace(conn,settings)
     if not w or not w['active_import']:
         raise ValueError('import the approved personal PGN before requesting a study')
@@ -59,6 +65,7 @@ def version(conn,settings,identifier=None):
 
 
 def payloads(import_row):
+    """Read private game payloads belonging to the selected legacy version."""
     folder=root()/uuid(import_row['id'])
     file=folder/'games.parquet'
     manifest=import_row['manifest']
@@ -72,6 +79,7 @@ def payloads(import_row):
 
 
 def payload(import_row,game_id):
+    """Fetch one game from its selected legacy publication version."""
     if not valid_game_id(game_id):
         raise ValueError('invalid game ID')
     rows=payloads(import_row)
@@ -79,6 +87,7 @@ def payload(import_row,game_id):
 
 
 def publish(content,settings,player,month,mode='append'):
+    """Publish the legacy private artifacts and metadata as a versioned study."""
     if player.casefold().strip()!=settings.normalized_player or month!=settings.month:
         raise ValueError('player and month must match the explicit personal-study approval')
     if mode not in ('append','replace'):

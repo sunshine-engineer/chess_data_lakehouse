@@ -79,6 +79,7 @@ def parse_frame(record: dict, month: str, stamp: str) -> tuple:
 
 
 def python_records(paths, month, stamp):
+    """Yield bounded Python-side PGN records for the baseline ingestion path."""
     for path in paths:
         with path.open(encoding="utf-8") as stream:
             for line in stream:

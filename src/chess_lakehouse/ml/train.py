@@ -36,10 +36,12 @@ CLUSTER_FEATURES=('mean_rating','mean_moves','win_rate','draw_rate','bullet_shar
 
 
 def digest(path):
+    """Compute an artifact file checksum for the trusted model publication manifest."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def temporal_split(rows):
+    """Split observations chronologically to keep later evaluation games outside training."""
     days=sorted(set(r['date'] for r in rows))
     if len(days)<10:
         raise ValueError('at least ten distinct game dates are required')
@@ -51,6 +53,7 @@ def temporal_split(rows):
 
 
 def extract(engine,month,max_games):
+    """Read the selected historical features and targets for explicit local model training."""
     filters({'engine':engine,'month':month})
     with connect() as c:
         c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
@@ -80,6 +83,7 @@ def extract(engine,month,max_games):
 
 
 def classification_metrics(model,x,y):
+    """Compute classification quality, class-level results and probability diagnostics."""
     pred=model.predict(x)
     return {'accuracy':float(accuracy_score(y,pred)),
         'balanced_accuracy':float(balanced_accuracy_score(y,pred)),
@@ -92,12 +96,14 @@ def classification_metrics(model,x,y):
 
 
 def regression_metrics(model,x,y):
+    """Compute held-out regression errors and relevant baseline comparisons."""
     pred=model.predict(x)
     return {'mae_moves':float(mean_absolute_error(y,pred)),
         'rmse_moves':float(np.sqrt(mean_squared_error(y,pred))),'r2':float(r2_score(y,pred))}
 
 
 def fit_models(rows,players):
+    """Fit the bounded case-study estimators using the specified historical training split."""
     tr,va,te=temporal_split(rows)
     x=np.array([vector(r) for r in rows],dtype=float)
     y=np.array([r['result'] for r in rows])
@@ -177,6 +183,7 @@ def fit_models(rows,players):
 
 
 def train(engine='python',month='2013-01',max_games=120000,root=None):
+    """Train and atomically publish versioned local models with honest evaluation and provenance."""
     if not os.environ.get('CHESS_CONTAINER'):
         raise RuntimeError('train inside Docker')
     if not 1000<=max_games<=150000:
@@ -184,7 +191,8 @@ def train(engine='python',month='2013-01',max_games=120000,root=None):
     # Preserve the explicitly approved real-source boundary.
     if month!='2013-01':
         raise ValueError('ML training is restricted to the approved January 2013 archive')
-    root=Path(root or os.environ.get('ML_ROOT','/models')); root.mkdir(parents=True,exist_ok=True)
+    from ..runtime import load as runtime
+    root=Path(root or runtime().paths.models); root.mkdir(parents=True,exist_ok=True)
     with (root/'.training.lock').open('w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         start=time.monotonic()
@@ -221,6 +229,7 @@ def train(engine='python',month='2013-01',max_games=120000,root=None):
 
 
 def main():
+    """Parse the explicit container training command and its publication options."""
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--engine',choices=ENGINES,default='python')
     parser.add_argument('--month',default='2013-01')

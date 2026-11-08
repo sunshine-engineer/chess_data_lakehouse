@@ -40,6 +40,7 @@ def workload_rounds(samples,months,repeats):
 
 
 def compare(group, reports=Path('/reports'), required_engines=ENGINES):
+    """Compare complete historical benchmark runs and shared model-equivalence evidence."""
     with connect() as conn:
         for engine in sorted(required_engines):
             if not conn.execute("SELECT pg_try_advisory_xact_lock(hashtext(%s))", ('chess-v2-'+engine,)).fetchone()[0]:

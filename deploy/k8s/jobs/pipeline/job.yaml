@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chess-monthly-pipeline
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: pipeline
+          image: chess-lakehouse-runner:local
+          command: [python, -m, chess_lakehouse.optimized.cli]
+          # Opt-in one-month example; patch engine to spark for bounded local Spark.
+          args: [run, --engine, python_mp, --config, config/archive-demo.toml, --month, '2013-01']
+          envFrom: [{configMapRef: {name: chess-config}}]
+          env:
+            - {name: PGUSER, value: chess_loader}
+            - {name: PGPASSWORD_FILE, value: /credentials/loader-password}
+          resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {cpu: '2', memory: 3Gi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: reports, mountPath: /reports}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: database-tls, mountPath: /database-tls, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: data, persistentVolumeClaim: {claimName: pipeline-data}}
+        - {name: reports, persistentVolumeClaim: {claimName: report-data}}
+        - name: credentials
+          secret: {secretName: chess-credentials, defaultMode: 0440, items: [{key: loader-password, path: loader-password}]}
+        - name: database-tls
+          secret: {secretName: chess-db-tls, optional: true, defaultMode: 0440}
+        - {name: tmp, emptyDir: {sizeLimit: 1Gi}}

@@ -14,6 +14,7 @@ from .storage import atomic_json, check_disk
 
 
 def download_source(settings,progress=None):
+    """Resume a bounded HTTP archive download and trust it only after full SHA256 verification."""
     source = settings.source
     filename = f'lichess_db_standard_rated_{source.month}.pgn.zst'
     target = settings.data_root/'bronze'/source.sha256/filename

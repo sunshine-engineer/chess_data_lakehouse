@@ -13,6 +13,7 @@ from .workflow import run,event
 def main():
     # This module is run by the administrative tests container, then drops privileges
     # at the database connection boundary. No production source URL is requested.
+    """Publish explicitly synthetic multi-month fixtures for Docker acceptance and restore checks."""
     os.environ['PGUSER']='chess_loader'
     os.environ['PGPASSWORD']=os.environ['LOADER_PASSWORD']
     root=Path('/data/ci-synthetic')

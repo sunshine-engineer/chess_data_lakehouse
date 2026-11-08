@@ -15,10 +15,12 @@ import pyarrow.parquet as pq
 from .records import COLUMNS, SCHEMA
 from .settings import ENGINES
 from .storage import verify_file
+from ..runtime import postgres_options
 
 
 def connect(settings=None):
-    conn = psycopg.connect("", connect_timeout=10, application_name="chess-historical")
+    """Open the loader connection and optionally apply job-specific SQL timeout limits."""
+    conn = psycopg.connect("", connect_timeout=10, application_name="chess-historical", **postgres_options())
     if settings:
         conn.execute("SELECT set_config('statement_timeout',%s,false),set_config('lock_timeout',%s,false)",
                      (str(settings.statement_timeout_seconds * 1000), str(settings.lock_timeout_seconds * 1000)))
@@ -27,18 +29,21 @@ def connect(settings=None):
 
 
 def schema_for(engine):
+    """Resolve an allowlisted engine to its historical warehouse schema."""
     if engine not in ENGINES:
         raise ValueError("unknown engine")
     return "warehouse_" + engine
 
 
 def stage_for(run_id):
+    """Validate a run identifier before quoting its private staging table name."""
     if not run_id.startswith(("python_", "python_mp_", "spark_")) or not run_id.replace("_", "").isalnum():
         raise ValueError("invalid run identifier")
     return sql.Identifier("staging", run_id)
 
 
 def create_run(conn, run_id, engine, settings, provenance, group):
+    """Register a historical run and create its typed logged staging relation."""
     types = {pa.int64(): "BIGINT", pa.string(): "TEXT", pa.binary(): "BYTEA", pa.bool_(): "BOOLEAN",
              pa.date32(): "DATE", pa.float64(): "DOUBLE PRECISION"}
     definitions = sql.SQL(",").join(sql.SQL("{} {}").format(sql.Identifier(f.name), sql.SQL(types[f.type])) for f in SCHEMA)
@@ -52,10 +57,12 @@ def create_run(conn, run_id, engine, settings, provenance, group):
 
 
 def shard_checksum(shard):
+    """Derive the immutable checksum binding a transformed shard's committed files."""
     return hashlib.sha256(json.dumps(shard["files"], sort_keys=True).encode()).hexdigest()
 
 
 def load_shard(run_id, shard, settings):
+    """Load one verified shard and its database checkpoint in the supported staging contract."""
     for entry in shard["files"]:
         verify_file(entry, SCHEMA)
     checksum = shard_checksum(shard)
@@ -84,6 +91,7 @@ def load_shard(run_id, shard, settings):
 
 def load_shards(run_id, manifest, settings, on_shard=None):
     # Bound both open connections and outstanding work; interruption drains at most N shards.
+    """Load transformed shards with explicitly bounded database writer concurrency."""
     with ThreadPoolExecutor(max_workers=settings.db_writers) as pool:
         entries = iter(manifest["shards"])
         active = set()

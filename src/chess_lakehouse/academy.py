@@ -56,12 +56,14 @@ LESSONS = [
 
 
 def lesson(identity):
+    """Return a published authored lesson or reject an unknown lesson identifier."""
     value=next((x for x in LESSONS if x['id']==identity),None)
     if value is None:raise ValueError('Choose a published lesson')
     return value
 
 
 def grade(identity,text):
+    """Validate a legal drill move and report whether it meets the authored goal."""
     item=lesson(identity);board=chess.Board(item['fen'])
     try:move=chess.Move.from_uci(text)
     except (ValueError,TypeError):raise ValueError('Choose a legal move on the board') from None

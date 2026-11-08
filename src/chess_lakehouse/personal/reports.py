@@ -10,6 +10,7 @@ SPEEDS={'ultrabullet','bullet','blitz','rapid','classical','unknown'}
 
 
 def validate_filters(value,settings):
+    """Validate supported legacy study filters before selecting private games."""
     if not isinstance(value,dict) or set(value)-ALLOWED:
         raise ValueError('unsupported personal-study filter')
     result={}
@@ -37,6 +38,7 @@ def validate_filters(value,settings):
 
 
 def select_games(conn,import_id,filters):
+    """Select legacy private payloads using the validated analytical filters."""
     columns={'color':'player_color','speed':'speed','opponent_band':'opponent_band','opening':'opening'}
     clauses=['g.import_id=%s']
     params=[import_id]
@@ -52,6 +54,7 @@ def select_games(conn,import_id,filters):
 
 
 def wilson(wins,n):
+    """Compute a Wilson interval for an observed success count and sample size."""
     if not n:
         return None
     z=1.959963984540054
@@ -62,6 +65,7 @@ def wilson(wins,n):
 
 
 def summary(rows):
+    """Summarize the selected private games using results and available metadata."""
     n=len(rows)
     wins=sum(r['result']=='win' for r in rows)
     draws=sum(r['result']=='draw' for r in rows)
@@ -74,6 +78,7 @@ def summary(rows):
 
 
 def grouped(rows,key):
+    """Compute result statistics for the requested grouping of private games."""
     groups=defaultdict(list)
     for row in rows:
         groups[row[key]].append(row)
@@ -81,6 +86,7 @@ def grouped(rows,key):
 
 
 def build(rows,reference_rows,settings,version):
+    """Assemble a deterministic legacy study report and its evidence references."""
     openings=defaultdict(list)
     for row in rows:
         openings[row['opening']].append(row)
@@ -128,6 +134,7 @@ def build(rows,reference_rows,settings,version):
 
 
 def report(settings,identifier=None,filters=None):
+    """Read a legacy publication and compute its filtered study report."""
     filters=validate_filters(filters or {},settings)
     with db.connect() as c:
         c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ')
