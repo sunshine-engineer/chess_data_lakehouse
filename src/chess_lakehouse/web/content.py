@@ -30,7 +30,7 @@ CASES={
     'action':'Inspect the profiles','href':'/#models?tab=profiles'}}
 
 GUIDES={'web-app','personal-study','optimized-pipeline','optimized-validation','web-ml-validation',
-    'personal-workspace-validation','product-workspace-validation','product-workspace-plan','case-studies','board-learning-archives','board-learning-archives-validation'}
+    'personal-workspace-validation','product-workspace-validation','product-workspace-plan','case-studies','board-learning-archives','board-learning-archives-validation','repertoire-and-archive-imports'}
 EVIDENCE={'reports/comparison-v2.json':'/api/evidence/benchmarks',
     'reports/scale/comparison-v2.json':'/api/evidence/benchmarks?workload=scale',
     'reports/ml-evaluation.json':'/api/evidence/models'}

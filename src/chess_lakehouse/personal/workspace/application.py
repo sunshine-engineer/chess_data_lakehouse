@@ -8,7 +8,7 @@ from uuid import uuid4
 from flask import Flask,jsonify,request,g,send_file
 from werkzeug.exceptions import HTTPException
 
-from . import storage as db,accounts,imports,insights,analysis,exports,worker,board,learning
+from . import storage as db,accounts,imports,insights,analysis,exports,worker,board,learning,repertoire,archives
 from .config import load
 
 
@@ -204,10 +204,53 @@ def create_app(config=None):
     def board_analysis():return result(board.enqueue(g.user['id'],body(),settings),202)
 
     @app.get('/board/analysis/<key>')
-    def board_analysis_result(key):return result(board.result(g.user['id'],key))
+    def board_analysis_result(key):
+        import chess
+        row=board.result(g.user['id'],key)
+        if row['status']=='complete':
+            position=chess.Board(row['fen']);fens=[position.fen()]
+            for uci in row['evidence'].get('pv_uci',[]):
+                move=chess.Move.from_uci(uci)
+                if move not in position.legal_moves:break
+                position.push(move);fens.append(position.fen())
+            row['evidence']['positions']=fens
+        return result(row)
 
     @app.post('/learning/examples')
     def learning_examples():return result(learning.personal(g.user['id'],body()))
+
+    @app.post('/repertoire/start')
+    def repertoire_start():return result(repertoire.start(g.user['id'],body()),202)
+
+    @app.post('/repertoire/status')
+    def repertoire_status():return result(repertoire.status(g.user['id'],body()))
+
+    @app.post('/repertoire/control')
+    def repertoire_control():return result(repertoire.control(g.user['id'],body()))
+
+    @app.post('/repertoire/list')
+    def repertoire_list():return result(repertoire.listing(g.user['id'],body()))
+
+    @app.post('/repertoire/exercise')
+    def repertoire_exercise():return result(repertoire.exercise(g.user['id'],body()))
+
+    @app.post('/repertoire/reveal')
+    def repertoire_reveal():return result(repertoire.exercise(g.user['id'],body(),True))
+
+    @app.post('/repertoire/attempt')
+    def repertoire_attempt():return result(repertoire.attempt(g.user['id'],body()))
+
+    @app.get('/archives/catalog')
+    def archive_catalog():return result(archives.catalog())
+
+    @app.route('/archives/jobs',methods=['GET','POST'])
+    def archive_jobs():return result(archives.create(g.user['id'],body()),202) if request.method=='POST' else result(archives.jobs(g.user['id']))
+
+    @app.post('/archives/control')
+    def archive_control():return result(archives.control(g.user['id'],body()))
+
+    @app.post('/archives/subscription')
+    def archive_subscription():return result(archives.subscribe(g.user['id'],body()))
 
     @app.get('/learning/progress')
     def learning_progress():return result(learning.progress(g.user['id']))

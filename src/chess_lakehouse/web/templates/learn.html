@@ -1,4 +1,15 @@
 <section id="learn" class="view" aria-label="Learn and practice" hidden>
+<article class="panel" id="repertoire"><p class="eyebrow">FROM YOUR MISSED OPPORTUNITIES</p><h2>Your practice repertoire</h2>
+<p>Find stronger moves in your own games. Exercises appear as the background build progresses. <a href="/guides/repertoire-and-archive-imports">How the build and archive imports work →</a></p>
+<label>Player library<select id="repertoire-library"></select></label>
+<label><input type="checkbox" id="repertoire-fallback" checked> Continue with available archive games after my collection</label>
+<div class="trial-actions"><button id="repertoire-start" type="button">Build / resume repertoire</button><button id="repertoire-pause" type="button" class="secondary">Pause</button><button id="repertoire-refresh" type="button" class="secondary">Refresh progress</button></div>
+<p id="repertoire-status" role="status">Sign in to build a private repertoire.</p><p id="repertoire-method" class="muted"></p>
+<label>Phase<select id="repertoire-phase"><option value="">All phases</option><option value="opening">Opening</option><option value="middlegame">Middlegame</option><option value="endgame">Endgame</option></select></label>
+<div id="repertoire-list" class="study-actions"></div><div class="trial-actions"><button id="repertoire-prev" class="secondary" type="button">Previous page</button><button id="repertoire-next" class="secondary" type="button">Next page</button></div>
+<div id="repertoire-challenge" hidden><h3 id="repertoire-title"></h3><p>Find a move that keeps or gains an advantage. The game move and solution are hidden until you try or reveal.</p>
+<p id="repertoire-source"></p><div id="repertoire-board" class="chess-board learn-example-board"></div><p id="repertoire-feedback" role="status"></p><div class="trial-actions"><button id="repertoire-reset" type="button" class="secondary">Try again</button><button id="repertoire-reveal" type="button" class="secondary">Reveal continuation</button></div><div id="repertoire-solution"></div></div>
+</article>
 <div id="learn-focus" class="insight-row" hidden></div>
 <div class="learn-layout data-region"><nav id="lesson-menu" class="panel lesson-menu" aria-label="Beginner lessons"></nav>
 <article class="panel lesson-content"><p class="eyebrow">UNDERSTAND · TRY · REFLECT</p><div id="lesson-heading"></div>

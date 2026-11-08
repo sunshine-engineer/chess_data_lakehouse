@@ -176,6 +176,14 @@ window.Study = (() => {
     if(sequence!==state.routeSequence)return;
     if(refresh&&state.replay?.game_id===gameId){
       state.replay.analysis_jobs=replay.analysis_jobs;renderEngine();
+      if(state.pendingQuestion&&replay.analysis_jobs.some(j=>String(j.id)===state.pendingQuestion.job&&['complete','failed'].includes(j.status))){
+        const pending=state.pendingQuestion;state.pendingQuestion=null;
+        if(replay.analysis_jobs.find(j=>String(j.id)===pending.job).status==='complete'){
+          const answer=await api('assistant',pending.value);
+          if(sequence!==state.routeSequence||state.replay?.game_id!==gameId)return;
+          renderAnswer(answer,'#study-game-answer');
+        }else $('#study-game-answer').append(node('p','The review failed. See its error below and retry the game review.','callout'));
+      }
       if(replay.analysis_jobs.some(j=>['queued','running'].includes(j.status)))state.timer=setTimeout(()=>loadGame(gameId,state.ply,sequence,true).catch(error),2500);
       return;
     }
@@ -183,6 +191,7 @@ window.Study = (() => {
     for(const [key,value] of Object.entries(state.preferences)){const field=$('#board-preferences').elements[key];if(field){if(field.type==='checkbox')field.checked=value;else field.value=value;}}
     state.replay=replay;state.ply=Math.max(0,Math.min(ply,replay.moves.length));state.preview=null;state.trial=null;state.boardKey=null;state.noteKey=null;state.flipped=state.preferences.orientation==='black'||state.preferences.orientation==='player'&&replay.player_color==='black';
     state.trialRequest=(state.trialRequest||0)+1;pendingTrial(false);
+    clearTimeout(state.positionTimer);state.positionContext=null;state.pendingQuestion=null;$('#study-position-engine').replaceChildren();$('#study-game-answer').replaceChildren();
     $('#study-game-back').href=href('games');$('#study-replay-title').textContent=`${replay.white} — ${replay.black}`;
     $('#study-game-meta').textContent=`${replay.game_date||'Date unavailable'} · ${replay.speed} · ${replay.outcome} · ${replay.opening}`;
     $('#study-game-id').textContent=`Game ID: ${replay.game_id} · collection v${replay.version}`;
@@ -195,7 +204,7 @@ window.Study = (() => {
     if(!state.replay)return;
     const key=state.replay.revision_id+':'+state.ply;
     if(key!==state.boardKey||state.preview){state.trial=null;state.boardKey=key;}
-    if(state.preview||state.positionContext!==positionKey()){clearTimeout(state.positionTimer);$('#study-position-engine').replaceChildren();state.positionContext=null;}
+    const resultContext=$('#study-position-engine .position-result-context');if(resultContext)resultContext.textContent=state.positionContext===positionKey()&&!state.preview?'This result matches the current board.':'Saved result for an earlier position. Exploring the board keeps this result visible.';
     $('#study-positions').replaceChildren();
     const fen=state.trial?.fen||state.preview?.fen||state.replay.positions[state.ply];
     const board=$('#study-board');
@@ -213,7 +222,6 @@ window.Study = (() => {
     const evaluation=last?.uploaded_eval_cp!=null?` · uploaded evaluation ${(last.uploaded_eval_cp/100).toFixed(2)} (unverified)`:'';
     $('#study-position-label').textContent=state.trial?.moves.length?`TRIAL LINE · from played position ${state.ply} · ${state.trial.turn} to move${state.trial.result?' · '+state.trial.result:''}`:state.preview?`ENGINE VARIATION · ${state.preview.label} · not the played game`:`Position ${state.ply}/${state.replay.moves.length}${clock}${evaluation}`;
     $('#study-question-context').textContent=state.trial?.moves.length?`Current trial: ${state.trial.san.join(' ')}. Evaluate this position to ask for an engine continuation.`:`Selected game vs ${state.replay.opponent} · played position ${state.ply}. Questions about “this game” use this game only.`;
-    const questionContext=positionKey();if(state.questionContext!==questionContext){$('#study-game-answer').replaceChildren();state.questionContext=questionContext;}
     [...$('#study-moves').children].forEach((b,i)=>b.classList.toggle('active',i+1===state.ply));
     const noteKey=`${state.replay.revision_id}:${state.ply}`;
     if(state.noteKey!==noteKey){const note=state.replay.notes.find(n=>n.ply===state.ply);$('#study-note textarea').value=note?.note||'';$('#study-note select').value=note?.status||'queued';state.noteKey=noteKey;}
@@ -232,9 +240,9 @@ window.Study = (() => {
   $('#study-trial-reset').addEventListener('click',()=>{state.trial=null;renderBoard();});
   $('#study-trial-undo').addEventListener('click',()=>tryMoves((state.trial?.moves||[]).slice(0,-1)).catch(error));
   $('#study-variation-save').addEventListener('submit',async e=>{e.preventDefault();try{await api('board/variations',{...boardSelection(),label:new FormData(e.target).get('label')});e.target.reset();await refreshVariations();alert('Continuation saved separately from the played game.',true);}catch(err){error(err);}});
-  async function pollPosition(id,context,route){const value=await api('board/analysis/'+id);if(route!==state.routeSequence||context!==positionKey())return;state.positionContext=context;const box=$('#study-position-engine');box.replaceChildren(node('p','Position search: '+value.status));if(value.error)box.append(node('p',value.error,'callout'));if(value.status==='complete'){const e=value.evidence;box.append(node('p',e.mate!=null?'Mate score for White: '+e.mate:'White evaluation: '+(e.cp/100).toFixed(2)+' pawns'),node('p',e.pv_san.join(' ')),node('p',`${e.engine} · ${num(e.nodes)} nodes · depth ${e.depth} · ${e.explanation}`,'muted'));}else if(['queued','running'].includes(value.status))state.positionTimer=setTimeout(()=>pollPosition(id,context,route).catch(error),1200);}
-  $('#study-position-analyze').addEventListener('click',async()=>{try{if(state.preview)throw new Error('Return to the played game or a trial line to evaluate a position.');const selected=boardSelection(),context=positionKey(),route=state.routeSequence,value=await api('board/analysis',{...selected,profile:$('#study-position-profile').value});clearTimeout(state.positionTimer);await pollPosition(value.id,context,route);}catch(err){error(err);}});
-  $('#study-position-profile').addEventListener('change',()=>{clearTimeout(state.positionTimer);state.positionContext=null;state.questionContext=null;$('#study-position-engine').replaceChildren();$('#study-game-answer').replaceChildren();});
+  async function pollPosition(id,context,route){const value=await api('board/analysis/'+id);if(route!==state.routeSequence||state.positionRequest!==id)return;state.positionContext=context;const original=JSON.parse(context),box=$('#study-position-engine');box.replaceChildren(node('p',`Position search: ${value.status} · position ${original.ply} · ${original.profile} · ${original.moves.length?'trial '+original.moves.join(' '):'played game'}`),node('p',context===positionKey()&&!state.preview?'This result matches the current board.':'Saved result for an earlier position. Exploring the board keeps this result visible.','position-result-context muted'));if(value.error)box.append(node('p',value.error,'callout'));if(value.status==='complete'){const e=value.evidence;box.append(node('p',e.mate!=null?'Mate score for White: '+e.mate:e.cp==null?'No numerical score':'White evaluation: '+(e.cp/100).toFixed(2)+' pawns'),node('p',e.pv_san.join(' ')),node('p',`${e.engine} · ${num(e.nodes)} nodes · depth ${e.depth} · ${e.explanation}`,'muted'));if(e.positions?.length)box.append(lineControls(e.positions,e.pv_san,`Position ${original.ply} · ${original.profile}`,original.ply));box.append(button('Return to evaluated position',async()=>{state.preview=null;state.trial=null;state.ply=original.ply;renderBoard();if(original.moves.length)await tryMoves(original.moves);}));}else if(['queued','running'].includes(value.status))state.positionTimer=setTimeout(()=>pollPosition(id,context,route).catch(error),1200);}
+  $('#study-position-analyze').addEventListener('click',async()=>{try{if(state.preview)throw new Error('Return to the played game or a trial line to evaluate a position.');const selected=boardSelection(),context=positionKey(),route=state.routeSequence,value=await api('board/analysis',{...selected,profile:$('#study-position-profile').value});clearTimeout(state.positionTimer);state.positionRequest=String(value.id);await pollPosition(String(value.id),context,route);}catch(err){error(err);}});
+  $('#study-position-profile').addEventListener('change',()=>{const label=$('#study-position-engine .position-result-context');if(label)label.textContent='Saved result uses its original search profile. Evaluate again to use the selected profile.';});
   function renderEngine() {
     const box=$('#study-engine');box.replaceChildren();
     const jobs=state.replay.analysis_jobs,job=jobs[0];
@@ -336,7 +344,7 @@ window.Study = (() => {
   for(const [id,direction] of [['study-previous-game',-1],['study-next-game',1]])$('#'+id).addEventListener('click',()=>{const index=state.gameRows.findIndex(g=>g.game_id===state.replay.game_id),next=state.gameRows[index+direction];if(index>=0&&next)go(href('games',next.game_id));});
   for(const question of ['Summarize this game','What is the best move here?','Why did I lose this game?'])$('#study-game-prompts').append(button(question,()=>{$('#study-game-question textarea').value=question;$('#study-game-question textarea').focus();},'study-prompt'));
   $('#study-question').addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{const answer=await api('assistant',{...selection(),question:new FormData(e.target).get('question')});renderAnswer(answer,'#study-answer');}catch(err){error(err);}finally{b.disabled=false;}});
-  $('#study-game-question').addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button'),context=positionKey(),sequence=state.routeSequence;b.disabled=true;try{if(state.preview)throw new Error('Return to the played game or try a move on the board to ask about that position.');const answer=await api('assistant',{...selection(),question:new FormData(e.target).get('question'),...boardSelection(),profile:$('#study-position-profile').value});if(context===positionKey()&&sequence===state.routeSequence)renderAnswer(answer,'#study-game-answer');}catch(err){error(err);}finally{b.disabled=Boolean(state.trialPending);}});
+  $('#study-game-question').addEventListener('submit',async e=>{e.preventDefault();const b=e.target.querySelector('button'),context=positionKey(),sequence=state.routeSequence;b.disabled=true;try{if(state.preview)throw new Error('Return to the played game or try a move on the board to ask about that position.');const value={...selection(),question:new FormData(e.target).get('question'),...boardSelection(),profile:$('#study-position-profile').value},answer=await api('assistant',value);if(context===positionKey()&&sequence===state.routeSequence){renderAnswer(answer,'#study-game-answer');$('#study-game-answer').append(node('p',`Asked at played position ${value.ply}${value.moves.length?' · trial '+value.moves.join(' '):''}. This answer stays visible while you explore.`,'muted'));if(answer.analysis_job){state.pendingQuestion={job:answer.analysis_job.id,value};clearTimeout(state.timer);state.timer=setTimeout(()=>loadGame(state.replay.game_id,state.ply,sequence,true).catch(error),1200);}}}catch(err){error(err);}finally{b.disabled=Boolean(state.trialPending);}});
   $('#study-save').addEventListener('submit',async e=>{e.preventDefault();try{await api('studies',{...selection(),name:new FormData(e.target).get('name')});await loadSaved();alert('Saved with this exact collection version and filters.',true);}catch(err){error(err);}});
   $('#study-ply').addEventListener('input',e=>{state.trial=null;state.preview=null;state.ply=Number(e.target.value);renderBoard();});
   for(const [id,value] of [['study-start',()=>0],['study-prev',()=>state.ply-1],['study-next-move',()=>state.ply+1],['study-end',()=>state.replay.moves.length]])$(`#${id}`).addEventListener('click',()=>{if(!state.replay)return;state.trial=null;state.preview=null;state.ply=Math.max(0,Math.min(value(),state.replay.moves.length));renderBoard();});

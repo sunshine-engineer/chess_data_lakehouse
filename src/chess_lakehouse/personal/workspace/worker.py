@@ -6,7 +6,7 @@ import time
 from psycopg.types.json import Jsonb
 
 from .. import engine
-from . import storage as db,imports,board
+from . import storage as db,imports,board,repertoire
 
 
 def import_one(config,opener=None):
@@ -50,7 +50,7 @@ def engine_one(config):
     # One worker owns both queues; neither kind can create parallel Stockfish.
     position=board.run_one(config)
     game=analyze_one(config)
-    return position or game
+    return position or game or repertoire.run_one(config)
 
 
 def start(config):
@@ -64,6 +64,7 @@ def start(config):
                     interrupted=c.execute("SELECT id,owner_id,input_path FROM study.import_jobs WHERE status='running'").fetchall()
                     c.execute("UPDATE study.import_jobs SET status='failed',phase='Interrupted',error='Service restarted. Retry this file or link.',finished_at=now(),input_path=NULL WHERE status='running'")
                 elif kind=='engine':
+                    c.execute("UPDATE study.repertoire_tasks SET status='queued' WHERE status='running'")
                     c.execute("UPDATE study.workspace_analysis SET status='failed',error='Service restarted; request this review again.',finished_at=now() WHERE status='running'")
                     c.execute("UPDATE study.position_analysis SET status='failed',error='Service restarted; request this position again.',finished_at=now() WHERE status='running'")
             for job in interrupted:

@@ -12,7 +12,7 @@
  A.pages.pipelines=()=>{
   let select=$('#benchmark-workload');if(!select){const label=el('label','Measured workload');select=el('select');select.id='benchmark-workload';for(const [value,text] of [['baseline','January 2013 · original comparison'],['scale','January–March 2013 · expanded workload']]){const option=el('option',text);option.value=value;select.append(option);}label.append(select);$('#pipelines').prepend(label);select.addEventListener('change',()=>A.go('pipelines',{workload:select.value}));}
   select.value=A.state.route.params.get('workload')||'baseline';const suffix='?workload='+encodeURIComponent(select.value);$('#pipelines a[href^="/api/evidence/"]').href='/api/evidence/benchmarks'+suffix;
-  archivePlan();
+  archivePlan().then(()=>{const panel=$('#archive-import-plan');if(panel)window.ArchiveImports.mount(panel).catch(e=>A.notice(e.message));});
   return A.load(signal=>A.request('/api/benchmarks'+suffix,{},signal),d=>{
   const summary=$('#benchmark-summary'),box=$('#benchmark');summary.replaceChildren();box.replaceChildren();$('#benchmark-time').replaceChildren();$('#benchmark-memory').replaceChildren();$('#benchmark-checks').replaceChildren();$('#benchmark-context').replaceChildren();
   if(!d.available){box.append(A.empty('No benchmark publication yet','Recorded measurements will appear here when a comparison has been published.',link('Read the comparison method →','/case-studies/pipelines')));return;}

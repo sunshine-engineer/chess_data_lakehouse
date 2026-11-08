@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-11-08T10:16:53.507849+00:00",
+  "collection_games": 12533,
+  "status": "running",
+  "source_stage": "personal",
+  "partial_reviews": 0,
+  "tasks": [
+    {
+      "status": "complete",
+      "source_month": null,
+      "games": 85
+    },
+    {
+      "status": "queued",
+      "source_month": null,
+      "games": 12447
+    },
+    {
+      "status": "running",
+      "source_month": null,
+      "games": 1
+    }
+  ],
+  "exercises": [
+    {
+      "phase": "endgame",
+      "exercises": 3
+    },
+    {
+      "phase": "middlegame",
+      "exercises": 65
+    },
+    {
+      "phase": "opening",
+      "exercises": 27
+    }
+  ],
+  "method": "Every game in the pinned collection; then available archive frames, newest month first. One Stockfish thread; up to 30 seconds/game. Advantage >=1 pawn; missed score >=1.5 pawns. Phase is a ply/material heuristic. Pause takes effect after the current game; interactive requests run before the next game."
+}
