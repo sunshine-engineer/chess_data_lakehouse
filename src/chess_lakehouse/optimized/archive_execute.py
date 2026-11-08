@@ -16,6 +16,7 @@ def execute(job):
     with file_lock(lock):
         def progress(received,total):event('download_progress',bytes_received=received,total_bytes=total)
         archive=download_source(settings,progress=progress)
+    event('archive_verified',month=source['month'],bytes=archive.stat().st_size)
     return run(job['engine'],settings,reports=settings.data_root/'archive-reports',group='archive-app',resume=job.get('run_id'),archive=archive)
 
 
