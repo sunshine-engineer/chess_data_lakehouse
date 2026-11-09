@@ -55,6 +55,9 @@ Domain configuration stays with its owner:
   `config/postgres-upsert.toml` selects a source-wins primary-key data merge into
   compatible existing tables. `--mode restore|upsert` overrides the TOML mode.
   Restore owner/ACL policy knobs do not rewrite destination permissions in upsert.
+- `.env.cloudsql.example` and `compose.cloudsql.yaml` configure an operator-run
+  Cloud SQL Auth Proxy plus schema/data migration. Actual credentials and the
+  selected instance live in ignored local files. See [the Cloud SQL guide](cloudsql-migration.md).
 
 Build the image after source/config changes. To inspect effective deployment
 settings without starting a service:

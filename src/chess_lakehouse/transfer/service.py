@@ -178,6 +178,7 @@ def run(source, target, options, workdir, maintenance_window=False, recover_trac
                     restore.restore_persistence(conn, metadata['relations'])
                     state.finish(conn, tracker["job_id"], report)
                 tracker.update(phase="complete", report=report, units_committed=report["units_committed"])
+                tracker.pop("error_type",None)
                 state.atomic_json(tracker_path, tracker)
                 return report
         except BaseException as exc:

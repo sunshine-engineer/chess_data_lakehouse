@@ -8,6 +8,7 @@ data/
 .env.*
 !.env.example
 !.env.transfer.example
+!.env.cloudsql.example
 *.db
 *.sqlite*
 *.pgn

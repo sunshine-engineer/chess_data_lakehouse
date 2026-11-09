@@ -1,0 +1,30 @@
+{
+  "application_constraints_validated": true,
+  "checkpoint_resume_verified": true,
+  "conflict_policy": "source-wins",
+  "database": "chess",
+  "destination_only_rows_preserved": 0,
+  "login": "dev",
+  "login_is_superuser": false,
+  "mode": "upsert",
+  "native_objects_verified": true,
+  "representative_counts": {
+    "study.accounts": 2,
+    "study.game_revisions": 25052,
+    "study.library_snapshots": 8,
+    "study.saved_studies": 1,
+    "study.snapshot_games": 75305,
+    "warehouse_python.fact_game": 121332,
+    "warehouse_python_mp.fact_game": 403928,
+    "warehouse_spark.fact_game": 121332
+  },
+  "rows_verified": 3586769,
+  "schema_sha256": "a6b5d508370731ccbdf13e5163c7c29ae01d152ba83187140c749bbbb513fa87",
+  "schemas_verified": 20,
+  "source_rows": 3586769,
+  "status": "passed",
+  "tables_verified": 121,
+  "target_instance": "postgres-test",
+  "units_committed": 478,
+  "verified_at_utc": "2026-11-09T04:33:45.274808+00:00"
+}

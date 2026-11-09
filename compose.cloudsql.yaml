@@ -1,0 +1,66 @@
+name: chess-cloudsql-transfer
+services:
+  migration:
+    image: chess-lakehouse-migrator:local
+    build:
+      context: .
+      dockerfile: docker/migration.Dockerfile
+    user: '${LOCAL_UID:-1000}:${LOCAL_GID:-1000}'
+    environment:
+      SOURCE_PGHOST: ${SOURCE_PGHOST:-chess-lakehouse-postgres-1}
+      SOURCE_PGPORT: '5432'
+      SOURCE_PGDATABASE: ${SOURCE_DBNAME:-chess}
+      SOURCE_PGUSER: ${SOURCE_ADMIN_USER:-chess}
+      SOURCE_PGPASSWORD_FILE: /private/source-password
+      SOURCE_PGSSLMODE: disable
+      ADMIN_PGHOST: proxy
+      ADMIN_PGPORT: '5432'
+      ADMIN_PGDATABASE: postgres
+      ADMIN_PGUSER: ${TARGET_ADMIN_USER:-postgres}
+      ADMIN_PGPASSWORD_FILE: /private/postgres-password
+      ADMIN_PGSSLMODE: disable
+      TARGET_PGHOST: proxy
+      TARGET_PGPORT: '5432'
+      TARGET_PGDATABASE: ${TARGET_DBNAME:-chess}
+      TARGET_PGUSER: ${TARGET_LOGIN:-dev}
+      TARGET_INSTANCE_CONNECTION_NAME: ${CLOUDSQL_CONNECTION_NAME}
+      TARGET_PGPASSWORD_FILE: /private/dev-password
+      TARGET_PGSSLMODE: disable
+    command: [--config, /app/config/postgres-upsert.toml, --workdir, /migration/cloudsql-upsert]
+    volumes:
+      - ./src:/app/src:ro
+      - ./config:/app/config:ro
+      - ${CLOUDSQL_PRIVATE_DIR:-./data/secrets/cloudsql}:/private
+      - ${CLOUDSQL_WORK_DIR:-./data/transfers/cloudsql}:/migration
+    networks: [source]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 2
+    mem_limit: 1g
+  proxy:
+    image: chess-cloudsql-proxy:local
+    build:
+      context: .
+      dockerfile: docker/cloudsql-proxy.Dockerfile
+    user: '${LOCAL_UID:-1000}:${LOCAL_GID:-1000}'
+    command: ['${CLOUDSQL_CONNECTION_NAME:?Set the explicitly selected Cloud SQL connection name}']
+    volumes:
+      - ${GCLOUD_CONFIG_DIR:?Set the local gcloud configuration directory}:/gcloud-seed:ro
+    networks: [source]
+    tmpfs: ['/tmp:uid=1000,gid=1000,mode=1777,size=134217728']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, cloud-sql-proxy, wait, --http-port=9090, --max=4s]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    cpus: 1
+    mem_limit: 512m
+networks:
+  source:
+    external: true
+    name: ${SOURCE_DOCKER_NETWORK:-chess-lakehouse_default}

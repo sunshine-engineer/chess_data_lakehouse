@@ -13,6 +13,7 @@ PGNs or user-requested Lichess API imports. Cluster checks use synthetic data.**
 Deployment and migration: [configuration](docs/configuration.md),
 [portable Kubernetes setup](docs/kubernetes.md),
 [resumable PostgreSQL transfer](docs/postgres-transfer.md),
+[managed Cloud SQL migration](docs/cloudsql-migration.md),
 [code organization review](docs/code-organization-review.md), and
 [validation evidence](docs/portability-validation.md).
 

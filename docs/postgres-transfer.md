@@ -203,7 +203,9 @@ Custom write triggers/rules are rejected. The repository's exact published-histo
 guards are recognized and left enabled: new immutable records can be inserted,
 identical records retained, but a source row that would update immutable history
 is rejected before target-row changes. Immutable self-referencing history chains
-require fresh restore. Upsert does not override those existing data-model rules.
+must fit one configured bounded chunk so their references are satisfied in a
+single INSERT. Larger histories are rejected before application-row writes.
+Upsert does not override those existing data-model rules.
 These checks complement normal PostgreSQL constraint enforcement; they do not
 provide a general conflict-resolution engine for arbitrary schemas.
 

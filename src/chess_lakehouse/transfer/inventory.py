@@ -44,19 +44,34 @@ def rows_digest(conn, relation):
     order while detecting duplicates together with the exact row count. Read ONLY
     each physical table so inherited/partition rows are never counted twice.
     """
-    total = count = 0
     if relation["kind"] == "m" and not relation["populated"]:
         return {"rows": 0, "sha256_sum": "unpopulated"}
     query = sql.SQL("SELECT sha256(convert_to(row_to_json(t)::text,'UTF8')) FROM {} {} AS t").format(
         sql.SQL("ONLY") if relation["kind"] == "r" else sql.SQL(""),
         sql.Identifier(relation["schema"], relation["name"]))
-    with conn.cursor(name="transfer_fingerprint") as cursor:
-        cursor.itersize = 500
-        cursor.execute(query)
-        for row in cursor:
-            total = (total + int.from_bytes(bytes(row[0]), "big")) % (1 << 256)
-            count += 1
-    return {"rows": count, "sha256_sum": f"{total:064x}"}
+    return digest_query(conn,query)
+
+
+def digest_query(conn, query):
+    """Aggregate SHA256 digests on PostgreSQL without one network fetch per batch.
+
+    Four signed 64-bit word sums plus their sign-bit counts reconstruct the same
+    unsigned 256-bit modular sum used by the original streaming implementation.
+    PostgreSQL SUM(bigint) uses exact numeric arithmetic, so word totals do not
+    overflow. OFFSET 0 keeps the row-hash projection below the aggregate. Only one
+    aggregate row crosses the network; archive/checkpoint fingerprints are unchanged.
+    The supplied query must return one non-null 32-byte digest per source row.
+    """
+    values=[sql.SQL('count(*)')]
+    for word in range(4):
+        values.append(sql.SQL("coalesce(sum(('x'||encode(substring(h FROM {} FOR 8),'hex'))::bit(64)::bigint),0)").format(sql.Literal(word*8+1)))
+        values.append(sql.SQL('coalesce(sum(get_byte(h,{}) >> 7),0)').format(sql.Literal(word*8)))
+    row=conn.execute(sql.SQL('SELECT {} FROM ({} OFFSET 0) AS hashes(h)').format(sql.SQL(',').join(values),query)).fetchone()
+    total=0
+    for word in range(4):
+        unsigned=int(row[1+2*word])+int(row[2+2*word])*(1<<64)
+        total += unsigned << (192-word*64)
+    return {'rows':row[0],'sha256_sum':f'{total % (1<<256):064x}'}
 
 
 def sequences(conn):

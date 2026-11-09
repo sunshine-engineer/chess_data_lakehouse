@@ -477,6 +477,7 @@ Public entrypoints are listed by module. See each docstring for its contract.
 - `identity`: Identify a database across network aliases without requiring cluster superuser.
 - `relations`: List physical tables and materialized views with COPY-compatible columns.
 - `rows_digest`: Hash every typed row with bounded memory, retaining duplicate-row counts.
+- `digest_query`: Aggregate SHA256 digests on PostgreSQL without one network fetch per batch.
 - `sequences`: Capture last_value/is_called, including sequences behind identity columns.
 - `large_objects`: Fingerprint large-object pages without loading a whole object into memory.
 - `roles`: Find database owner/ACL roles; never read or copy role password hashes.
@@ -484,6 +485,13 @@ Public entrypoints are listed by module. See each docstring for its contract.
 - `capture`: Capture the source catalog under the caller's exported repeatable-read snapshot.
 - `stable_json`: Serialize comparison metadata without whitespace or dictionary-order drift.
 - `destination_has_objects`: Reject populated destinations including standalone public functions/types.
+
+## `src/chess_lakehouse/transfer/managed.py`
+
+- `schema_names`: Select application namespaces while excluding provider/system/transfer state.
+- `schema_hash`: Compare native DDL only for the explicitly selected application namespaces.
+- `prepare`: Create missing roles/database and atomically restore schema into an empty DB.
+- `main`: Plan or prepare the managed database; credentials are mounted file paths.
 
 ## `src/chess_lakehouse/transfer/restore.py`
 

@@ -35,6 +35,8 @@ Changes made for portability:
   The CLI plans by default and has no automatic destructive destination cleanup.
   `transfer/upsert.py` adds a separate source-wins data merge path with logged
   staging, FK ordering, preservation baselines and mode-specific verification.
+  `transfer/managed.py` provisions ordinary ownership groups, a dedicated login,
+  and native application DDL before data upsert on a managed instance.
 - Kubernetes and disposable QA configurations are separate from live Compose
   volumes and image tags. Separate jobs make maintenance ordering reviewable.
 

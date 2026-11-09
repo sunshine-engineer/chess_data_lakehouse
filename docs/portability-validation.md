@@ -70,3 +70,37 @@ actual state copy and checksum verification, real data migration capacity/time,
 application cutover and rollback rehearsal, observability and backup/PITR policy.
 The small integration fixtures establish correctness paths, not 30 GB/month
 throughput or a five-year maintenance-window duration.
+
+## Managed Cloud SQL execution — 2026-11-09
+
+Live migration to the user-selected `postgres-test` instance completed using
+source-wins upsert. The administrator explicitly approved its PostgreSQL 15→16
+upgrade; the Cloud SQL upgrade operation completed before schema preparation.
+
+- **20 application schemas**, **121 physical tables**, **3,586,769 rows** verified.
+- Native source/destination application schema SHA256 matched before and after data
+  load, covering tables, views, functions, indexes, constraints, ownership and ACLs.
+- All application constraints were validated. Representative counts matched:
+  Python facts 121,332; multiprocessing facts 403,928; Spark facts 121,332;
+  private game revisions 25,052; snapshots 8; snapshot memberships 75,305.
+- The requested `dev` login was created with a generated local password. It is
+  not a superuser; ordinary ownership/permission groups retain application grants.
+  Source superuser attributes and original role passwords were not copied.
+- A real SIGINT interruption and checkpointed resume retained the uploaded data
+  and committed upserts. The final tracker/ledger recorded **478 committed units**
+  and terminal `complete` status; the separate read-only verifier passed as `dev`.
+- Verification aggregates the original SHA256 modular sums on PostgreSQL rather
+  than fetching every row hash across the network. Empty, single-row, duplicate
+  and 10,003-row cases matched the original streaming calculation. The live copy
+  also matched the original snapshot fingerprints for all 3,586,769 rows.
+- **40 Docker regression tests passed** in 156.79 seconds. Strict API/Kubernetes
+  checks passed with **323 documented public functions** and eight render targets.
+
+The aggregate [execution report](../reports/cloudsql-migration.json) contains no
+credentials, project ID or private game/account identifiers. Native archives,
+tracking state and generated passwords remain in ignored local directories.
+See [the managed migration guide](cloudsql-migration.md) for repeatable commands.
+
+This is a database copy. The existing application still uses local PostgreSQL;
+its PGN/Parquet/model/report volumes are not relocated. After restarting local
+writers, Cloud SQL represents the accepted snapshot, not continuous replication.

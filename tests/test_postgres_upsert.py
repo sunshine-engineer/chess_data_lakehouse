@@ -80,6 +80,7 @@ def test_upsert_commit_crash_resumes(databases,options,tmp_path,window,unit_pref
     job=json.loads((tmp_path/'job.json').read_text())['job_id']
     with target.connect() as c:assert bool(state.lookup(c,job,seen[0]))==(window=='after_commit')
     assert service.run(source,target,options,tmp_path,True)['status']=='complete'
+    assert 'error_type' not in json.loads((tmp_path/'tracker.json').read_text())
     with target.connect() as c:assert c.execute('SELECT count(*) FROM "Merge Schema".parents').fetchone()[0]==4
 
 

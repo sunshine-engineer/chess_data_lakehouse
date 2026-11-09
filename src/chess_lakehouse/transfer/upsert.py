@@ -105,8 +105,6 @@ def preflight(source, conn):
             raise ValueError('Upsert requires logged tables for durable checkpoints: '+name)
         if table['unsafe_hooks'] or other['unsafe_hooks'] or table['unsupported_types'] or table['unsafe_unique'] or other['unsafe_unique']:
             raise ValueError('Upsert requires tables without user triggers/rules, domain/composite types or expression/partial unique indexes: '+name)
-        if table['immutable_self_reference']:
-            raise ValueError('Immutable self-referencing history requires a fresh restore: '+name)
         generated_keys = set(table['keys'])-set(table['columns'])
         if generated_keys: raise ValueError('Generated-expression primary keys are unsupported: '+name)
         for fk in source['foreign']:
@@ -162,12 +160,7 @@ def _join(keys, left='t', right='s'):
 
 
 def _digest(conn, query):
-    total=rows=0
-    with conn.cursor(name='upsert_digest') as cursor:
-        cursor.itersize=500;cursor.execute(query)
-        for row in cursor:
-            total=(total+int.from_bytes(bytes(row[0]),'big')) % (1<<256);rows+=1
-    return dict(rows=rows,sha256_sum=f'{total:064x}')
+    return inventory.digest_query(conn,query)
 
 
 def _hash_rows(from_clause):
@@ -304,6 +297,11 @@ def run(source, target, options, root, metadata, manifest_hash, tracker, inject=
         tracker['units_committed']=conn.execute(f'SELECT count(*) FROM {state.SCHEMA}.units WHERE job_id=%s',(job,)).fetchone()[0]
         entries={entry['oid']:entry for entry in metadata['data_order'] if entry['table_data']}
         if set(entries)!=set(tables): raise ValueError('Archive table data does not match the upsert catalog')
+        # One bounded INSERT can satisfy self-references at statement end without
+        # updating an immutable parent pointer or disabling its guard trigger.
+        for oid,table in tables.items():
+            if table['immutable_self_reference'] and any(number>0 for number,_,_ in archive.chunks(root,entries[oid],options)):
+                raise ValueError('Immutable self-referencing history must fit one bounded COPY chunk: '+table['schema']+'.'+table['name'])
         for oid,table in tables.items():
             unit='stage-table:'+oid
             if not state.lookup(conn,job,unit):
@@ -339,5 +337,6 @@ def run(source, target, options, root, metadata, manifest_hash, tracker, inject=
             finished_at=datetime.now(timezone.utc).isoformat())
         with conn.transaction(): state.finish(conn,job,report)
         tracker.update(phase='complete',report=report,units_committed=report['units_committed'])
+        tracker.pop('error_type',None)
         state.atomic_json(root/'tracker.json',tracker)
         return report
