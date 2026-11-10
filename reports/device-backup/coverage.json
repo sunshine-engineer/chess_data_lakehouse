@@ -1,0 +1,53 @@
+{
+  "archives": [
+    {
+      "archive": "workspace.zip",
+      "bytes": 102135892,
+      "file_count": 8744,
+      "sha256": "d0561becb67113a75d63f20111c2ab24889c32ed4cb4209d4ea655e17bb1a52e"
+    },
+    {
+      "archive": "chess-archive-scale_pipeline-data.zip",
+      "bytes": 282241470,
+      "file_count": 142,
+      "sha256": "7f47c21e72332ec89ce0e61b5ec6bfca535b831c4ed1e5f160687fb16adb7930"
+    },
+    {
+      "archive": "chess-lakehouse_ml-data.zip",
+      "bytes": 586683,
+      "file_count": 20,
+      "sha256": "62f606605bb648761d86c8f305ea75fe997dcb6c6e7b5916e64c974a068df14e"
+    },
+    {
+      "archive": "chess-lakehouse_pipeline-data.zip",
+      "bytes": 248004653,
+      "file_count": 92,
+      "sha256": "cbaaeaef089e5327e281f8bbc1d1ca977ed9ad08c36aac6b070db1ea0568cc21"
+    },
+    {
+      "archive": "chess-lakehouse_study-llm-data.zip",
+      "bytes": 385302073,
+      "file_count": 6,
+      "sha256": "e06831abf8c270ae8a1478fe76826bced3dfc038a106618e75f631a6eedd30ff"
+    },
+    {
+      "archive": "chess-study-demo_ml-data.zip",
+      "bytes": 22,
+      "file_count": 0,
+      "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85"
+    },
+    {
+      "archive": "chess-workspace-qa_ml-data.zip",
+      "bytes": 22,
+      "file_count": 0,
+      "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85"
+    }
+  ],
+  "excluded_file_count": 533,
+  "git_recovery": "dated remote backup branches; no raw .git configuration or reflogs",
+  "private_database_and_study_volumes_included": false,
+  "repository_visibility": "public",
+  "safe_to_delete_project_or_docker_state": false,
+  "sanitized_files": 8,
+  "status": "prepared"
+}

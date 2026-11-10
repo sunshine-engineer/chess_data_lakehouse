@@ -114,6 +114,22 @@ def scan(root):
     secrets = replacements()
     hits = []
     count = 0
+    stream_path = root / 'git-objects.private.bin'
+    if stream_path.exists():
+        with stream_path.open('rb') as stream:
+            while header := stream.readline():
+                oid, kind, length = header.decode().strip().split()
+                payload = stream.read(int(length))
+                if len(payload) != int(length) or stream.read(1) != b'\n':
+                    raise ValueError('Truncated Git object export')
+                count += 1
+                if any(secret in payload for secret in secrets) or re.search(rb'-----BEGIN (?:OPENSSH|RSA|EC) PRIVATE KEY-----|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}', payload):
+                    hits.append({'oid': oid, 'type': kind})
+        write_json(root / 'history-scan.json', {'objects_scanned': count, 'credential_matches': len(hits), 'matches': hits})
+        print(json.dumps({'objects_scanned': count, 'credential_matches': len(hits)}))
+        if hits:
+            raise ValueError('Do not publish unsanitized history; inspect local scan receipt')
+        return
     for line in (root / 'objects.txt').read_text(encoding='utf-8-sig').splitlines():
         oid = line.split(' ', 1)[0]
         path = ROOT / '.git/objects' / oid[:2] / oid[2:]
