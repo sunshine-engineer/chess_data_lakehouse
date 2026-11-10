@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "source": "freshly downloaded GitHub release assets",
+  "archives_restored": 7,
+  "files_restored_and_verified": 9004,
+  "archives": [
+    {
+      "archive": "chess-archive-scale_pipeline-data.zip",
+      "files_verified": 142
+    },
+    {
+      "archive": "chess-lakehouse_ml-data.zip",
+      "files_verified": 20
+    },
+    {
+      "archive": "chess-lakehouse_pipeline-data.zip",
+      "files_verified": 92
+    },
+    {
+      "archive": "chess-lakehouse_study-llm-data.zip",
+      "files_verified": 6
+    },
+    {
+      "archive": "chess-study-demo_ml-data.zip",
+      "files_verified": 0
+    },
+    {
+      "archive": "chess-workspace-qa_ml-data.zip",
+      "files_verified": 0
+    },
+    {
+      "archive": "workspace.zip",
+      "files_verified": 8744
+    }
+  ],
+  "elapsed_seconds": 383.2,
+  "database_or_application_restore_performed": false,
+  "safe_to_delete_project_or_docker_state": false
+}

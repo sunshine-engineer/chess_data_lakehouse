@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "original_reference_mappings_verified": 25,
+  "original_history_backup_branches": 16,
+  "working_copy_backup_branch": "backup/working-copy-20261111-0405",
+  "git_fsck_full": "passed",
+  "sanitized_configuration_paths_verified": 5,
+  "private_database_restore": "not-performed-excluded",
+  "safe_to_delete_project_or_docker_state": false
+}

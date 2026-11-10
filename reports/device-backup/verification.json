@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "release_tag": "device-backup-20261111-0405",
+  "downloaded_assets_byte_matched_to_local": 18,
+  "archives_restored": 8,
+  "files_restored_and_verified": 9046,
+  "original_git_reference_mappings_verified": 25,
+  "history_branches": 16,
+  "working_copy_backup_branch": "backup/working-copy-20261111-0405",
+  "recovery_tests_passed": 5,
+  "public_sqlite_integrity": "passed",
+  "public_sqlite_fact_counts": {
+    "data/lakehouse/runs/20261104T033126-ea98c32e/warehouse.sqlite": 121114,
+    "data/local-validation/runs/20261104T033032-373d8a52/warehouse.sqlite": 121114
+  },
+  "original_device_key_included": false,
+  "private_database_or_application_restore_performed": false,
+  "safe_to_delete_project_or_docker_state": false,
+  "remaining_dependencies": [
+    "private PostgreSQL and study/backup volumes",
+    "personal PGN exports and unreviewed private diagnostics",
+    "fresh credentials and new-device application acceptance"
+  ]
+}

@@ -41,13 +41,26 @@
       "bytes": 22,
       "file_count": 0,
       "sha256": "8739c76e681f900923b900c9df0ef75cf421d39cabb54650c4b9ad19b6a76d85"
+    },
+    {
+      "archive": "workspace-supplement.zip",
+      "bytes": 28415057,
+      "file_count": 42,
+      "sha256": "624fd8e68bbd1be02950689eaa24ce94503d89e3f88e184996189966f54c1775"
     }
   ],
-  "excluded_file_count": 533,
+  "excluded_file_count": 491,
   "git_recovery": "dated remote backup branches; no raw .git configuration or reflogs",
   "private_database_and_study_volumes_included": false,
+  "public_sqlite_fact_counts": {
+    "data/lakehouse/runs/20261104T033126-ea98c32e/warehouse.sqlite": 121114,
+    "data/local-validation/runs/20261104T033032-373d8a52/warehouse.sqlite": 121114
+  },
   "repository_visibility": "public",
+  "reviewed_supplement_files": 42,
   "safe_to_delete_project_or_docker_state": false,
-  "sanitized_files": 8,
-  "status": "prepared"
+  "sanitized_files": 9,
+  "status": "prepared",
+  "supplement_note": "Reviewed public benchmark JSON, CA bundle, dummy vendor test key, and vacuumed January-2013 public-only SQLite databases. Restore separately then merge absent paths.",
+  "initial_excluded_file_count": 533
 }

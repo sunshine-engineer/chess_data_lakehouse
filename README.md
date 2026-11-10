@@ -163,3 +163,7 @@ and [legacy runbook](docs/personal-study-legacy.md) remain historical references
 Private owner access is generated once in ignored `data/owner-access.json` during
 migration; sign in with it and change the app password. Other users register normally.
 Real games, passwords, screenshots and detailed study results stay outside Git.
+
+## Device transfer backup
+
+The dated public backup and its restore procedure are documented in [DEVICE_TRANSFER_RESTORE.md](docs/DEVICE_TRANSFER_RESTORE.md). Download the release assets as well as the backup branches. Credentials are dummy values; private database and study backups are excluded, so this does not establish that the old device's data can be deleted.

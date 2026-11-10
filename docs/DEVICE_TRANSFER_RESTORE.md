@@ -19,7 +19,7 @@ No force push or original branch deletion is part of the procedure.
 
 The associated GitHub release holds ZIP archives, per-file manifests and SHA256SUMS.
 It includes eligible workspace files (including ignored virtual-environment files),
-public archive pipeline data, trained public-data models and downloaded LLM model
+public archive pipeline data, trained public-data models, reviewed January-2013 SQLite warehouses and downloaded LLM model
 files. Empty directories are represented where applicable. `.env` and password
 files are represented with dummy values. Notebook execution outputs are cleared.
 Git's object database/configuration/reflogs are not placed in the ZIP; published
@@ -30,7 +30,7 @@ branch ancestry preserves reachable commit history after a credential scan.
 These items are **not** published to this public repository:
 
 - Personal PGN exports, private account/owner information and row-level diagnostics.
-- Migration workdirs, native SQL database dumps, SQLite database files and their
+- Migration workdirs, native SQL database dumps, unreviewed database files and their
   private metadata/checkpoints. The earlier Cloud SQL copy is an older snapshot;
   it is not evidence that all later local study writes are recoverable.
 - PostgreSQL Docker volume contents, study files/volumes and backup volumes.
@@ -105,7 +105,7 @@ platform; retained old `.venv` files are archival, not a portable runtime.
 
 ## Restore public Docker files
 
-The ZIP archive names match Docker volume names. Read `PUBLIC_BACKUP_COVERAGE.json`
+The non-workspace ZIP archive names match Docker volume names. Read `PUBLIC_BACKUP_COVERAGE.json`
 for the actual archives. Create a fresh volume and use the helper to populate it;
 repeat for each included non-database volume:
 
@@ -166,3 +166,70 @@ and checks, never printed or uploaded. Original running configurations are uncha
 Exact branch and release receipts accompany this document after publication.
 If any publish/download/verification step is blocked or fails, its status is
 reported explicitly; local archives alone are not a completed GitHub backup.
+
+### Publication command record for this run
+
+```powershell
+# Historical refs: the JSON receipt maps every original tip to its dated name.
+git branch --no-track backup/CXOED/cloudsql-managed-migration-20261111-0405 8c72117acd0e7ff03cbe5ab69b5da32ae438c94d
+# All 16 original-history backup refs were pushed together with git push --atomic.
+# The sanitized working-copy commit used a separate GIT_INDEX_FILE and work tree.
+git push origin refs/heads/backup/working-copy-20261111-0405:refs/heads/backup/working-copy-20261111-0405
+
+# ZIPs, manifests, coverage and checksums were passed as explicit asset paths.
+gh release create device-backup-20261111-0405 `
+  --repo sunshine-engineer/chess_data_lakehouse `
+  --target backup/working-copy-20261111-0405 `
+  --title 'Sanitized device backup device-backup-20261111-0405' `
+  --notes-file <local-release-notes.md> <asset-paths>
+gh release download device-backup-20261111-0405 `
+  --repo sunshine-engineer/chess_data_lakehouse --dir <empty-download-directory>
+
+# Independent Git recovery check used a fresh clone, not the original object store.
+git clone --mirror https://github.com/sunshine-engineer/chess_data_lakehouse.git <new-history-directory>
+git --git-dir=<new-history-directory> fsck --full --no-reflogs
+```
+
+The archive worker was paused only during public pipeline-volume capture and
+resumed immediately afterward. Temporary Docker staging held a local workspace
+copy to avoid slow Windows bind-mount traversal; that copy was never an upload
+asset. Checksums apply to the published ZIP snapshot. Later recovery scripts and
+verification receipts are recovered from the working-copy branch, which also
+contains the previously uncommitted project files.
+
+Git may repack objects during fetch. For the final scan, native `git cat-file
+--batch-all-objects --batch` exported the uncompressed objects into an ignored
+private binary file using a binary stream (no console output). The Docker helper
+scanned that stream against the current live credentials and private-key patterns.
+That stream, original `.git` files and private exclusion details are not release assets.
+## Reviewed workspace supplement
+
+`workspace-supplement.zip` contains public benchmark JSON reports, the public
+certifi CA bundle, a dummy replacement for a vendored test private-key fixture,
+and two SQLite warehouse samples verified to contain only the January 2013
+public archive tables/month. The SQLite copies were rebuilt with VACUUM INTO;
+private migration databases were not included. This closes conservative initial
+exclusions without publishing personal screenshots or study data.
+
+Restore this archive with `--archive workspace-supplement` into another empty
+folder, using the same Docker command as the workspace restore. Its internal paths
+are relative to the project root. Merge them into the restored workspace only
+where the corresponding path is absent; refuse any overwrite. For example:
+
+```powershell
+$supplement = (Resolve-Path ../chess-restored-supplement).Path
+$workspace = (Resolve-Path ../chess-restored-workspace).Path
+Get-ChildItem -LiteralPath $supplement -Recurse -File | ForEach-Object {
+  $relative = [IO.Path]::GetRelativePath($supplement, $_.FullName)
+  $destination = Join-Path $workspace $relative
+  if (Test-Path -LiteralPath $destination) { throw "Refusing overwrite: $relative" }
+  New-Item -ItemType Directory -Force -Path ([IO.Path]::GetDirectoryName($destination)) | Out-Null
+  Copy-Item -LiteralPath $_.FullName -Destination $destination
+}
+```
+
+The original excluded-files inventory predates this review. The supplement's
+manifest and final coverage receipt identify which paths are now recoverable.
+The supplementary review is reproducible with "scripts/review_public_backup.py" inside Docker, mounting the repository read-only at /workspace and the workdir read-write at /receipt. It validates public SQLite table names and January-2013-only source months before VACUUM INTO creates a clean copy. Five focused recovery-helper tests cover corruption, traversal, overwrite refusal, credential replacement and notebook output removal.
+
+Final acceptance: 18 downloaded assets matched the prepared bytes; all 9,046 included files across eight ZIPs were restored and verified in an isolated Docker volume. Both public SQLite warehouses passed integrity checks and had 121,114 fact rows each. A fresh Git clone passed fsck and all 25 original reference mappings. Private PostgreSQL/study state and new-device application acceptance remain outside this verification; deletion safety remains false. The release tag records the initial snapshot; obtain final receipts from the latest working-copy backup branch.

@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "tests": 5,
+  "docker_image": "chess-lakehouse-ops:local",
+  "coverage": [
+    "download corruption rejection",
+    "restore path traversal rejection",
+    "existing destination refusal",
+    "live credential redaction without source mutation",
+    "notebook output removal"
+  ],
+  "live_database_mutations": 0,
+  "private_application_restore": "excluded"
+}
