@@ -1,0 +1,152 @@
+[
+  {
+    "source_ref": "refs/heads/CXOED/board-learning-archives",
+    "source_oid": "bbef4e4511fd830c178b3d34544b8d31920ff091",
+    "backup_branch": "backup/CXOED/board-learning-archives-20261111-0405",
+    "backup_oid": "bbef4e4511fd830c178b3d34544b8d31920ff091"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/cloudsql-managed-migration",
+    "source_oid": "8c72117acd0e7ff03cbe5ab69b5da32ae438c94d",
+    "backup_branch": "backup/CXOED/cloudsql-managed-migration-20261111-0405",
+    "backup_oid": "8c72117acd0e7ff03cbe5ab69b5da32ae438c94d"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/historical-pipeline-optimizations",
+    "source_oid": "49b86c21826290d286e2844be43694877b704be6",
+    "backup_branch": "backup/CXOED/historical-pipeline-optimizations-20261111-0405",
+    "backup_oid": "49b86c21826290d286e2844be43694877b704be6"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/incremental-sync-game-review",
+    "source_oid": "a57e840f6887a5f12880586057a399bdd84ce528",
+    "backup_branch": "backup/CXOED/incremental-sync-game-review-20261111-0405",
+    "backup_oid": "a57e840f6887a5f12880586057a399bdd84ce528"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/kubernetes-postgres-migration",
+    "source_oid": "1304b6df5caebef7f803720504a4328d0d14ed17",
+    "backup_branch": "backup/CXOED/kubernetes-postgres-migration-20261111-0405",
+    "backup_oid": "1304b6df5caebef7f803720504a4328d0d14ed17"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/personal-repertoire-archive-jobs",
+    "source_oid": "a7cc68cb81472e6388203a935d037ff38c746e90",
+    "backup_branch": "backup/CXOED/personal-repertoire-archive-jobs-20261111-0405",
+    "backup_oid": "a7cc68cb81472e6388203a935d037ff38c746e90"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/personal-study-assistant",
+    "source_oid": "748cd2962fba8b79d9cf9ab9794f80014d55c67e",
+    "backup_branch": "backup/CXOED/personal-study-assistant-20261111-0405",
+    "backup_oid": "748cd2962fba8b79d9cf9ab9794f80014d55c67e"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/personal-study-workspace",
+    "source_oid": "71cffa4a7fe0a9fb6be1f25d5e029b19996393c8",
+    "backup_branch": "backup/CXOED/personal-study-workspace-20261111-0405",
+    "backup_oid": "71cffa4a7fe0a9fb6be1f25d5e029b19996393c8"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/pgn-import-defaults",
+    "source_oid": "1e29a455a067880dc256d5af5b812a6cfb6ad9a8",
+    "backup_branch": "backup/CXOED/pgn-import-defaults-20261111-0405",
+    "backup_oid": "1e29a455a067880dc256d5af5b812a6cfb6ad9a8"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/postgres-source-wins-upsert",
+    "source_oid": "b36fdf38644b81b6a312d6cc53452f134e1e527f",
+    "backup_branch": "backup/CXOED/postgres-source-wins-upsert-20261111-0405",
+    "backup_oid": "b36fdf38644b81b6a312d6cc53452f134e1e527f"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/product-workspace",
+    "source_oid": "89c8fed8f197ee441372c9d203c9585af73d5dcc",
+    "backup_branch": "backup/CXOED/product-workspace-20261111-0405",
+    "backup_oid": "89c8fed8f197ee441372c9d203c9585af73d5dcc"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/recent-game-study-workspace",
+    "source_oid": "2d0d1ff8d0ca1c5168a67740b9249de6568caed7",
+    "backup_branch": "backup/CXOED/recent-game-study-workspace-20261111-0405",
+    "backup_oid": "2d0d1ff8d0ca1c5168a67740b9249de6568caed7"
+  },
+  {
+    "source_ref": "refs/heads/CXOED/web-analytics-ml",
+    "source_oid": "e542d77ccd36fc8849c2c5cb9dcb5c05cf5fb52d",
+    "backup_branch": "backup/CXOED/web-analytics-ml-20261111-0405",
+    "backup_oid": "e542d77ccd36fc8849c2c5cb9dcb5c05cf5fb52d"
+  },
+  {
+    "source_ref": "refs/heads/main",
+    "source_oid": "6b915b3e2f2555b10370cf0b453ba46032e0961b",
+    "backup_branch": "backup/main-20261111-0405",
+    "backup_oid": "6b915b3e2f2555b10370cf0b453ba46032e0961b"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/board-learning-archives",
+    "source_oid": "bbef4e4511fd830c178b3d34544b8d31920ff091",
+    "backup_branch": "backup/CXOED/board-learning-archives-20261111-0405",
+    "backup_oid": "bbef4e4511fd830c178b3d34544b8d31920ff091"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/historical-pipeline-optimizations",
+    "source_oid": "49b86c21826290d286e2844be43694877b704be6",
+    "backup_branch": "backup/CXOED/historical-pipeline-optimizations-20261111-0405",
+    "backup_oid": "49b86c21826290d286e2844be43694877b704be6"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/incremental-sync-game-review",
+    "source_oid": "a57e840f6887a5f12880586057a399bdd84ce528",
+    "backup_branch": "backup/CXOED/incremental-sync-game-review-20261111-0405",
+    "backup_oid": "a57e840f6887a5f12880586057a399bdd84ce528"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/personal-repertoire-archive-jobs",
+    "source_oid": "a7cc68cb81472e6388203a935d037ff38c746e90",
+    "backup_branch": "backup/CXOED/personal-repertoire-archive-jobs-20261111-0405",
+    "backup_oid": "a7cc68cb81472e6388203a935d037ff38c746e90"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/personal-study-assistant",
+    "source_oid": "748cd2962fba8b79d9cf9ab9794f80014d55c67e",
+    "backup_branch": "backup/CXOED/personal-study-assistant-20261111-0405",
+    "backup_oid": "748cd2962fba8b79d9cf9ab9794f80014d55c67e"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/personal-study-workspace",
+    "source_oid": "96d087c4f3762d0ede8fcc8b4479d8bb1c1416ec",
+    "backup_branch": "backup/remote-origin/CXOED/personal-study-workspace-20261111-0405",
+    "backup_oid": "96d087c4f3762d0ede8fcc8b4479d8bb1c1416ec"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/pgn-import-defaults",
+    "source_oid": "1e29a455a067880dc256d5af5b812a6cfb6ad9a8",
+    "backup_branch": "backup/CXOED/pgn-import-defaults-20261111-0405",
+    "backup_oid": "1e29a455a067880dc256d5af5b812a6cfb6ad9a8"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/product-workspace",
+    "source_oid": "89c8fed8f197ee441372c9d203c9585af73d5dcc",
+    "backup_branch": "backup/CXOED/product-workspace-20261111-0405",
+    "backup_oid": "89c8fed8f197ee441372c9d203c9585af73d5dcc"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/recent-game-study-workspace",
+    "source_oid": "2d0d1ff8d0ca1c5168a67740b9249de6568caed7",
+    "backup_branch": "backup/CXOED/recent-game-study-workspace-20261111-0405",
+    "backup_oid": "2d0d1ff8d0ca1c5168a67740b9249de6568caed7"
+  },
+  {
+    "source_ref": "refs/remotes/origin/CXOED/web-analytics-ml",
+    "source_oid": "e542d77ccd36fc8849c2c5cb9dcb5c05cf5fb52d",
+    "backup_branch": "backup/CXOED/web-analytics-ml-20261111-0405",
+    "backup_oid": "e542d77ccd36fc8849c2c5cb9dcb5c05cf5fb52d"
+  },
+  {
+    "source_ref": "refs/remotes/origin/main",
+    "source_oid": "70229a2f6f59f69378aebd2cc4302755aaa2cbb0",
+    "backup_branch": "backup/remote-origin/main-20261111-0405",
+    "backup_oid": "70229a2f6f59f69378aebd2cc4302755aaa2cbb0"
+  }
+]

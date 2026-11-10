@@ -4,6 +4,9 @@ Outline: connect privately, prepare the login/schema, pause writers, upsert data
 verify, and resume the existing application. Execution evidence is recorded
 separately from these reusable commands.
 
+For the completed 8–9 November run, see the
+[migration handover: steps, SQL, results and recovery](cloudsql-migration-handover.md).
+
 The Python entrypoints are `chess_lakehouse.transfer.managed` for ownership groups,
 the requested login/database, and native application DDL; and
 `chess_lakehouse.transfer` for source-wins data upsert. All commands run in Docker.

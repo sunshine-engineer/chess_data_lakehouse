@@ -1,0 +1,58 @@
+[
+  {
+    "Name": "chess-archive-scale_pipeline-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-archive-scale_postgres-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-lakehouse_backup-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-lakehouse_ml-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-lakehouse_pipeline-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-lakehouse_postgres-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-lakehouse_study-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-lakehouse_study-llm-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-study-demo_ml-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-study-demo_postgres-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-study-demo_study-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-workspace-qa_ml-data",
+    "Disposition": "public-files-eligible"
+  },
+  {
+    "Name": "chess-workspace-qa_postgres-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  },
+  {
+    "Name": "chess-workspace-qa_study-data",
+    "Disposition": "private-database-study-or-backup-not-published"
+  }
+]

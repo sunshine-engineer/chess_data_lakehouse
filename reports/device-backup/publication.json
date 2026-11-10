@@ -1,0 +1,15 @@
+{
+  "repository": "sunshine-engineer/chess_data_lakehouse",
+  "visibility": "public",
+  "backup_branch": "backup/working-copy-20261111-0405",
+  "release_tag": "device-backup-20261111-0405",
+  "release_url": "https://github.com/sunshine-engineer/chess_data_lakehouse/releases/tag/device-backup-20261111-0405",
+  "status": "prepared-awaiting-asset-upload-and-download-acceptance",
+  "history_branches": 16,
+  "source_refs_covered": 25,
+  "python_execution": "Docker",
+  "recovery_tests_passed": 5,
+  "safe_to_delete_project_or_docker_state": false,
+  "private_database_and_personal_study_backup": "excluded-from-public-repository",
+  "restore_guide": "docs/DEVICE_TRANSFER_RESTORE.md"
+}
